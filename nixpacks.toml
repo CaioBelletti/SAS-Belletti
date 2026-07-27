@@ -1,0 +1,5 @@
+# Pacotes de sistema que o Railway (via Nixpacks) instala antes de rodar
+# o projeto. O Tesseract é o motor de OCR usado pra ler prints de tela
+# na importação de estoque — sem isso, só PDF e .txt funcionariam.
+[phases.setup]
+aptPkgs = ["tesseract-ocr", "tesseract-ocr-por"]
