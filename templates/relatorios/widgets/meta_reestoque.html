@@ -1,0 +1,45 @@
+<div class="grid grid-2" style="margin-bottom: 0;">
+    <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Meta do mês</div>
+        {% if meta %}
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13.5px;">
+            <span style="color:var(--text-muted);">R$ {{ dre.receita_bruta|floatformat:2 }} de R$ {{ meta.valor_meta|floatformat:2 }}</span>
+            <span style="color:{% if meta.atingida %}var(--green){% else %}var(--accent-text){% endif %}; font-family: var(--font-mono);">{{ meta.progresso_percentual|floatformat:0 }}%</span>
+        </div>
+        <div style="background: var(--bg-2); border-radius: 6px; height: 10px; overflow: hidden;">
+            <div style="width: {{ meta.progresso_percentual|stringformat:"0.1f" }}%; height: 100%; background: {% if meta.atingida %}var(--green){% else %}var(--accent){% endif %};"></div>
+        </div>
+        <div style="margin-top: 12px; font-size: 13px; color: var(--text-muted);">
+            {% if meta.atingida %}
+            Meta batida! 🎉
+            {% else %}
+            Faltam <strong style="color: var(--gold);">R$ {{ meta.falta_valor|floatformat:2 }}</strong>
+            ({{ meta.falta_percentual|floatformat:0 }}%) pra bater a meta do mês.
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="empty-row">
+            Nenhuma meta definida pra esse mês.
+            <a href="/admin/relatorios/metamensal/add/" style="color: var(--accent-text);">Definir meta</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Precisa de reestoque</div>
+        <table>
+            <thead><tr><th>Produto</th><th>SKU</th><th>Estoque</th></tr></thead>
+            <tbody>
+                {% for produto in produtos_reestoque %}
+                <tr>
+                    <td>{{ produto.nome }}</td>
+                    <td class="num">{{ produto.sku }}</td>
+                    <td class="num" style="color: {% if produto.estoque_atual == 0 %}var(--red){% else %}var(--gold){% endif %};">{{ produto.estoque_atual }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Nenhum produto com estoque baixo. 👍</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Autenticação em duas etapas — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    .msg.success { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
+    .codigo-input {
+        width: 160px; padding: 12px; border-radius: 8px; text-align: center;
+        border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary);
+        font-size: 20px; font-family: var(--font-mono); letter-spacing: 4px;
+    }
+    .btn-acao {
+        padding: 10px 18px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-top: 12px;
+    }
+    .btn-acao.perigo { background: var(--red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Autenticação em duas etapas</h1>
+        <div class="subtitle">Uma camada extra de segurança no seu login</div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+{% if ativado %}
+<div class="card" style="max-width: 480px;">
+    <div class="card-title">Status</div>
+    <p style="color: var(--green); font-size: 14px;">✓ Ativado — seu login exige o código do app autenticador.</p>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="desativar">
+        <button type="submit" class="btn-acao perigo">Desativar 2FA</button>
+    </form>
+</div>
+{% else %}
+<div class="card" style="max-width: 480px;">
+    <div class="card-title">Ativar autenticação em duas etapas</div>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        1. Instale um app autenticador no celular (Google Authenticator, Microsoft Authenticator, Authy...)<br>
+        2. Escaneie o QR code abaixo<br>
+        3. Digite o código de 6 dígitos que aparecer no app pra confirmar
+    </p>
+    {% if qr_data_uri %}
+    <img src="{{ qr_data_uri }}" alt="QR code" style="background: white; padding: 10px; border-radius: 8px;">
+    {% endif %}
+    <form method="post" style="margin-top: 16px;">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="confirmar">
+        <input type="text" name="codigo" class="codigo-input" inputmode="numeric" maxlength="6" placeholder="000000" required>
+        <br>
+        <button type="submit" class="btn-acao">Confirmar e ativar</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

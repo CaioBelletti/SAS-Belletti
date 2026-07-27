@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}BI Avançado — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .filtros-form { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 18px; align-items: end; }
+    .filtros-form label { font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .filtros-form select, .filtros-form input {
+        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13px; box-sizing: border-box;
+    }
+    .btn-acao { padding: 9px 16px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .btn-export { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 12.5px; text-decoration: none; margin-right: 8px; display: inline-block; }
+    #mapaClientes { height: 320px; border-radius: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>BI Avançado</h1><div class="subtitle">Filtros combinados, drill-down até o item da venda, exportação e mapa de clientes</div></div>
+</div>
+
+<form method="get" class="filtros-form">
+    <div>
+        <label>Data início</label>
+        <input type="date" name="data_inicio" value="{{ data_inicio }}">
+    </div>
+    <div>
+        <label>Data fim</label>
+        <input type="date" name="data_fim" value="{{ data_fim }}">
+    </div>
+    <div>
+        <label>Categoria</label>
+        <select name="categoria">
+            <option value="">Todas</option>
+            {% for c in categorias %}
+            <option value="{{ c.id }}" {% if categoria_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label>Vendedor</label>
+        <select name="vendedor">
+            <option value="">Todos</option>
+            {% for v in vendedores %}
+            <option value="{{ v.id }}" {% if vendedor_id == v.id|stringformat:"s" %}selected{% endif %}>{{ v.username }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn-acao">Filtrar</button>
+</form>
+
+<div class="grid grid-metrics" style="margin-bottom: 18px;">
+    <div class="card metric">
+        <div class="label">Vendas no período</div>
+        <div class="value">{{ numero_vendas }}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Itens vendidos</div>
+        <div class="value">{{ resumo.total_itens|default:0 }}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Valor total</div>
+        <div class="value accent">R$ {{ resumo.total_valor|default:0|floatformat:2 }}</div>
+    </div>
+</div>
+
+<div style="margin-bottom: 18px;">
+    <a class="btn-export" href="{% url 'relatorios:bi_exportar_csv' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&categoria={{ categoria_id }}&vendedor={{ vendedor_id }}">⬇ CSV</a>
+    <a class="btn-export" href="{% url 'relatorios:bi_exportar_pdf' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&categoria={{ categoria_id }}&vendedor={{ vendedor_id }}">⬇ PDF</a>
+    <a class="btn-export" href="{% url 'relatorios:exportar_excel' %}">⬇ Excel (dashboard completo)</a>
+</div>
+
+<div class="card" style="margin-bottom: 18px;">
+    <div class="card-title">Mapa de clientes por estado</div>
+    <div id="mapaClientes"></div>
+</div>
+
+<div class="card">
+    <div class="card-title">Drill-down — itens de venda no período (até 200 linhas)</div>
+    <table>
+        <thead><tr><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Produto</th><th>Categoria</th><th>Qtd</th><th>Subtotal</th></tr></thead>
+        <tbody>
+            {% for item in itens %}
+            <tr>
+                <td class="num">{{ item.venda.fechada_em|date:"d/m/Y" }}</td>
+                <td>{{ item.venda.cliente.nome|default:"—" }}</td>
+                <td>{{ item.venda.vendedor.username|default:"—" }}</td>
+                <td>{{ item.produto.nome }}</td>
+                <td>{{ item.produto.categoria.nome|default:"—" }}</td>
+                <td class="num">{{ item.quantidade }}</td>
+                <td class="num">R$ {{ item.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="empty-row">Nenhuma venda encontrada nesse filtro.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const mapa = L.map('mapaClientes', { scrollWheelZoom: false }).setView([-15.78, -47.93], 4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+}).addTo(mapa);
+
+const clientesPorEstado = {{ clientes_por_estado_json|safe }};
+clientesPorEstado.forEach(function (item) {
+    const raio = Math.max(Math.sqrt(item.total) * 20000, 15000);
+    L.circle([item.lat, item.lng], {
+        radius: raio, color: '#8b6cf2', fillColor: '#8b6cf2', fillOpacity: 0.4,
+    }).addTo(mapa).bindPopup(`<strong>${item.uf}</strong>: ${item.total} cliente(s)`);
+});
+</script>
+{% endblock %}

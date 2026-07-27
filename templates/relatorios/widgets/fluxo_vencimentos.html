@@ -1,0 +1,26 @@
+<div class="grid grid-2" style="margin-bottom: 0;">
+    <div class="card">
+        <div class="card-title">Fluxo de caixa projetado (30 dias)</div>
+        <canvas id="graficoFluxo" height="120"></canvas>
+    </div>
+    <div class="card">
+        <div class="card-title">Próximos vencimentos</div>
+        <table>
+            <thead>
+                <tr><th>Tipo</th><th>Descrição</th><th>Venc.</th><th>Valor</th></tr>
+            </thead>
+            <tbody>
+                {% for item in proximos_vencimentos %}
+                <tr>
+                    <td style="color: {% if item.tipo == 'A pagar' %}var(--red){% else %}var(--green){% endif %};">{{ item.tipo }}</td>
+                    <td>{{ item.descricao }}</td>
+                    <td class="num">{{ item.vencimento|date:"d/m" }}</td>
+                    <td class="num">R$ {{ item.valor|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="empty-row">Nenhum vencimento nos próximos 30 dias.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

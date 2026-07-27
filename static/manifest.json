@@ -1,0 +1,16 @@
+{
+  "name": "Belletti Cards Universe",
+  "short_name": "Belletti",
+  "description": "PDV e ERP da Belletti Cards Universe",
+  "start_url": "/pdv/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c0d11",
+  "theme_color": "#0c0d11",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

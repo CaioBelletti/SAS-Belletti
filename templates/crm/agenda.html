@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Agenda — Belletti Cards Universe{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Agenda</h1><div class="subtitle">Suas tarefas agrupadas por dia</div></div>
+</div>
+
+{% for grupo in dias %}
+<div class="card" style="margin-bottom: 12px;">
+    <div class="card-title" style="{% if grupo.data == hoje %}color: var(--gold);{% endif %}">
+        {{ grupo.data|date:"d/m/Y — l" }}{% if grupo.data == hoje %} (hoje){% endif %}
+    </div>
+    <table>
+        <thead><tr><th>Hora</th><th>Tarefa</th><th>Relacionado a</th></tr></thead>
+        <tbody>
+            {% for t in grupo.tarefas %}
+            <tr>
+                <td class="num">{{ t.data_vencimento|date:"H:i" }}</td>
+                <td>{{ t.titulo }}</td>
+                <td>{% if t.lead %}{{ t.lead.nome }}{% elif t.cliente %}{{ t.cliente.nome }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% empty %}
+<div class="card"><div class="empty-row">Nenhuma tarefa agendada. 👍</div></div>
+{% endfor %}
+{% endblock %}

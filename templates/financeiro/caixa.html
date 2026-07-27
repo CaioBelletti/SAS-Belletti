@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Caixa — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-inline { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-top: 10px; }
+    .form-inline input, .form-inline select {
+        padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13.5px;
+    }
+    .form-inline label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .btn-acao {
+        padding: 9px 16px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    }
+    .btn-acao.secundario { background: var(--bg-2); border: 1px solid var(--border); color: var(--text-primary); }
+    .btn-acao.perigo { background: var(--red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Caixa</h1>
+        <div class="subtitle">Abertura, sangria, suprimento e fechamento do turno</div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+{% if not sessao %}
+<div class="card" style="max-width: 420px;">
+    <div class="card-title">Nenhum caixa aberto</div>
+    <form method="post" class="form-inline">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="abrir">
+        <div>
+            <label>Valor de abertura (troco inicial)</label>
+            <input type="number" name="valor_abertura" step="0.01" min="0" value="0" required>
+        </div>
+        <button type="submit" class="btn-acao">Abrir caixa</button>
+    </form>
+</div>
+
+{% else %}
+<div class="grid grid-metrics" style="margin-bottom: 18px;">
+    <div class="card metric">
+        <div class="label">Aberto desde</div>
+        <div class="value" style="font-size: 16px;">{{ sessao.aberta_em|date:"d/m H:i" }}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Valor de abertura</div>
+        <div class="value">R$ {{ sessao.valor_abertura|floatformat:2 }}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Entradas / Saídas</div>
+        <div class="value" style="font-size: 16px;">
+            <span style="color: var(--green);">+{{ sessao.total_entradas|floatformat:2 }}</span> /
+            <span style="color: var(--red);">-{{ sessao.total_saidas|floatformat:2 }}</span>
+        </div>
+    </div>
+    <div class="card metric">
+        <div class="label">Saldo esperado em caixa</div>
+        <div class="value accent">R$ {{ sessao.saldo_esperado|floatformat:2 }}</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-title">Sangria (retirar dinheiro do caixa)</div>
+        <form method="post" class="form-inline">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="sangria">
+            <div><label>Valor</label><input type="number" name="valor" step="0.01" min="0.01" required></div>
+            <div><label>Motivo</label><input type="text" name="descricao" placeholder="ex: depósito no banco"></div>
+            <button type="submit" class="btn-acao secundario">Registrar sangria</button>
+        </form>
+    </div>
+    <div class="card">
+        <div class="card-title">Suprimento (reforçar o caixa)</div>
+        <form method="post" class="form-inline">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="suprimento">
+            <div><label>Valor</label><input type="number" name="valor" step="0.01" min="0.01" required></div>
+            <div><label>Motivo</label><input type="text" name="descricao" placeholder="ex: reforço de troco"></div>
+            <button type="submit" class="btn-acao secundario">Registrar suprimento</button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 16px; max-width: 520px;">
+    <div class="card-title">Fechar caixa</div>
+    <form method="post" class="form-inline">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="fechar">
+        <div>
+            <label>Valor contado na gaveta</label>
+            <input type="number" name="valor_fechamento" step="0.01" min="0" required>
+        </div>
+        <button type="submit" class="btn-acao perigo">Fechar caixa</button>
+    </form>
+    <div class="aviso" style="font-size: 12.5px; color: var(--text-faint); margin-top: 10px;">
+        O sistema compara o valor contado com o saldo esperado (R$ {{ sessao.saldo_esperado|floatformat:2 }}) e mostra a diferença depois de fechar.
+    </div>
+</div>
+{% endif %}
+
+{% if ultimas_sessoes %}
+<div class="card" style="margin-top: 16px;">
+    <div class="card-title">Últimos fechamentos</div>
+    <table>
+        <thead><tr><th>Aberto em</th><th>Fechado em</th><th>Esperado</th><th>Contado</th><th>Diferença</th></tr></thead>
+        <tbody>
+            {% for s in ultimas_sessoes %}
+            <tr>
+                <td>{{ s.aberta_em|date:"d/m H:i" }}</td>
+                <td>{{ s.fechada_em|date:"d/m H:i" }}</td>
+                <td class="num">R$ {{ s.saldo_esperado|floatformat:2 }}</td>
+                <td class="num">R$ {{ s.valor_fechamento_informado|floatformat:2 }}</td>
+                <td class="num" style="color: {% if s.diferenca == 0 %}var(--green){% elif s.diferenca < 0 %}var(--red){% else %}var(--gold){% endif %};">
+                    {% if s.diferenca > 0 %}+{% endif %}{{ s.diferenca|floatformat:2 }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

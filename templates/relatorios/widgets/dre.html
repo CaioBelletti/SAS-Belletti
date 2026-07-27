@@ -1,0 +1,14 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title">DRE simplificado — mês atual</div>
+    <table>
+        <tbody>
+            <tr><td>Receita bruta de vendas</td><td class="num" style="text-align:right;">R$ {{ dre.receita_bruta|floatformat:2 }}</td></tr>
+            <tr><td>(–) Devoluções</td><td class="num" style="text-align:right; color: var(--red);">R$ {{ dre.valor_devolucoes|floatformat:2 }}</td></tr>
+            <tr><td><strong>Receita líquida</strong></td><td class="num" style="text-align:right;"><strong>R$ {{ dre.receita_liquida|floatformat:2 }}</strong></td></tr>
+            <tr><td>(–) Custo da mercadoria vendida (CMV)</td><td class="num" style="text-align:right; color: var(--red);">R$ {{ dre.cmv|floatformat:2 }}</td></tr>
+            <tr><td><strong>Margem bruta</strong></td><td class="num" style="text-align:right;"><strong>R$ {{ dre.margem_bruta|floatformat:2 }}</strong></td></tr>
+            <tr><td>(–) Despesas operacionais</td><td class="num" style="text-align:right; color: var(--red);">R$ {{ dre.despesas_operacionais|floatformat:2 }}</td></tr>
+            <tr style="border-top: 1px solid var(--border);"><td style="padding-top:12px;"><strong>Lucro líquido</strong></td><td class="num" style="text-align:right; padding-top:12px;"><strong style="color: {% if dre.lucro_liquido >= 0 %}var(--green){% else %}var(--red){% endif %}; font-size: 16px;">R$ {{ dre.lucro_liquido|floatformat:2 }}</strong></td></tr>
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,16 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Heatmap de vendas (dia da semana × horário)</div>
+    <div class="heatmap">
+        <div class="hlabel"></div>
+        {% for h in horas_range %}
+        <div class="hourlabel">{% if h|divisibleby:3 %}{{ h }}h{% endif %}</div>
+        {% endfor %}
+        {% for linha in heatmap %}
+        <div class="hlabel">{{ linha.label }}</div>
+        {% for cel in linha.celulas %}
+        <div class="hcell" style="background: {{ cel.cor }};" title="{{ linha.label }} {{ cel.hora }}h — {{ cel.valor }} venda(s)"></div>
+        {% endfor %}
+        {% endfor %}
+    </div>
+    <div style="margin-top: 10px; font-size: 11.5px; color: var(--text-faint);">Mais escuro = mais vendas naquele dia/horário. Passe o mouse numa célula pra ver o número exato.</div>
+</div>

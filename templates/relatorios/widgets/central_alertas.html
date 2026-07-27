@@ -1,0 +1,25 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Central de alertas</div>
+    {% if alertas %}
+    {% for a in alertas %}
+    <div class="alerta-item {{ a.nivel }}">
+        <div class="alerta-icon">
+            {% if a.nivel == 'urgente' %}
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {% elif a.nivel == 'atencao' %}
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            {% else %}
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            {% endif %}
+        </div>
+        <div class="alerta-texto">
+            <div class="alerta-titulo">{{ a.titulo }}</div>
+            <div class="alerta-descricao">{{ a.descricao }}</div>
+        </div>
+        <a href="{{ a.link }}" class="alerta-link">Ver →</a>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-row">Nenhum alerta agora — tudo sob controle. 👍</div>
+    {% endif %}
+</div>

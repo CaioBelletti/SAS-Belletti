@@ -1,0 +1,139 @@
+/*
+    Tema do admin — mesma identidade visual do resto do sistema
+    (fundo quase preto, roxo como cor de ação, dourado como
+    assinatura da marca). Funciona sobrescrevendo as variáveis CSS
+    que o próprio admin do Django já usa, então herda de graça pra
+    quase toda superfície (tabelas, formulários, botões, mensagens).
+*/
+
+:root, html[data-theme="light"], html[data-theme="dark"] {
+    --primary: #8b6cf2;
+    --secondary: #4c3d8f;
+    --accent: #e8b34d;
+    --primary-fg: #ffffff;
+
+    --body-fg: #eef0f4;
+    --body-bg: #0c0d11;
+    --body-quiet-color: #8b91a3;
+    --body-medium-color: #c7cbd6;
+    --body-loud-color: #ffffff;
+
+    --header-color: #e8b34d;
+    --header-branding-color: #e8b34d;
+    --header-bg: #15171e;
+    --header-link-color: #eef0f4;
+
+    --breadcrumbs-fg: #8b91a3;
+    --breadcrumbs-link-fg: #c4b5fd;
+    --breadcrumbs-bg: #15171e;
+
+    --link-fg: #c4b5fd;
+    --link-hover-color: #a78bfa;
+    --link-selected-fg: #8b6cf2;
+
+    --hairline-color: #262a35;
+    --border-color: #262a35;
+
+    --error-fg: #f26d6d;
+
+    --message-debug-bg: #1d2029;
+    --message-info-bg: #4f8ef722;
+    --message-success-bg: #4ade8022;
+    --message-warning-bg: #e8b34d22;
+    --message-error-bg: #f26d6d22;
+
+    --darkened-bg: #15171e;
+    --selected-bg: #1d2029;
+    --selected-row: #8b6cf214;
+
+    --button-fg: #ffffff;
+    --button-bg: #8b6cf2;
+    --button-hover-bg: #7c5ce0;
+    --default-button-bg: #8b6cf2;
+    --default-button-hover-bg: #7c5ce0;
+    --close-button-bg: #565c6e;
+    --close-button-hover-bg: #33384a;
+    --delete-button-bg: #f26d6d;
+    --delete-button-hover-bg: #d94f4f;
+
+    --object-tools-fg: var(--button-fg);
+    --object-tools-bg: var(--primary);
+    --object-tools-hover-bg: var(--link-hover-color);
+}
+
+body, body.dashboard, body.change-list, body.change-form {
+    font-family: "Inter", -apple-system, sans-serif;
+    background: var(--body-bg);
+}
+
+#header {
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+#branding h1, #branding h1 a:link, #branding h1 a:visited {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+div.breadcrumbs {
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+.module h2, .module caption, .inline-group h2 {
+    background: #1d2029;
+    color: var(--body-loud-color);
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+}
+
+.module, .dashboard .module, fieldset.module {
+    background: #15171e;
+    border: 1px solid var(--hairline-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#content-main .module { margin-bottom: 20px; }
+
+input, textarea, select, .vTextField {
+    background: #1d2029 !important;
+    border: 1px solid var(--hairline-color) !important;
+    border-radius: 6px !important;
+    color: var(--body-fg) !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--primary) !important;
+    outline: none;
+}
+
+.button, input[type="submit"], input[type="button"], .submit-row input, a.button {
+    border-radius: 7px !important;
+    font-weight: 600 !important;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.button:hover, input[type="submit"]:hover { transform: translateY(-1px); }
+
+.selector-chosen h2, .calendar caption, .timelist caption { background: var(--secondary) !important; }
+
+#nav-sidebar {
+    background: #0c0d11;
+    border-right: 1px solid var(--hairline-color);
+}
+
+.results table thead th, table thead th {
+    background: #1d2029;
+}
+
+table tbody tr:nth-child(even) { background: #131419; }
+table tbody tr:hover { background: #1a1c24; }
+
+a:link, a:visited { color: var(--link-fg); }
+a:focus, a:hover { color: var(--link-hover-color); }
+
+.object-tools a, .object-tools a:link {
+    border-radius: 7px !important;
+}
+
+#footer, .footer { color: var(--body-quiet-color); }

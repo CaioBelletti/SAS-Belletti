@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Buscar imagem — {{ produto.nome }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    .msg.success { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
+    .busca-form { display: flex; gap: 8px; margin-bottom: 20px; }
+    .busca-form input {
+        flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13.5px;
+    }
+    .btn-acao {
+        padding: 10px 18px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    }
+    .candidatos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+    .candidato { background: var(--bg-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+    .candidato img { width: 100%; border-radius: 6px; margin-bottom: 8px; background: var(--bg-2); }
+    .candidato .titulo { font-size: 12.5px; font-weight: 600; margin-bottom: 2px; }
+    .candidato .edicao { font-size: 11px; color: var(--text-faint); margin-bottom: 10px; }
+    .candidato button {
+        width: 100%; padding: 8px; border-radius: 6px; border: none; background: var(--accent);
+        color: white; font-size: 12.5px; cursor: pointer;
+    }
+    .modo-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .modo-tabs a {
+        padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); font-size: 12.5px;
+        color: var(--text-muted); background: var(--bg-2);
+    }
+    .modo-tabs a.ativo { background: var(--accent); color: white; border-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="topbar">
+    <div>
+        <h1>Buscar imagem — {{ produto.nome }}</h1>
+        <div class="subtitle">SKU {{ produto.sku }}{% if produto.categoria %} · {{ produto.categoria.nome }}{% endif %}</div>
+    </div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="modo-tabs">
+    <a href="?modo=nome{% if not jogo %}#{% endif %}" class="{% if modo == 'nome' %}ativo{% endif %}" {% if not jogo %}style="opacity:0.4; pointer-events:none;" title="Categoria sem jogo configurado"{% endif %}>🎴 Buscar carta por nome</a>
+    <a href="?modo=codigo_barras" class="{% if modo == 'codigo_barras' %}ativo{% endif %}">📦 Buscar produto lacrado por código de barras</a>
+</div>
+
+{% if modo == "nome" %}
+    {% if not jogo %}
+    <div class="msg error">Essa categoria não está marcada com um jogo (configure em Cadastros → Categorias pra habilitar a busca por nome de carta).</div>
+    {% else %}
+    <form method="get" class="busca-form">
+        <input type="hidden" name="modo" value="nome">
+        <input type="text" name="termo" value="{{ termo_busca }}" placeholder="Nome da carta pra buscar...">
+        <button type="submit" class="btn-acao">Buscar de novo</button>
+    </form>
+    {% endif %}
+{% else %}
+    <form method="get" class="busca-form">
+        <input type="hidden" name="modo" value="codigo_barras">
+        <input type="text" name="codigo" value="{{ codigo_busca }}" placeholder="Código de barras (UPC/EAN) do produto...">
+        <button type="submit" class="btn-acao">Buscar de novo</button>
+    </form>
+    {% if not codigo_busca %}
+    <div class="msg error">Esse produto não tem código de barras/EAN cadastrado ainda — digite um acima pra buscar, ou preencha o campo na ficha do produto primeiro.</div>
+    {% endif %}
+{% endif %}
+
+{% if candidatos %}
+<div class="candidatos">
+    {% for c in candidatos %}
+    <div class="candidato">
+        <img src="{{ c.thumb_url }}" alt="{{ c.titulo }}">
+        <div class="titulo">{{ c.titulo }}</div>
+        <div class="edicao">{{ c.edicao }}</div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="imagem_url" value="{{ c.imagem_url }}">
+            <button type="submit">Usar essa imagem</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% elif modo == "nome" and jogo or modo == "codigo_barras" and codigo_busca %}
+<div class="card">
+    <div class="empty-row">
+        Nenhum resultado encontrado. Tente ajustar o termo/código acima, ou envie a imagem
+        manualmente na ficha do produto.
+    </div>
+</div>
+{% endif %}
+{% endblock %}

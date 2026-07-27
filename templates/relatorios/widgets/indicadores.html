@@ -1,0 +1,38 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> Indicadores financeiros (mês atual)</div>
+    <div class="grid grid-metrics" style="margin-bottom: 0;">
+        <div class="card metric" style="border: none; box-shadow: none; padding: 10px 12px;">
+            <div class="label">Margem bruta</div>
+            <div class="value {% if indicadores.margem_bruta_pct %}accent{% endif %}">
+                {% if indicadores.margem_bruta_pct is not None %}{{ indicadores.margem_bruta_pct }}%{% else %}—{% endif %}
+            </div>
+        </div>
+        <div class="card metric" style="border: none; box-shadow: none; padding: 10px 12px;">
+            <div class="label">Margem líquida</div>
+            <div class="value" style="color: {% if indicadores.margem_liquida_pct and indicadores.margem_liquida_pct >= 0 %}var(--green){% elif indicadores.margem_liquida_pct %}var(--red){% endif %};">
+                {% if indicadores.margem_liquida_pct is not None %}{{ indicadores.margem_liquida_pct }}%{% else %}—{% endif %}
+            </div>
+        </div>
+        <div class="card metric" style="border: none; box-shadow: none; padding: 10px 12px;">
+            <div class="label">CMV sobre receita</div>
+            <div class="value gold">
+                {% if indicadores.cmv_pct is not None %}{{ indicadores.cmv_pct }}%{% else %}—{% endif %}
+            </div>
+        </div>
+        <div class="card metric" style="border: none; box-shadow: none; padding: 10px 12px;">
+            <div class="label">Despesas sobre receita</div>
+            <div class="value" style="color: var(--text-primary);">
+                {% if indicadores.despesas_pct is not None %}{{ indicadores.despesas_pct }}%{% else %}—{% endif %}
+            </div>
+        </div>
+    </div>
+    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <div style="font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Ponto de equilíbrio (receita mínima pra cobrir as despesas do mês)</div>
+            <div style="font-size: 12px; color: var(--text-faint); margin-top: 2px;">Considerando a margem bruta atual</div>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 18px; font-weight: 600;">
+            {% if indicadores.ponto_equilibrio is not None %}R$ {{ indicadores.ponto_equilibrio|floatformat:2 }}{% else %}—{% endif %}
+        </div>
+    </div>
+</div>

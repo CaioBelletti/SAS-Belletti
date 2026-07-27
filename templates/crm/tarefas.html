@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Tarefas — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .btn-acao { padding: 9px 16px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .form-inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .form-inline input { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 13px; }
+    .tarefa-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-soft); }
+    .tarefa-item.atrasada .titulo { color: var(--red); }
+    .btn-mini { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 12px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Tarefas</h1><div class="subtitle">Lembretes e follow-ups, manuais e automáticos</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Nova tarefa</div>
+    <form method="post" class="form-inline">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="criar">
+        <input type="text" name="titulo" placeholder="Título" required style="flex:1; min-width:200px;">
+        <input type="datetime-local" name="data_vencimento" required>
+        <button type="submit" class="btn-acao">Criar</button>
+    </form>
+</div>
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Pendentes</div>
+    {% for t in pendentes %}
+    <div class="tarefa-item {% if t.atrasada %}atrasada{% endif %}">
+        <div style="flex:1;">
+            <div class="titulo">{{ t.titulo }}{% if t.gerada_automaticamente %} <span style="color:var(--accent-text); font-size:11px;">(automática)</span>{% endif %}</div>
+            <div style="font-size:11.5px; color:var(--text-faint);">
+                {{ t.data_vencimento|date:"d/m/Y H:i" }}
+                {% if t.lead %} · lead: {{ t.lead.nome }}{% endif %}
+                {% if t.cliente %} · cliente: {{ t.cliente.nome }}{% endif %}
+            </div>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="concluir">
+            <input type="hidden" name="tarefa_id" value="{{ t.id }}">
+            <button type="submit" class="btn-mini">Concluir</button>
+        </form>
+    </div>
+    {% empty %}
+    <div class="empty-row">Nenhuma tarefa pendente. 👍</div>
+    {% endfor %}
+</div>
+
+{% if concluidas %}
+<div class="card">
+    <div class="card-title">Concluídas recentemente</div>
+    {% for t in concluidas %}
+    <div class="tarefa-item" style="opacity:0.6;">
+        <div style="flex:1;">
+            <div class="titulo">{{ t.titulo }}</div>
+            <div style="font-size:11.5px; color:var(--text-faint);">Concluída em {{ t.concluida_em|date:"d/m/Y H:i" }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

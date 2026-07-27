@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Inteligência — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .secao-titulo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; margin: 26px 0 12px; display: flex; align-items: center; gap: 8px; }
+    .secao-titulo:first-child { margin-top: 0; }
+    .insight-item { background: var(--bg-1); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; font-size: 13.5px; }
+    .aviso-metodo { font-size: 11px; color: var(--text-faint); margin-bottom: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Inteligência</h1>
+        <div class="subtitle">Previsões, sugestões e alertas gerados por estatística sobre seus próprios dados</div>
+    </div>
+</div>
+<div class="aviso-metodo">
+    Tudo aqui é calculado com estatística e regras de negócio sobre o seu histórico — não usa IA generativa/paga.
+    Quanto mais dados o sistema acumular, mais precisas ficam as previsões.
+</div>
+
+<div class="secao-titulo">💡 Insights automáticos</div>
+{% for insight in insights %}
+<div class="insight-item">{{ insight }}</div>
+{% empty %}
+<div class="card"><div class="empty-row">Nenhum insight relevante agora — os números estão dentro do esperado.</div></div>
+{% endfor %}
+
+<div class="secao-titulo">💰 IA Financeira</div>
+<div class="grid grid-metrics">
+    <div class="card metric">
+        <div class="label">Previsão de faturamento (próximo mês)</div>
+        <div class="value accent">{% if previsao_faturamento %}R$ {{ previsao_faturamento|floatformat:2 }}{% else %}sem dados suficientes{% endif %}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Previsão de lucro (próximo mês)</div>
+        <div class="value" style="color: {% if previsao_lucro and previsao_lucro >= 0 %}var(--green){% else %}var(--red){% endif %};">{% if previsao_lucro %}R$ {{ previsao_lucro|floatformat:2 }}{% else %}sem dados suficientes{% endif %}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Capital de giro</div>
+        <div class="value" style="color: {% if capital_giro_info.capital_giro >= 0 %}var(--green){% else %}var(--red){% endif %};">R$ {{ capital_giro_info.capital_giro|floatformat:2 }}</div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 22px;">
+    <div class="card-title">Sugestão de margem e preço (produtos mais ativos)</div>
+    <table>
+        <thead><tr><th>Produto</th><th>Preço atual</th><th>Margem sugerida</th><th>Preço sugerido</th></tr></thead>
+        <tbody>
+            {% for s in sugestoes_preco %}
+            <tr>
+                <td>{{ s.produto.nome }}</td>
+                <td class="num">R$ {{ s.preco_atual|floatformat:2 }}</td>
+                <td class="num">{{ s.margem_sugerida }}%</td>
+                <td class="num" style="color: {% if s.preco_sugerido > s.preco_atual %}var(--green){% elif s.preco_sugerido < s.preco_atual %}var(--gold){% else %}var(--text-faint){% endif %};">R$ {{ s.preco_sugerido|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="empty-row">Sem dados suficientes ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top: 10px; font-size: 11.5px; color: var(--text-faint);">
+        Heurística: produto que gira rápido pode sustentar margem menor (compensa no volume);
+        produto parado sugere margem maior (compensa o capital parado). Ajuste com seu julgamento.
+    </div>
+</div>
+
+<div class="secao-titulo">📦 IA Estoque</div>
+<div class="grid grid-metrics">
+    <div class="card metric">
+        <div class="label">Capital parado (produtos sem giro)</div>
+        <div class="value gold">R$ {{ capital_parado|floatformat:2 }}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Produtos com ruptura iminente</div>
+        <div class="value" style="color: {% if ruptura_iminente %}var(--red){% endif %};">{{ ruptura_iminente|length }}</div>
+    </div>
+    <div class="card metric">
+        <div class="label">Produtos com excesso de estoque</div>
+        <div class="value gold">{{ excesso_estoque|length }}</div>
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-bottom: 22px;">
+    <div class="card">
+        <div class="card-title">Ruptura iminente (menos de 15 dias de estoque)</div>
+        <table>
+            <thead><tr><th>Produto</th><th>Estoque</th><th>Cobertura</th></tr></thead>
+            <tbody>
+                {% for g in ruptura_iminente %}
+                <tr>
+                    <td>{{ g.produto.nome }}</td>
+                    <td class="num">{{ g.produto.estoque_atual }}</td>
+                    <td class="num" style="color: var(--red);">{{ g.cobertura_dias }} dias</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Nenhum produto em risco agora. 👍</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-title">Excesso de estoque (mais de 180 dias de cobertura)</div>
+        <table>
+            <thead><tr><th>Produto</th><th>Estoque</th><th>Cobertura</th></tr></thead>
+            <tbody>
+                {% for g in excesso_estoque %}
+                <tr>
+                    <td>{{ g.produto.nome }}</td>
+                    <td class="num">{{ g.produto.estoque_atual }}</td>
+                    <td class="num" style="color: var(--gold);">{{ g.cobertura_dias }} dias</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Nenhum produto parado em excesso.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="secao-titulo">🤝 IA Comercial</div>
+<div class="grid grid-2" style="margin-bottom: 22px;">
+    <div class="card">
+        <div class="card-title">Clientes inativos (90+ dias sem comprar)</div>
+        <table>
+            <thead><tr><th>Cliente</th><th>Última compra</th><th>Total já gasto</th></tr></thead>
+            <tbody>
+                {% for c in clientes_inativos %}
+                <tr>
+                    <td>{{ c.cliente.nome }}</td>
+                    <td class="num" style="color: var(--text-faint);">{{ c.ultima_compra|date:"d/m/Y" }} ({{ c.dias_sem_comprar }}d)</td>
+                    <td class="num">R$ {{ c.total_gasto|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Nenhum cliente inativo identificado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-title">Chance de recompra (hora de contatar)</div>
+        <table>
+            <thead><tr><th>Cliente</th><th>Costuma comprar a cada</th><th>Já se passaram</th></tr></thead>
+            <tbody>
+                {% for r in chance_recompra %}
+                <tr>
+                    <td>{{ r.cliente.nome }}</td>
+                    <td class="num">{{ r.intervalo_medio_dias }}d</td>
+                    <td class="num" style="color: var(--gold);">{{ r.dias_desde_ultima_compra }}d</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Sem dados suficientes ainda (precisa de 2+ compras por cliente).</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 22px;">
+    <div class="card-title">Cross-selling — produtos frequentemente comprados juntos</div>
+    <table>
+        <thead><tr><th>Produto A</th><th>Produto B</th><th>Vezes juntos</th></tr></thead>
+        <tbody>
+            {% for c in cesta_de_compras %}
+            <tr>
+                <td>{{ c.produto_a }}</td>
+                <td>{{ c.produto_b }}</td>
+                <td class="num">{{ c.vezes_juntos }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="empty-row">Sem dados suficientes ainda (precisa de vendas com 2+ itens).</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

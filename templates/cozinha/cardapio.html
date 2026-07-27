@@ -1,0 +1,245 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardápio — Belletti Cards Universe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        body { padding: 24px 18px 150px; max-width: 640px; margin: 0 auto; }
+
+        .cardapio-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .cardapio-brand svg { width: 34px; height: 34px; flex-shrink: 0; }
+        .cardapio-brand-text { font-family: var(--font-display); font-weight: 700; font-size: 16px; line-height: 1.2; }
+        .cardapio-brand-text .sub { display: block; font-family: var(--font-body); font-weight: 600; font-size: 10px; letter-spacing: 0.12em; color: var(--gold); }
+
+        .cardapio-titulo { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin: 22px 0 2px; letter-spacing: -0.01em; }
+        .cardapio-subtitulo { color: var(--text-muted); font-size: 13px; margin-bottom: 6px; }
+
+        .holo-divisor { height: 2px; background: var(--holo); background-size: 300% 300%; animation: holo-drift 6s ease infinite; opacity: 0.6; border-radius: 2px; margin: 18px 0 20px; }
+
+        .categoria-titulo {
+            font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--gold);
+            margin: 26px 0 12px; text-transform: uppercase; letter-spacing: 0.08em;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .categoria-titulo::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+        .prato-card {
+            background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px; margin-bottom: 10px; display: flex; gap: 12px;
+            box-shadow: var(--shadow-card); transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+        .prato-card:hover { border-color: #33384a; transform: translateY(-1px); }
+        .prato-card img { width: 78px; height: 78px; border-radius: 9px; object-fit: cover; flex-shrink: 0; background: var(--bg-2); }
+        .prato-foto-vazia {
+            width: 78px; height: 78px; border-radius: 9px; background: var(--bg-2); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 22px;
+        }
+        .prato-info { flex: 1; min-width: 0; }
+        .prato-nome { font-weight: 600; font-size: 14.5px; }
+        .prato-descricao { font-size: 12px; color: var(--text-muted); margin: 3px 0 7px; line-height: 1.4; }
+        .prato-preco { font-family: var(--font-mono); color: var(--accent-text); font-weight: 600; font-size: 14px; }
+        .prato-acoes { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+        .prato-acoes button {
+            width: 27px; height: 27px; border-radius: 7px; border: 1px solid var(--border);
+            background: var(--bg-2); color: var(--text-primary); font-size: 15px; cursor: pointer;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .prato-acoes button:hover { border-color: var(--accent); }
+        .prato-acoes .qtd { min-width: 18px; text-align: center; font-size: 13px; font-family: var(--font-mono); }
+
+        .carrinho-flutuante {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-1);
+            border-top: 1px solid var(--border); padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+            display: none; box-shadow: 0 -8px 24px -12px rgba(0,0,0,0.5);
+        }
+        .carrinho-flutuante.visivel { display: block; }
+        .carrinho-resumo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13.5px; }
+        .carrinho-resumo strong { font-family: var(--font-mono); color: var(--gold); font-size: 16px; }
+        .btn-finalizar {
+            width: 100%; padding: 14px; border-radius: 10px; border: none; background: var(--accent);
+            color: white; font-weight: 700; font-size: 14.5px; cursor: pointer;
+            position: relative; overflow: hidden; isolation: isolate;
+        }
+        .btn-finalizar::after {
+            content: ""; position: absolute; inset: 0; background: var(--holo); background-size: 300% 300%;
+            background-position: 0% 50%; opacity: 0; transition: opacity 0.25s ease, background-position 0.6s ease; z-index: -1;
+        }
+        .btn-finalizar:hover::after { opacity: 0.9; background-position: 100% 50%; }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
+        .modal.aberto { display: flex; }
+        .modal-conteudo { background: var(--bg-1); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 380px; width: 100%; box-shadow: var(--shadow-card-hover); }
+        .modal-conteudo h3 { font-family: var(--font-display); margin: 0 0 16px; font-size: 17px; }
+        .modal-conteudo input, .modal-conteudo textarea {
+            width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2);
+            color: var(--text-primary); font-size: 13.5px; margin-bottom: 10px; box-sizing: border-box; font-family: var(--font-body);
+        }
+        .modal-conteudo input:focus, .modal-conteudo textarea:focus { outline: none; border-color: var(--accent); }
+        .msg-erro { color: var(--red); font-size: 12.5px; margin-bottom: 10px; display: none; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-faint); font-size: 13px; }
+    </style>
+</head>
+<body>
+    {% csrf_token %}
+
+    <div class="cardapio-brand">
+        <svg class="brand-mark" viewBox="0 0 40 40" fill="none">
+            <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
+            <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
+            <circle cx="16" cy="15" r="1.6" fill="var(--bg-0)" opacity="0.35"/>
+            <circle cx="22" cy="20" r="1" fill="var(--bg-0)" opacity="0.3"/>
+        </svg>
+        <div class="cardapio-brand-text">Belletti<span class="sub">Cards Universe</span></div>
+    </div>
+
+    <div class="cardapio-titulo">Cardápio</div>
+    <div class="cardapio-subtitulo">Monte seu pedido — a cozinha já recebe na hora</div>
+    <div class="holo-divisor"></div>
+
+    {% for categoria in categorias %}
+        {% if categoria.pratos.all %}
+        <div class="categoria-titulo">{{ categoria.nome }}</div>
+        {% for prato in categoria.pratos.all %}
+            {% if prato.disponivel %}
+            <div class="prato-card" data-prato-id="{{ prato.id }}" data-preco="{{ prato.preco }}">
+                {% if prato.foto %}<img src="{{ prato.foto.url }}" alt="{{ prato.nome }}">{% else %}<div class="prato-foto-vazia">🍽️</div>{% endif %}
+                <div class="prato-info">
+                    <div class="prato-nome">{{ prato.nome }}</div>
+                    <div class="prato-descricao">{{ prato.descricao|default:"" }}</div>
+                    <div class="prato-preco">R$ {{ prato.preco|floatformat:2 }}</div>
+                    <div class="prato-acoes">
+                        <button class="btn-menos" type="button">−</button>
+                        <span class="qtd">0</span>
+                        <button class="btn-mais" type="button">+</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+        {% endif %}
+    {% endfor %}
+
+    {% if pratos_sem_categoria %}
+    <div class="categoria-titulo">Outros</div>
+    {% for prato in pratos_sem_categoria %}
+    <div class="prato-card" data-prato-id="{{ prato.id }}" data-preco="{{ prato.preco }}">
+        {% if prato.foto %}<img src="{{ prato.foto.url }}" alt="{{ prato.nome }}">{% else %}<div class="prato-foto-vazia">🍽️</div>{% endif %}
+        <div class="prato-info">
+            <div class="prato-nome">{{ prato.nome }}</div>
+            <div class="prato-descricao">{{ prato.descricao|default:"" }}</div>
+            <div class="prato-preco">R$ {{ prato.preco|floatformat:2 }}</div>
+            <div class="prato-acoes">
+                <button class="btn-menos" type="button">−</button>
+                <span class="qtd">0</span>
+                <button class="btn-mais" type="button">+</button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if not categorias and not pratos_sem_categoria %}
+    <div class="empty-state">O cardápio ainda está sendo preparado. Volte em instantes! 🎴</div>
+    {% endif %}
+
+    <div class="carrinho-flutuante" id="carrinhoFlutuante">
+        <div class="carrinho-resumo">
+            <span id="carrinhoResumoTexto">0 item(ns)</span>
+            <strong id="carrinhoTotal">R$ 0,00</strong>
+        </div>
+        <button class="btn-finalizar" id="btnAbrirModal">Fazer pedido</button>
+    </div>
+
+    <div class="modal" id="modalPedido">
+        <div class="modal-conteudo">
+            <h3>Finalizar pedido</h3>
+            <div class="msg-erro" id="msgErro"></div>
+            <input type="text" id="inputNome" placeholder="Seu nome (pra chamarmos)" required>
+            <input type="text" id="inputMesa" placeholder="Mesa ou local (opcional)">
+            <textarea id="inputObs" placeholder="Alguma observação geral? (opcional)" rows="2"></textarea>
+            <button class="btn-finalizar" id="btnEnviarPedido">Confirmar pedido</button>
+        </div>
+    </div>
+
+    <script>
+        const carrinho = {};
+
+        function atualizarCarrinhoUI() {
+            let totalItens = 0, totalValor = 0;
+            for (const id in carrinho) {
+                totalItens += carrinho[id].quantidade;
+                totalValor += carrinho[id].quantidade * carrinho[id].preco;
+            }
+            const flutuante = document.getElementById('carrinhoFlutuante');
+            flutuante.classList.toggle('visivel', totalItens > 0);
+            document.getElementById('carrinhoResumoTexto').textContent = `${totalItens} item(ns)`;
+            document.getElementById('carrinhoTotal').textContent = `R$ ${totalValor.toFixed(2).replace('.', ',')}`;
+        }
+
+        document.querySelectorAll('.prato-card').forEach(card => {
+            const id = card.dataset.pratoId;
+            const preco = parseFloat(card.dataset.preco);
+            const qtdEl = card.querySelector('.qtd');
+
+            card.querySelector('.btn-mais').addEventListener('click', () => {
+                carrinho[id] = carrinho[id] || { quantidade: 0, preco };
+                carrinho[id].quantidade++;
+                qtdEl.textContent = carrinho[id].quantidade;
+                atualizarCarrinhoUI();
+            });
+            card.querySelector('.btn-menos').addEventListener('click', () => {
+                if (!carrinho[id] || carrinho[id].quantidade === 0) return;
+                carrinho[id].quantidade--;
+                qtdEl.textContent = carrinho[id].quantidade;
+                atualizarCarrinhoUI();
+            });
+        });
+
+        document.getElementById('btnAbrirModal').addEventListener('click', () => {
+            document.getElementById('modalPedido').classList.add('aberto');
+        });
+
+        function getCookie(nome) {
+            const valor = `; ${document.cookie}`;
+            const partes = valor.split(`; ${nome}=`);
+            if (partes.length === 2) return partes.pop().split(';').shift();
+        }
+
+        document.getElementById('btnEnviarPedido').addEventListener('click', async () => {
+            const nome = document.getElementById('inputNome').value.trim();
+            const msgErro = document.getElementById('msgErro');
+            if (!nome) {
+                msgErro.textContent = 'Por favor, informe seu nome.';
+                msgErro.style.display = 'block';
+                return;
+            }
+
+            const itens = Object.entries(carrinho)
+                .filter(([_, v]) => v.quantidade > 0)
+                .map(([prato_id, v]) => ({ prato_id: parseInt(prato_id), quantidade: v.quantidade }));
+
+            const resp = await fetch('/cardapio/pedido/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({
+                    nome,
+                    mesa_ou_local: document.getElementById('inputMesa').value.trim(),
+                    observacoes: document.getElementById('inputObs').value.trim(),
+                    itens,
+                }),
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                window.location.href = `/cardapio/acompanhar/${data.codigo}/`;
+            } else {
+                msgErro.textContent = data.erro || 'Erro ao enviar o pedido.';
+                msgErro.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

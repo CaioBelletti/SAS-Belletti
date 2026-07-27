@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Composição de estoque — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    .msg.success { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
+    .form-inline { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 12px; }
+    .form-inline label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .form-inline select, .form-inline input {
+        padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13.5px;
+    }
+    .btn-acao {
+        padding: 10px 18px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    }
+    .btn-acao.secundario { background: var(--bg-2); border: 1px solid var(--border); color: var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Composição de estoque</h1>
+        <div class="subtitle">Monte ou desmonte kits, combos, booster boxes e outros produtos compostos</div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="card" style="max-width: 560px;">
+    <div class="card-title">Produto composto</div>
+    {% if not produtos_compostos %}
+    <div class="empty-row">
+        Nenhum produto com componentes cadastrados ainda. Vá em
+        <a href="/admin/catalogo/produto/" style="color: var(--accent-text);">Produtos</a>,
+        abra o item que é o kit/combo/booster box, e cadastre os componentes na seção
+        "Produto composto" da ficha dele.
+    </div>
+    {% else %}
+    <form method="post" class="form-inline">
+        {% csrf_token %}
+        <div>
+            <label>Produto composto</label>
+            <select name="produto_id" required>
+                {% for p in produtos_compostos %}
+                <option value="{{ p.id }}">{{ p.nome }} ({{ p.sku }}) — estoque atual: {{ p.estoque_atual }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Quantidade</label>
+            <input type="number" name="quantidade" min="1" value="1" required style="width: 90px;">
+        </div>
+        <button type="submit" name="acao" value="desmontar" class="btn-acao secundario">Desmontar (abrir em componentes)</button>
+        <button type="submit" name="acao" value="montar" class="btn-acao">Montar (a partir dos componentes)</button>
+    </form>
+    <div class="aviso" style="font-size: 12.5px; color: var(--text-faint); margin-top: 14px; line-height: 1.5;">
+        <strong>Desmontar</strong>: tira unidades do composto e devolve os itens dele pro estoque individual
+        (ex: abrir 1 Booster Box em 36 Boosters soltos).<br>
+        <strong>Montar</strong>: consome os itens individuais do estoque pra criar unidades do composto
+        (ex: juntar produtos avulsos pra formar um Combo).
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

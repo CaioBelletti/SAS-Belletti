@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Conferência de recebimento — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    .msg.success { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
+    .btn-acao {
+        padding: 10px 18px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-top: 12px;
+    }
+    .input-recebido {
+        width: 80px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-family: var(--font-mono);
+    }
+    .ordem-link {
+        display: block; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+        border: 1px solid var(--border); color: var(--text-primary);
+    }
+    .ordem-link:hover { border-color: var(--accent); }
+    .ordem-link.ativo { border-color: var(--accent); background: var(--accent-soft); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="topbar">
+    <div>
+        <h1>Conferência de recebimento</h1>
+        <div class="subtitle">Confira o que chegou de verdade contra o que foi pedido</div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-title">Ordens pendentes</div>
+        {% for o in ordens_pendentes %}
+        <a href="?ordem={{ o.id }}" class="ordem-link {% if ordem.id == o.id %}ativo{% endif %}">
+            OC #{{ o.id }} — {{ o.fornecedor.nome }}
+            <span style="float:right; color: var(--text-faint);">{{ o.get_status_display }}</span>
+        </a>
+        {% empty %}
+        <div class="empty-row">Nenhuma ordem pendente de recebimento.</div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        {% if ordem %}
+        <div class="card-title">OC #{{ ordem.id }} — {{ ordem.fornecedor.nome }}</div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="ordem_id" value="{{ ordem.id }}">
+            <table>
+                <thead><tr><th>Produto</th><th>Pedido</th><th>Já recebido</th><th>Recebendo agora</th></tr></thead>
+                <tbody>
+                    {% for item in ordem.itens.all %}
+                    <tr>
+                        <td>{{ item.produto.nome }}</td>
+                        <td class="num">{{ item.quantidade }}</td>
+                        <td class="num" style="color: var(--text-faint);">{{ item.quantidade_recebida }}</td>
+                        <td>
+                            {% if item.pendente > 0 %}
+                            <input type="number" min="0" max="{{ item.pendente }}" class="input-recebido"
+                                   name="recebido_{{ item.id }}" placeholder="0" value="{{ item.pendente }}">
+                            {% else %}
+                            <span style="color: var(--green);">completo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn-acao">Confirmar recebimento</button>
+        </form>
+        <div style="margin-top: 10px; font-size: 12px; color: var(--text-faint);">
+            Deixe em branco ou zero o que ainda não chegou — isso fica registrado como pendente (backorder)
+            e você pode voltar aqui depois pra registrar o restante.
+        </div>
+        {% else %}
+        <div class="empty-row">Selecione uma ordem à esquerda pra conferir o recebimento.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

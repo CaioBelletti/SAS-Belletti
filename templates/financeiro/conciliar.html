@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Conciliação — {{ conta.nome }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .btn-acao { padding: 9px 16px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Conciliação bancária</h1><div class="subtitle">Conta: {{ conta.nome }}</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<form method="post" style="margin-bottom: 16px;">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="auto">
+    <button type="submit" class="btn-acao">Conciliar automaticamente (mesma data e valor)</button>
+</form>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-title">Extrato importado — pendente de conciliar</div>
+        <table>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead>
+            <tbody>
+                {% for l in linhas_pendentes %}
+                <tr>
+                    <td class="num">{{ l.data|date:"d/m" }}</td>
+                    <td>{{ l.descricao|truncatechars:30 }}</td>
+                    <td class="num" style="color: {% if l.valor >= 0 %}var(--green){% else %}var(--red){% endif %};">R$ {{ l.valor|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Nada pendente — tudo conciliado!</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-title">Movimentos do sistema — pendente de conciliar</div>
+        <table>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead>
+            <tbody>
+                {% for m in movimentos_pendentes %}
+                <tr>
+                    <td class="num">{{ m.data|date:"d/m" }}</td>
+                    <td>{{ m.descricao|truncatechars:30 }}</td>
+                    <td class="num" style="color: {% if m.tipo == 'entrada' %}var(--green){% else %}var(--red){% endif %};">R$ {{ m.valor|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Nada pendente por aqui.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div style="margin-top: 12px; font-size: 12px; color: var(--text-faint);">
+    A conciliação automática casa linhas com a mesma data (±3 dias) e valor exato. O que
+    sobrar pendente pode ser porque o movimento não está vinculado a essa conta bancária
+    ainda, ou porque a data/valor não bateram — nesse caso, ajuste manualmente direto no
+    admin (Financeiro → Movimentos de caixa e Financeiro → Extrato bancário).
+</div>
+
+{% if linhas_conciliadas %}
+<div class="card" style="margin-top: 16px;">
+    <div class="card-title">Últimas conciliadas</div>
+    <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead>
+        <tbody>
+            {% for l in linhas_conciliadas %}
+            <tr>
+                <td class="num">{{ l.data|date:"d/m/Y" }}</td>
+                <td>{{ l.descricao|truncatechars:40 }}</td>
+                <td class="num">R$ {{ l.valor|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

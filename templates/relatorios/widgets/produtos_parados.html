@@ -1,0 +1,17 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Produtos parados (sem venda há {{ dias_produto_parado }}+ dias)</div>
+    <table>
+        <thead><tr><th>Produto</th><th>Estoque</th><th>Última venda</th></tr></thead>
+        <tbody>
+            {% for item in produtos_parados %}
+            <tr>
+                <td>{{ item.produto.nome }}</td>
+                <td class="num">{{ item.produto.estoque_atual }}</td>
+                <td class="num" style="color: var(--text-faint);">{{ item.ultima_venda|date:"d/m/Y"|default:"nunca vendido" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="empty-row">Nenhum produto parado. 👍</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Bancos — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-inline { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 10px; }
+    .form-inline label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .form-inline input { padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 13.5px; }
+    .btn-acao { padding: 10px 18px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13.5px; cursor: pointer; }
+    .conta-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+    .conta-links a { font-size: 12.5px; color: var(--accent-text); margin-left: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Bancos</h1><div class="subtitle">Contas bancárias, extrato e conciliação</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Nova conta bancária</div>
+    <form method="post" class="form-inline">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="criar_conta">
+        <div><label>Nome (apelido)</label><input type="text" name="nome" placeholder="Ex: Nubank PJ" required></div>
+        <div><label>Banco</label><input type="text" name="banco"></div>
+        <div><label>Agência</label><input type="text" name="agencia" style="width:80px;"></div>
+        <div><label>Conta</label><input type="text" name="numero_conta" style="width:100px;"></div>
+        <div><label>Saldo inicial (R$)</label><input type="text" name="saldo_inicial" style="width:100px;" placeholder="0,00"></div>
+        <button type="submit" class="btn-acao">Criar conta</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title">Contas cadastradas</div>
+    {% for conta in contas %}
+    <div class="conta-card">
+        <div>
+            <strong>{{ conta.nome }}</strong>{% if conta.banco %} — {{ conta.banco }}{% endif %}
+            <div style="font-size:12.5px; color:var(--text-muted);">Saldo atual: R$ {{ conta.saldo_atual|floatformat:2 }}</div>
+        </div>
+        <div class="conta-links">
+            <a href="{% url 'financeiro:extrato' conta.id %}">Extrato</a>
+            <a href="{% url 'financeiro:importar_ofx' conta.id %}">Importar OFX</a>
+            <a href="{% url 'financeiro:conciliar' conta.id %}">Conciliar</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-row">Nenhuma conta bancária cadastrada ainda.</div>
+    {% endfor %}
+</div>
+{% endblock %}

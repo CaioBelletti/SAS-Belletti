@@ -1,0 +1,92 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="15">
+    <title>Seu pedido — Belletti Cards Universe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        body { padding: 24px 18px 60px; max-width: 480px; margin: 0 auto; }
+
+        .brand-mini { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
+        .brand-mini svg { width: 26px; height: 26px; flex-shrink: 0; }
+        .brand-mini span { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--text-muted); }
+
+        h2 { font-family: var(--font-display); font-size: 21px; margin: 0 0 2px; }
+        .pedido-meta { color: var(--text-faint); font-size: 12.5px; margin-bottom: 22px; }
+
+        .etapas { display: flex; justify-content: space-between; margin: 8px 0 26px; position: relative; }
+        .etapas::before {
+            content: ""; position: absolute; top: 7px; left: 12%; right: 12%; height: 2px; background: var(--border); z-index: 0;
+        }
+        .etapa { flex: 1; text-align: center; font-size: 11px; color: var(--text-faint); position: relative; z-index: 1; }
+        .etapa.ativa { color: var(--accent-text); font-weight: 700; }
+        .etapa.concluida { color: var(--text-muted); }
+        .etapa .bola { width: 15px; height: 15px; border-radius: 50%; background: var(--bg-2); border: 2px solid var(--border); margin: 0 auto 8px; transition: all 0.3s ease; }
+        .etapa.ativa .bola { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px #8b6cf226; }
+        .etapa.concluida .bola { background: var(--accent); border-color: var(--accent); }
+
+        .card-status-pronto {
+            background: linear-gradient(135deg, #143d24, #0f2e1c); border: 1px solid var(--green);
+            border-radius: 12px; padding: 18px; text-align: center; color: var(--green); font-weight: 700; font-size: 14.5px;
+            margin-bottom: 16px;
+        }
+        .card-status-cancelado {
+            background: #2a1418; border: 1px solid var(--red); border-radius: 12px; padding: 18px;
+            text-align: center; color: var(--red); font-weight: 700; font-size: 14.5px; margin-bottom: 16px;
+        }
+
+        .item-linha { display: flex; justify-content: space-between; font-size: 13.5px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+        .item-linha:last-child { border-bottom: none; }
+        .item-linha .valor { font-family: var(--font-mono); color: var(--text-muted); }
+        .total-linha { display: flex; justify-content: space-between; font-weight: 700; font-size: 15.5px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+        .total-linha .valor { font-family: var(--font-mono); color: var(--gold); }
+
+        .aviso-atualiza { font-size: 11px; color: var(--text-faint); text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="brand-mini">
+        <svg viewBox="0 0 40 40" fill="none">
+            <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
+            <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
+        </svg>
+        <span>BELLETTI CARDS UNIVERSE</span>
+    </div>
+
+    <h2>Olá, {{ pedido.nome_para_chamar }}! 👋</h2>
+    <div class="pedido-meta">Pedido #{{ pedido.id }}{% if pedido.mesa_ou_local %} — {{ pedido.mesa_ou_local }}{% endif %}</div>
+
+    <div class="etapas">
+        <div class="etapa {% if pedido.status == 'recebido' %}ativa{% else %}concluida{% endif %}"><div class="bola"></div>Recebido</div>
+        <div class="etapa {% if pedido.status == 'em_preparo' %}ativa{% elif pedido.status == 'pronto' or pedido.status == 'entregue' %}concluida{% endif %}"><div class="bola"></div>Em preparo</div>
+        <div class="etapa {% if pedido.status == 'pronto' %}ativa{% elif pedido.status == 'entregue' %}concluida{% endif %}"><div class="bola"></div>Pronto</div>
+        <div class="etapa {% if pedido.status == 'entregue' %}ativa{% endif %}"><div class="bola"></div>Entregue</div>
+    </div>
+
+    {% if pedido.status == 'pronto' %}
+    <div class="card-status-pronto">🔔 Seu pedido está pronto! Pode retirar no balcão.</div>
+    {% elif pedido.status == 'cancelado' %}
+    <div class="card-status-cancelado">Esse pedido foi cancelado. Qualquer dúvida, fale com a equipe.</div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-title">Seu pedido</div>
+        {% for item in pedido.itens.all %}
+        <div class="item-linha">
+            <span>{{ item.quantidade }}x {{ item.prato.nome }}</span>
+            <span class="valor">R$ {{ item.subtotal|floatformat:2 }}</span>
+        </div>
+        {% endfor %}
+        <div class="total-linha">
+            <span>Total</span>
+            <span class="valor">R$ {{ pedido.valor_total|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <div class="aviso-atualiza">Essa página atualiza sozinha a cada 15 segundos.</div>
+</body>
+</html>

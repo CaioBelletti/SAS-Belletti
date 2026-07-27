@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Belletti Cards Universe{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="topbar">
+    <div>
+        <h1>Dashboard de vendas
+            <svg class="star-icon" viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9.5 16.5 14.5 18 22 12 18 6 22 7.5 14.5 2 9.5 9 9"/></svg>
+        </h1>
+        <div class="subtitle">Visão geral dos últimos 12 meses</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+        <button type="button" id="btnPersonalizar" class="btn-acao" style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--accent-text); border:1px solid var(--border); background:var(--bg-2); padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg>
+            Personalizar dashboard
+        </button>
+        <a href="{% url 'relatorios:exportar_excel' %}" style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gold); border:1px solid #e8b34d55; background:#e8b34d14; padding:8px 16px; border-radius:8px; font-weight:600;">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar Excel
+        </a>
+        <div class="topbar-meta">Belletti Cards Universe</div>
+        <div class="periodo-select">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Últimos 12 meses
+            <svg class="chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+    </div>
+</div>
+
+<div id="avisoPersonalizar" class="empty-row" style="display:none; margin-bottom: 10px; padding: 10px 14px; background: var(--bg-1); border: 1px solid var(--border); border-radius: 8px;">
+    Arraste os widgets pela alça <strong>⋮⋮</strong> pra reordenar, ou clique em "Ocultar" pra esconder um widget. As mudanças salvam sozinhas.
+</div>
+
+<div class="grid grid-metrics">
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></div>
+            <div>
+                <div class="label">Total de vendas</div>
+                <div class="value accent">R$ {{ total_valor|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div class="metric-sparkline"><svg width="56" height="20" viewBox="0 0 56 20"><polyline points="0,14 8,10 16,12 24,6 32,9 40,4 48,7 56,2" fill="none" stroke="#8b6cf2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+            <div>
+                <div class="label">Ticket médio</div>
+                <div class="value">R$ {{ ticket_medio|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div class="metric-sparkline"><svg width="56" height="20" viewBox="0 0 56 20"><polyline points="0,10 8,12 16,8 24,11 32,6 40,9 48,5 56,7" fill="none" stroke="#8b6cf2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><rect x="6" y="3" width="12" height="4" rx="1"/><path d="M9 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg></div>
+            <div>
+                <div class="label">Pedidos fechados</div>
+                <div class="value">{{ total_pedidos }}</div>
+            </div>
+        </div>
+        <div class="metric-sparkline"><svg width="56" height="20" viewBox="0 0 56 20"><polyline points="0,12 8,9 16,11 24,7 32,10 40,6 48,8 56,4" fill="none" stroke="#8b6cf2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 8.3L12 13l8.7-4.7"/><path d="M12 22V13"/></svg></div>
+            <div>
+                <div class="label">Itens vendidos</div>
+                <div class="value">{{ produtos_vendidos }}</div>
+            </div>
+        </div>
+        <div class="metric-sparkline"><svg width="56" height="20" viewBox="0 0 56 20"><polyline points="0,15 8,11 16,13 24,8 32,10 40,5 48,7 56,3" fill="none" stroke="#8b6cf2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M20.59 13.41L11 3.83A2 2 0 0 0 9.59 3.24L3 3v6.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l6.59-6.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>
+            <div>
+                <div class="label">Produtos em catálogo</div>
+                <div class="value">{{ total_produtos_catalogo }}</div>
+            </div>
+        </div>
+        <div class="metric-sparkline"><svg width="56" height="20" viewBox="0 0 56 20"><polyline points="0,9 8,11 16,7 24,10 32,6 40,8 48,4 56,6" fill="none" stroke="#8b6cf2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-blue"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div>
+            <div>
+                <div class="label">Saldo atual em caixa</div>
+                <div class="value {% if saldo_atual >= 0 %}accent{% else %}gold{% endif %}">R$ {{ saldo_atual|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div class="metric-sub ok">Disponível</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-gold"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M15.5 9.5a3.5 3.5 0 0 0-3.5-2c-1.93 0-3.5 1.12-3.5 2.5S10.07 12.5 12 12.5s3.5 1.12 3.5 2.5-1.57 2.5-3.5 2.5a3.5 3.5 0 0 1-3.5-2"/></svg></div>
+            <div>
+                <div class="label">A receber (pendente)</div>
+                <div class="value gold">R$ {{ total_a_receber|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div class="metric-sub pendente">Em aberto</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-top">
+            <div class="metric-icon c-blue"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div>
+                <div class="label">Pedidos em andamento</div>
+                <div class="value">{{ qtd_pedidos_andamento }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="widgetsContainer">
+{% for w in widgets %}
+<div class="dash-widget {% if w.oculto %}widget-oculto{% endif %}" data-widget-id="{{ w.id }}" id="widget-{{ w.id }}">
+    <div class="widget-editbar">
+        <span class="widget-drag-handle" title="Arrastar pra reordenar">⋮⋮</span>
+        <span class="widget-nome">{{ w.label }}</span>
+        <button type="button" class="widget-toggle-visibilidade">{% if w.oculto %}Mostrar{% else %}Ocultar{% endif %}</button>
+    </div>
+    <div class="widget-conteudo">
+        {% include w.template %}
+    </div>
+</div>
+{% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function getCookiePersonalizar(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+(function () {
+    const container = document.getElementById('widgetsContainer');
+    const btnPersonalizar = document.getElementById('btnPersonalizar');
+    const aviso = document.getElementById('avisoPersonalizar');
+    let arrastando = null;
+
+    function habilitarArraste() {
+        const editando = container.classList.contains('modo-editar');
+        container.querySelectorAll('.dash-widget').forEach(el => { el.draggable = editando; });
+    }
+
+    btnPersonalizar.addEventListener('click', () => {
+        const ativo = container.classList.toggle('modo-editar');
+        aviso.style.display = ativo ? 'block' : 'none';
+        btnPersonalizar.textContent = ativo ? 'Concluir personalização' : '';
+        if (ativo) {
+            btnPersonalizar.innerHTML = '✓ Concluir personalização';
+        } else {
+            btnPersonalizar.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg> Personalizar dashboard';
+        }
+        habilitarArraste();
+    });
+
+    container.addEventListener('dragstart', (e) => {
+        const widget = e.target.closest('.dash-widget');
+        if (!widget || !container.classList.contains('modo-editar')) return;
+        arrastando = widget;
+        setTimeout(() => widget.classList.add('dragging'), 0);
+    });
+
+    container.addEventListener('dragend', () => {
+        if (arrastando) arrastando.classList.remove('dragging');
+        arrastando = null;
+        salvarPreferencia();
+    });
+
+    container.addEventListener('dragover', (e) => {
+        if (!arrastando) return;
+        e.preventDefault();
+        const alvo = e.target.closest('.dash-widget');
+        if (!alvo || alvo === arrastando) return;
+        const rect = alvo.getBoundingClientRect();
+        const depoisDoAlvo = (e.clientY - rect.top) > rect.height / 2;
+        container.insertBefore(arrastando, depoisDoAlvo ? alvo.nextSibling : alvo);
+    });
+
+    container.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('widget-toggle-visibilidade')) return;
+        const widget = e.target.closest('.dash-widget');
+        widget.classList.toggle('widget-oculto');
+        e.target.textContent = widget.classList.contains('widget-oculto') ? 'Mostrar' : 'Ocultar';
+        salvarPreferencia();
+    });
+
+    function salvarPreferencia() {
+        const ordem = Array.from(container.querySelectorAll('.dash-widget')).map(w => w.dataset.widgetId);
+        const ocultos = Array.from(container.querySelectorAll('.dash-widget.widget-oculto')).map(w => w.dataset.widgetId);
+        fetch('{% url "relatorios:salvar_preferencia" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookiePersonalizar('csrftoken') },
+            body: JSON.stringify({ ordem, ocultos }),
+        }).catch(err => console.error('Erro ao salvar preferência do dashboard:', err));
+    }
+
+    habilitarArraste();
+})();
+
+document.addEventListener("DOMContentLoaded", function () {
+    const gridColor = "#1e212a";
+    const tickColor = "#8b91a3";
+
+    new Chart(document.getElementById('graficoVendas'), {
+        type: 'line',
+        data: {
+            labels: {{ labels_mes|safe }},
+            datasets: [{
+                label: 'Vendas (R$)',
+                data: {{ valores_mes|safe }},
+                borderColor: '#8b6cf2',
+                backgroundColor: 'rgba(139, 108, 242, 0.14)',
+                fill: true,
+                tension: 0.35,
+                pointRadius: 3,
+                pointBackgroundColor: '#8b6cf2',
+                pointBorderColor: '#15171e',
+                pointBorderWidth: 1.5,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } },
+                y: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('graficoHorarios'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels_hora|safe }},
+            datasets: [{
+                label: 'Vendas',
+                data: {{ valores_hora|safe }},
+                backgroundColor: '#e8b34d',
+                borderRadius: 4,
+                barThickness: 14,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } },
+                y: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { display: false } }
+            }
+        }
+    });
+
+    const dadosFluxo = {
+        dia: { labels: {{ fluxo_dia_labels|safe }}, entradas: {{ fluxo_dia_entradas|safe }}, saidas: {{ fluxo_dia_saidas|safe }} },
+        semana: { labels: {{ fluxo_semana_labels|safe }}, entradas: {{ fluxo_semana_entradas|safe }}, saidas: {{ fluxo_semana_saidas|safe }} },
+        mes: { labels: {{ fluxo_mes_labels|safe }}, entradas: {{ fluxo_mes_entradas|safe }}, saidas: {{ fluxo_mes_saidas|safe }} },
+        ano: { labels: {{ fluxo_ano_labels|safe }}, entradas: {{ fluxo_ano_entradas|safe }}, saidas: {{ fluxo_ano_saidas|safe }} },
+    };
+    const canvasFluxoCompleto = document.getElementById('graficoFluxoCompleto');
+    let graficoFluxoCompleto = null;
+    if (canvasFluxoCompleto) {
+        function desenharFluxo(periodo) {
+            const d = dadosFluxo[periodo];
+            if (graficoFluxoCompleto) graficoFluxoCompleto.destroy();
+            graficoFluxoCompleto = new Chart(canvasFluxoCompleto, {
+                type: 'bar',
+                data: {
+                    labels: d.labels,
+                    datasets: [
+                        { label: 'Entradas', data: d.entradas, backgroundColor: '#4ade80', borderRadius: 3 },
+                        { label: 'Saídas', data: d.saidas, backgroundColor: '#f26d6d', borderRadius: 3 },
+                    ]
+                },
+                options: {
+                    plugins: { legend: { labels: { color: tickColor, font: { size: 11 } } } },
+                    scales: {
+                        x: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 10 } }, grid: { display: false } },
+                        y: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } }
+                    }
+                }
+            });
+        }
+        desenharFluxo('dia');
+        document.querySelectorAll('.fluxo-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.fluxo-tab').forEach(b => b.classList.remove('ativo'));
+                btn.classList.add('ativo');
+                desenharFluxo(btn.dataset.periodo);
+            });
+        });
+    }
+
+    new Chart(document.getElementById('graficoLucro'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels_lucro|safe }},
+            datasets: [{
+                label: 'Lucro (R$)',
+                data: {{ valores_lucro|safe }},
+                backgroundColor: {{ valores_lucro|safe }}.map(v => v >= 0 ? '#4ade80' : '#f26d6d'),
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } },
+                y: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('graficoDiario'), {
+        type: 'bar',
+        data: {
+            labels: {{ labels_dia|safe }},
+            datasets: [{
+                label: 'Receita (R$)',
+                data: {{ valores_dia|safe }},
+                backgroundColor: '#8b6cf2',
+                borderRadius: 3,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 9 }, maxRotation: 90, minRotation: 90 }, grid: { display: false } },
+                y: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('graficoSemanal'), {
+        type: 'line',
+        data: {
+            labels: {{ labels_semana|safe }},
+            datasets: [{
+                label: 'Receita (R$)',
+                data: {{ valores_semana|safe }},
+                borderColor: '#e8b34d',
+                backgroundColor: 'rgba(232, 179, 77, 0.14)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+                pointBackgroundColor: '#e8b34d',
+                pointBorderColor: '#15171e',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 10 } }, grid: { color: gridColor } },
+                y: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('graficoFluxo'), {
+        type: 'line',
+        data: {
+            labels: {{ labels_fluxo|safe }},
+            datasets: [{
+                label: 'Saldo projetado (R$)',
+                data: {{ valores_fluxo|safe }},
+                borderColor: '#4ade80',
+                backgroundColor: 'rgba(74, 222, 128, 0.12)',
+                fill: true,
+                tension: 0.25,
+                pointRadius: 0,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 10 }, maxTicksLimit: 8 }, grid: { color: gridColor } },
+                y: { ticks: { color: tickColor, font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: gridColor } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

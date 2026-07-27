@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Central de relatórios — Belletti Cards Universe{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Central de relatórios</h1><div class="subtitle">Categorias, clientes, XYZ de estoque, devoluções e desempenho de vendedores — últimos 12 meses</div></div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-title">Vendas por categoria</div>
+        <table>
+            <thead><tr><th>Categoria</th><th>Qtd</th><th>Receita</th><th>Margem</th><th>%</th></tr></thead>
+            <tbody>
+                {% for c in relatorio_categorias %}
+                <tr>
+                    <td>{{ c.nome }}</td>
+                    <td class="num">{{ c.quantidade }}</td>
+                    <td class="num">R$ {{ c.receita|floatformat:2 }}</td>
+                    <td class="num" style="color: {% if c.margem >= 0 %}var(--green){% else %}var(--red){% endif %};">R$ {{ c.margem|floatformat:2 }}</td>
+                    <td class="num">{{ c.percentual }}%</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="empty-row">Nenhuma venda no período.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Top clientes</div>
+        <table>
+            <thead><tr><th>Cliente</th><th>Compras</th><th>Total gasto</th><th>Ticket médio</th></tr></thead>
+            <tbody>
+                {% for c in relatorio_clientes %}
+                <tr>
+                    <td>{{ c.nome }}</td>
+                    <td class="num">{{ c.numero_compras }}</td>
+                    <td class="num" style="color: var(--accent-text);">R$ {{ c.total_gasto|floatformat:2 }}</td>
+                    <td class="num">R$ {{ c.ticket_medio|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="empty-row">Nenhum cliente identificado em vendas ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 22px;">
+    <div class="card-title">Análise XYZ (previsibilidade de demanda)</div>
+    <table>
+        <thead><tr><th>Produto</th><th>SKU</th><th>Classe</th><th>Coef. de variação</th><th>Meses com venda</th><th>Total vendido</th></tr></thead>
+        <tbody>
+            {% for p in relatorio_xyz %}
+            <tr>
+                <td>{{ p.nome }}</td>
+                <td class="num">{{ p.sku }}</td>
+                <td class="num" style="font-weight:700; color: {% if p.classe == 'X' %}var(--green){% elif p.classe == 'Y' %}var(--gold){% else %}var(--red){% endif %};">{{ p.classe }}</td>
+                <td class="num">{% if p.cv is not None %}{{ p.cv }}{% else %}—{% endif %}</td>
+                <td class="num">{{ p.meses_com_venda }}</td>
+                <td class="num">{{ p.total_vendido }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="empty-row">Sem dados suficientes ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top: 10px; font-size: 11.5px; color: var(--text-faint);">
+        <strong style="color:var(--green);">X</strong> = demanda constante e previsível ·
+        <strong style="color:var(--gold);">Y</strong> = demanda com variação moderada ·
+        <strong style="color:var(--red);">Z</strong> = demanda irregular/esporádica.
+        Combine com a curva ABC (do dashboard) pra priorizar: itens AX merecem mais atenção que CZ.
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-bottom: 22px;">
+    <div class="card">
+        <div class="card-title">Devoluções</div>
+        <div style="display:flex; gap:24px; margin-bottom: 14px;">
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Total no período</div>
+                <div style="font-family:var(--font-mono); font-size:20px;">{{ total_devolucoes }}</div>
+            </div>
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Valor devolvido</div>
+                <div style="font-family:var(--font-mono); font-size:20px; color:var(--red);">R$ {{ valor_devolvido|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Principais motivos</div>
+        <table>
+            <tbody>
+                {% for m in motivos_devolucao %}
+                <tr><td>{{ m.motivo }}</td><td class="num">{{ m.qtd }}</td></tr>
+                {% empty %}
+                <tr><td class="empty-row">Nenhuma devolução com motivo registrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Desempenho por vendedor</div>
+        <table>
+            <thead><tr><th>Vendedor</th><th>Vendas</th><th>Itens</th><th>Total vendido</th><th>Ticket médio</th></tr></thead>
+            <tbody>
+                {% for f in relatorio_funcionarios %}
+                <tr>
+                    <td>{{ f.vendedor }}</td>
+                    <td class="num">{{ f.numero_vendas }}</td>
+                    <td class="num">{{ f.itens_vendidos }}</td>
+                    <td class="num">R$ {{ f.total_vendido|floatformat:2 }}</td>
+                    <td class="num">R$ {{ f.ticket_medio|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="empty-row">Nenhuma venda com vendedor identificado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
