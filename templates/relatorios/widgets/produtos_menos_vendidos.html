@@ -1,0 +1,22 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg> Produtos menos vendidos (12 meses)</div>
+    <table>
+        <thead>
+            <tr><th>Produto</th><th>SKU</th><th>Qtd</th><th>Valor</th></tr>
+        </thead>
+        <tbody>
+            {% for produto in produtos_menos_vendidos %}
+            <tr>
+                <td>{{ produto.nome }}</td>
+                <td class="num">{{ produto.sku }}</td>
+                <td class="num" style="color: {% if produto.quantidade_total_venda == 0 %}var(--red){% else %}var(--text-primary){% endif %};">
+                    {% if produto.quantidade_total_venda == 0 %}nunca vendeu{% else %}{{ produto.quantidade_total_venda }}{% endif %}
+                </td>
+                <td class="num">R$ {{ produto.valor_total_venda|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="empty-row">Nenhum produto cadastrado ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

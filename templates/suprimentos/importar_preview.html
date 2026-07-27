@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Conferir importação — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    table.preview-table th, table.preview-table td { padding: 8px 6px; }
+    table.preview-table input {
+        width: 100%; padding: 7px 8px; border-radius: 6px;
+        border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary);
+        font-size: 13px;
+    }
+    table.preview-table input.qtd { width: 60px; font-family: var(--font-mono); }
+    table.preview-table input.valor { width: 90px; font-family: var(--font-mono); }
+    .remover-linha { color: var(--red); cursor: pointer; text-align: center; }
+    .btn-primary {
+        margin-top: 18px; padding: 12px 18px; border-radius: 8px; border: none;
+        background: var(--accent); color: white; font-weight: 600; font-size: 14px; cursor: pointer;
+    }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .aviso { font-size: 12.5px; color: var(--text-faint); margin: 10px 0 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Conferir itens reconhecidos</h1>
+        <div class="subtitle">Corrija o que precisar antes de confirmar — nada foi salvo ainda</div>
+    </div>
+</div>
+
+<div class="card">
+    <form method="post" action="{% url 'suprimentos:importar_confirmar' %}" id="formConfirmar">
+        {% csrf_token %}
+        <input type="hidden" name="fornecedor_id" value="{{ fornecedor_id }}">
+        <input type="hidden" name="categoria_id" value="{{ categoria_id }}">
+
+        <table class="preview-table">
+            <thead>
+                <tr><th>Nome do produto</th><th>Qtd</th><th>Valor total (R$)</th><th></th></tr>
+            </thead>
+            <tbody id="corpoTabela">
+                {% for item in itens %}
+                <tr>
+                    <td><input type="text" name="nome" value="{{ item.nome }}"></td>
+                    <td><input type="number" class="qtd" name="quantidade" value="{{ item.quantidade|stringformat:'d' }}" min="1"></td>
+                    <td><input type="number" class="valor" name="valor_total" value="{{ item.valor_total|stringformat:'0.2f' }}" step="0.01" min="0"></td>
+                    <td class="remover-linha" onclick="this.closest('tr').remove()">✕</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="aviso">
+            Produtos com nome já existente no seu catálogo serão apenas reabastecidos
+            (entrada de estoque). Nomes novos criam um produto — você pode ajustar
+            SKU, preço de venda e outros detalhes depois, no cadastro de Produtos.
+        </div>
+
+        <button type="submit" class="btn-primary">Confirmar e criar ordem de compra</button>
+    </form>
+</div>
+{% endblock %}

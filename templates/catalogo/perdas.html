@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Perdas e quebras — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    .msg.success { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
+    .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .form-grid label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .form-grid select, .form-grid input {
+        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13.5px;
+    }
+    .btn-acao {
+        padding: 10px 18px; border-radius: 8px; border: none; background: var(--red);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-top: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Perdas e quebras</h1>
+        <div class="subtitle">Registre baixas de estoque por perda, quebra, dano, roubo ou vencimento</div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Registrar baixa</div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-grid">
+            <div>
+                <label>Produto</label>
+                <select name="produto_id" required>
+                    <option value="">Selecione...</option>
+                    {% for p in produtos %}
+                    <option value="{{ p.id }}">{{ p.nome }} ({{ p.sku }}) — estoque: {{ p.estoque_atual }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Categoria</label>
+                <select name="categoria" required>
+                    <option value="">Selecione...</option>
+                    {% for valor, label in categorias_perda %}
+                    <option value="{{ valor }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Quantidade</label>
+                <input type="number" name="quantidade" min="1" value="1" required>
+            </div>
+        </div>
+        <div style="margin-top: 10px;">
+            <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">Observação (opcional)</label>
+            <input type="text" name="observacao" style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); font-size:13.5px;" placeholder="Ex: caixa amassada no transporte">
+        </div>
+        <button type="submit" class="btn-acao">Registrar baixa</button>
+    </form>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-title">Resumo do mês por categoria</div>
+        <table>
+            <thead><tr><th>Categoria</th><th>Qtd</th><th>Valor (custo)</th></tr></thead>
+            <tbody>
+                {% for r in resumo %}
+                <tr>
+                    <td>{{ r.categoria }}</td>
+                    <td class="num">{{ r.quantidade_total }}</td>
+                    <td class="num" style="color: var(--red);">R$ {{ r.valor_total|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Nenhuma baixa registrada esse mês. 👍</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-title">Últimas baixas registradas</div>
+        <table>
+            <thead><tr><th>Produto</th><th>Categoria</th><th>Qtd</th><th>Quando</th></tr></thead>
+            <tbody>
+                {% for m in ultimas %}
+                <tr>
+                    <td>{{ m.produto.nome }}</td>
+                    <td>{{ m.get_categoria_display }}</td>
+                    <td class="num">{{ m.quantidade }}</td>
+                    <td class="num" style="color: var(--text-faint);">{{ m.criado_em|date:"d/m H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="empty-row">Nenhum registro ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

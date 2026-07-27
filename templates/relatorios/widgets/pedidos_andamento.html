@@ -1,0 +1,23 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pedidos em andamento</div>
+    {% if pedidos_andamento %}
+    <table>
+        <thead><tr><th>#</th><th>Cliente</th><th>Vendedor</th><th>Valor parcial</th><th>Aberto há</th></tr></thead>
+        <tbody>
+            {% for p in pedidos_andamento %}
+            <tr>
+                <td class="num"><a href="/admin/vendas/venda/{{ p.id }}/change/" style="color: var(--accent-text);">#{{ p.id }}</a></td>
+                <td>{{ p.cliente }}</td>
+                <td>{{ p.vendedor }}</td>
+                <td class="num">R$ {{ p.total|floatformat:2 }}</td>
+                <td class="num" style="color: {% if p.horas_aberto >= 2 %}var(--gold){% else %}var(--text-faint){% endif %};">
+                    {% if p.horas_aberto < 1 %}menos de 1h{% else %}{{ p.horas_aberto|floatformat:0 }}h{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-row">Nenhum pedido em andamento agora.</div>
+    {% endif %}
+</div>

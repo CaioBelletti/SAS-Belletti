@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load crm_extras %}
+{% block title %}Funil de vendas — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .btn-acao { padding: 9px 16px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .form-inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .form-inline input, .form-inline select {
+        padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13px;
+    }
+    .funil-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 16px; }
+    .funil-coluna { background: var(--bg-1); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 200px; }
+    .funil-coluna-titulo { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .lead-card { background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 12.5px; }
+    .lead-card .nome { font-weight: 600; margin-bottom: 3px; }
+    .lead-card .meta { color: var(--text-faint); font-size: 11px; margin-bottom: 6px; }
+    .lead-card select { width: 100%; font-size: 11.5px; padding: 5px 6px; margin-top: 4px; }
+    @media (max-width: 1100px) { .funil-board { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Funil de vendas</h1><div class="subtitle">Prospecção — leads e negociações em andamento</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card">
+    <div class="card-title">Novo lead</div>
+    <form method="post" class="form-inline">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="criar_lead">
+        <input type="text" name="nome" placeholder="Nome" required>
+        <input type="text" name="telefone" placeholder="Telefone">
+        <input type="email" name="email" placeholder="E-mail">
+        <select name="origem">
+            {% for valor, label in origens %}
+            <option value="{{ valor }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="valor_estimado" placeholder="Valor estimado R$" style="width:140px;">
+        <button type="submit" class="btn-acao">Adicionar lead</button>
+    </form>
+</div>
+
+<div class="funil-board">
+    {% for etapa, label in etapas %}
+    <div class="funil-coluna">
+        <div class="funil-coluna-titulo">{{ label }} <span>{{ colunas|get_item:etapa|length }}</span></div>
+        {% for lead in colunas|get_item:etapa %}
+        <div class="lead-card">
+            <div class="nome">{{ lead.nome }}</div>
+            <div class="meta">{{ lead.get_origem_display }} · R$ {{ lead.valor_estimado|floatformat:2 }}</div>
+            <div class="meta">Sem interação há {{ lead.dias_sem_interacao }} dia(s)</div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="mover_etapa">
+                <input type="hidden" name="lead_id" value="{{ lead.id }}">
+                <select name="etapa" onchange="this.form.submit()">
+                    {% for valor, lbl in etapas %}
+                    <option value="{{ valor }}" {% if valor == etapa %}selected{% endif %}>{{ lbl }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        {% empty %}
+        <div class="empty-row" style="font-size:12px;">Vazio</div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

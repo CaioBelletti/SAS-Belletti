@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Propostas — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .btn-acao { padding: 9px 16px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .form-grid input, .form-grid select {
+        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13px; box-sizing: border-box;
+    }
+    .btn-mini { padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 12px; cursor: pointer; margin-right: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Propostas</h1><div class="subtitle">Propostas comerciais pra leads e clientes</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Nova proposta</div>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="criar">
+        <input type="text" name="titulo" placeholder="Título da proposta" required style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); font-size:13px; box-sizing:border-box;">
+        <div class="form-grid">
+            <select name="lead_id">
+                <option value="">Sem lead vinculado</option>
+                {% for l in leads %}<option value="{{ l.id }}">{{ l.nome }}</option>{% endfor %}
+            </select>
+            <select name="cliente_id">
+                <option value="">Sem cliente vinculado</option>
+                {% for c in clientes %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+            </select>
+            <input type="text" name="valor" placeholder="Valor R$" required>
+            <input type="date" name="validade" placeholder="Validade">
+        </div>
+        <button type="submit" class="btn-acao" style="margin-top:10px;">Criar proposta</button>
+    </form>
+</div>
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Abertas</div>
+    <table>
+        <thead><tr><th>Título</th><th>Pra quem</th><th>Valor</th><th>Validade</th><th></th></tr></thead>
+        <tbody>
+            {% for p in propostas_abertas %}
+            <tr>
+                <td>{{ p.titulo }}</td>
+                <td>{% if p.lead %}{{ p.lead.nome }}{% elif p.cliente %}{{ p.cliente.nome }}{% else %}—{% endif %}</td>
+                <td class="num">R$ {{ p.valor|floatformat:2 }}</td>
+                <td class="num" style="color: {% if p.expirada %}var(--red){% else %}var(--text-faint){% endif %};">
+                    {{ p.validade|date:"d/m/Y"|default:"sem prazo" }}{% if p.expirada %} (expirada){% endif %}
+                </td>
+                <td>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="proposta_id" value="{{ p.id }}">
+                        <button type="submit" name="acao" value="aceitar" class="btn-mini">Aceitar</button>
+                        <button type="submit" name="acao" value="recusar" class="btn-mini">Recusar</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-row">Nenhuma proposta aberta.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if propostas_fechadas %}
+<div class="card">
+    <div class="card-title">Histórico</div>
+    <table>
+        <thead><tr><th>Título</th><th>Pra quem</th><th>Valor</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for p in propostas_fechadas %}
+            <tr>
+                <td>{{ p.titulo }}</td>
+                <td>{% if p.lead %}{{ p.lead.nome }}{% elif p.cliente %}{{ p.cliente.nome }}{% else %}—{% endif %}</td>
+                <td class="num">R$ {{ p.valor|floatformat:2 }}</td>
+                <td style="color: {% if p.status == 'aceita' %}var(--green){% else %}var(--red){% endif %};">{{ p.get_status_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

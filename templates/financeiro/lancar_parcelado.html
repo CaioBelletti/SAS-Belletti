@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Lançar parcelado — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .form-grid label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .form-grid select, .form-grid input {
+        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13.5px; box-sizing: border-box;
+    }
+    .btn-acao {
+        padding: 11px 18px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-top: 14px;
+    }
+    .tipo-toggle { display: flex; gap: 8px; margin-bottom: 6px; }
+    .tipo-toggle label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Lançar conta parcelada</h1>
+        <div class="subtitle">Gera as parcelas automaticamente, cada uma com seu próprio vencimento</div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="card" style="max-width: 640px;">
+    <form method="post" id="formParcelado">
+        {% csrf_token %}
+        <div class="tipo-toggle">
+            <label><input type="radio" name="tipo" value="pagar" checked> Conta a pagar</label>
+            <label><input type="radio" name="tipo" value="receber"> Conta a receber</label>
+        </div>
+
+        <label class="campo-label">Descrição</label>
+        <input type="text" name="descricao" required style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); font-size:13.5px; box-sizing:border-box;">
+
+        <div class="form-grid">
+            <div id="categoriaPagarWrap">
+                <label>Categoria (despesa)</label>
+                <select name="categoria_pagar">
+                    {% for c in categorias_despesa %}
+                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="categoriaReceberWrap" style="display:none;">
+                <label>Categoria (receita)</label>
+                <select name="categoria_receber">
+                    {% for c in categorias_receita %}
+                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="fornecedorWrap">
+                <label>Fornecedor (opcional)</label>
+                <input type="text" name="fornecedor">
+            </div>
+            <div>
+                <label>Meio de pagamento</label>
+                <select name="meio_pagamento">
+                    <option value="">—</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="pix">Pix</option>
+                    <option value="ted">TED</option>
+                    <option value="doc">DOC</option>
+                    <option value="transferencia">Transferência bancária</option>
+                    <option value="cartao">Cartão</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="outro">Outro</option>
+                </select>
+            </div>
+            <div>
+                <label>Valor total (R$)</label>
+                <input type="text" name="valor_total" required placeholder="Ex: 900,00">
+            </div>
+            <div>
+                <label>Número de parcelas</label>
+                <input type="number" name="numero_parcelas" min="1" value="1" required>
+            </div>
+            <div>
+                <label>Vencimento da 1ª parcela</label>
+                <input type="date" name="vencimento_inicial" required>
+            </div>
+        </div>
+
+        <input type="hidden" name="categoria" id="categoriaFinal">
+        <button type="submit" class="btn-acao">Gerar parcelas</button>
+    </form>
+    <div style="margin-top: 12px; font-size: 12px; color: var(--text-faint);">
+        As parcelas vencem a cada 30 dias a partir da data escolhida. O valor total é dividido
+        igualmente, com qualquer diferença de arredondamento jogada na última parcela.
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const radios = document.querySelectorAll('input[name="tipo"]');
+const catPagarWrap = document.getElementById('categoriaPagarWrap');
+const catReceberWrap = document.getElementById('categoriaReceberWrap');
+const fornecedorWrap = document.getElementById('fornecedorWrap');
+
+function atualizarTipo() {
+    const tipo = document.querySelector('input[name="tipo"]:checked').value;
+    catPagarWrap.style.display = tipo === 'pagar' ? 'block' : 'none';
+    catReceberWrap.style.display = tipo === 'receber' ? 'block' : 'none';
+    fornecedorWrap.style.display = tipo === 'pagar' ? 'block' : 'none';
+}
+radios.forEach(r => r.addEventListener('change', atualizarTipo));
+atualizarTipo();
+
+document.getElementById('formParcelado').addEventListener('submit', (e) => {
+    const tipo = document.querySelector('input[name="tipo"]:checked').value;
+    const catField = tipo === 'pagar' ? document.querySelector('select[name="categoria_pagar"]') : document.querySelector('select[name="categoria_receber"]');
+    document.getElementById('categoriaFinal').value = catField ? catField.value : '';
+});
+</script>
+{% endblock %}

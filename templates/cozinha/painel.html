@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Painel da cozinha — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .colunas-pedidos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .pedido-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .pedido-card.prioridade-2 { border-left: 4px solid var(--gold); }
+    .pedido-card.prioridade-3 { border-left: 4px solid var(--red); }
+    .pedido-topo { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+    .pedido-nome { font-weight: 700; font-size: 15px; }
+    .pedido-meta { font-size: 11.5px; color: var(--text-faint); }
+    .badge-status { font-size: 10.5px; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; font-weight: 700; }
+    .badge-recebido { background: #60a5fa22; color: #60a5fa; }
+    .badge-em_preparo { background: #e8b34d22; color: #e8b34d; }
+    .badge-pronto { background: #4ade8022; color: #4ade80; }
+    .item-pedido { font-size: 12.5px; padding: 3px 0; }
+    .obs-pedido { font-size: 11.5px; color: var(--gold); margin-top: 6px; font-style: italic; }
+    .acoes-pedido { display: flex; gap: 6px; margin-top: 10px; }
+    .btn-avancar { flex: 1; padding: 8px; border-radius: 6px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 12px; cursor: pointer; }
+    .btn-prioridade { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 12px; cursor: pointer; }
+    .btn-cancelar { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--red); background: transparent; color: var(--red); font-size: 12px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="topbar">
+    <div><h1>Painel da cozinha</h1><div class="subtitle">Pedidos ordenados por prioridade e horário</div></div>
+    <a href="{% url 'cozinha:qrcode' %}" target="_blank" class="btn-export" style="text-decoration:none; padding:9px 16px; border-radius:8px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:13px;">📱 Baixar QR code do cardápio</a>
+</div>
+
+<div class="colunas-pedidos">
+    {% for pedido in pedidos_ativos %}
+    <div class="pedido-card prioridade-{{ pedido.prioridade }}" data-pedido-id="{{ pedido.id }}">
+        <div class="pedido-topo">
+            <div>
+                <div class="pedido-nome">{{ pedido.nome_para_chamar|default:"Cliente" }}</div>
+                <div class="pedido-meta">{{ pedido.mesa_ou_local|default:"—" }} · {{ pedido.criado_em|date:"H:i" }} · {{ pedido.tempo_espera_minutos }} min</div>
+            </div>
+            <span class="badge-status badge-{{ pedido.status }}">{{ pedido.get_status_display }}</span>
+        </div>
+        {% for item in pedido.itens.all %}
+        <div class="item-pedido">{{ item.quantidade }}x {{ item.prato.nome }}{% if item.observacao %} <span style="color:var(--text-faint);">({{ item.observacao }})</span>{% endif %}</div>
+        {% endfor %}
+        {% if pedido.observacoes %}<div class="obs-pedido">💬 {{ pedido.observacoes }}</div>{% endif %}
+        <div class="acoes-pedido">
+            <button class="btn-avancar" onclick="avancarPedido({{ pedido.id }})">
+                {% if pedido.status == 'recebido' %}Iniciar preparo{% elif pedido.status == 'em_preparo' %}Marcar pronto{% else %}Marcar entregue{% endif %}
+            </button>
+            <select class="btn-prioridade" onchange="mudarPrioridade({{ pedido.id }}, this.value)">
+                <option value="1" {% if pedido.prioridade == 1 %}selected{% endif %}>Normal</option>
+                <option value="2" {% if pedido.prioridade == 2 %}selected{% endif %}>Alta</option>
+                <option value="3" {% if pedido.prioridade == 3 %}selected{% endif %}>Urgente</option>
+            </select>
+            <button class="btn-cancelar" onclick="cancelarPedido({{ pedido.id }})">✕</button>
+        </div>
+    </div>
+    {% empty %}
+    <div class="card"><div class="empty-row">Nenhum pedido ativo agora. 👍</div></div>
+    {% endfor %}
+</div>
+
+<h3 style="margin-top:28px; font-size:14px; color:var(--text-muted);">Entregues recentemente</h3>
+<div class="card">
+    <table>
+        <thead><tr><th>Cliente</th><th>Itens</th><th>Total</th><th>Entregue às</th></tr></thead>
+        <tbody>
+            {% for p in entregues_hoje %}
+            <tr>
+                <td>{{ p.nome_para_chamar }}</td>
+                <td>{% for item in p.itens.all %}{{ item.quantidade }}x {{ item.prato.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                <td class="num">R$ {{ p.valor_total|floatformat:2 }}</td>
+                <td class="num">{{ p.entregue_em|date:"H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="empty-row">Nenhum pedido entregue ainda hoje.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function getCookie(nome) {
+    const valor = `; ${document.cookie}`;
+    const partes = valor.split(`; ${nome}=`);
+    if (partes.length === 2) return partes.pop().split(';').shift();
+}
+const csrftoken = getCookie('csrftoken');
+
+async function avancarPedido(id) {
+    await fetch(`/cozinha/painel/${id}/avancar/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+    window.location.reload();
+}
+async function mudarPrioridade(id, prioridade) {
+    const form = new FormData();
+    form.append('prioridade', prioridade);
+    await fetch(`/cozinha/painel/${id}/prioridade/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: form });
+    window.location.reload();
+}
+async function cancelarPedido(id) {
+    if (!confirm('Cancelar esse pedido?')) return;
+    await fetch(`/cozinha/painel/${id}/cancelar/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+    window.location.reload();
+}
+
+setTimeout(() => window.location.reload(), 20000);
+</script>
+{% endblock %}

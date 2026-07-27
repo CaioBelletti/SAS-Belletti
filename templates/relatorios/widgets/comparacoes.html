@@ -1,0 +1,22 @@
+<div class="grid grid-2" style="margin-bottom: 0;">
+    <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-4-4L3 15.4"/></svg> Comparação mensal (mesmo período)</div>
+        <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px;">
+            <span class="value" style="font-family:var(--font-mono); font-size:22px;">R$ {{ comparacao_mensal.atual|floatformat:2 }}</span>
+            <span style="font-size:13px; font-weight:600; color: {% if comparacao_mensal.variacao >= 0 %}var(--green){% else %}var(--red){% endif %};">
+                {% if comparacao_mensal.variacao >= 0 %}▲{% else %}▼{% endif %} {{ comparacao_mensal.variacao|floatformat:0 }}%
+            </span>
+        </div>
+        <div style="font-size:12.5px; color:var(--text-muted);">vs R$ {{ comparacao_mensal.anterior|floatformat:2 }} no mesmo período do mês passado</div>
+    </div>
+    <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Comparação anual (acumulado do ano)</div>
+        <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px;">
+            <span class="value" style="font-family:var(--font-mono); font-size:22px;">R$ {{ comparacao_anual.atual|floatformat:2 }}</span>
+            <span style="font-size:13px; font-weight:600; color: {% if comparacao_anual.variacao >= 0 %}var(--green){% else %}var(--red){% endif %};">
+                {% if comparacao_anual.variacao >= 0 %}▲{% else %}▼{% endif %} {{ comparacao_anual.variacao|floatformat:0 }}%
+            </span>
+        </div>
+        <div style="font-size:12.5px; color:var(--text-muted);">vs R$ {{ comparacao_anual.anterior|floatformat:2 }} no mesmo período do ano passado</div>
+    </div>
+</div>

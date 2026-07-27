@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Importar OFX — {{ conta.nome }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .btn-acao { padding: 10px 18px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-top: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Importar extrato (OFX)</h1><div class="subtitle">Conta: {{ conta.nome }}</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card" style="max-width: 480px;">
+    <div class="card-title">Enviar arquivo .ofx</div>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="arquivo" accept=".ofx" required style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); font-size:13px; box-sizing:border-box;">
+        <button type="submit" class="btn-acao">Importar</button>
+    </form>
+    <div style="margin-top: 12px; font-size: 12px; color: var(--text-faint);">
+        O arquivo OFX é o extrato que praticamente todo internet banking deixa baixar
+        (procure por "exportar extrato" ou "OFX" no app/site do seu banco). Depois de
+        importar, você vai pra tela de conciliação pra casar com os lançamentos do sistema.
+    </div>
+</div>
+{% endblock %}

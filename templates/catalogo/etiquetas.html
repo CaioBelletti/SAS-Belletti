@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Etiquetas — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .filtros { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
+    .filtros select { padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 13.5px; }
+    .filtros label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    table.lista-produtos th, table.lista-produtos td { padding: 8px 6px; }
+    .btn-acao {
+        padding: 10px 16px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    }
+    .folha-etiquetas {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px;
+    }
+    .etiqueta {
+        border: 1px dashed var(--border); border-radius: 6px; padding: 8px;
+        text-align: center; background: white;
+    }
+    .etiqueta .nome-produto { font-size: 11px; color: black; margin-bottom: 4px; font-weight: 600; }
+    .etiqueta svg { max-width: 100%; }
+
+    @media print {
+        .sidebar, .topbar, .filtros, form.form-selecao { display: none !important; }
+        .layout { display: block !important; }
+        .main { padding: 0 !important; }
+        .folha-etiquetas { margin-top: 0; }
+        .etiqueta { border: 1px solid #ccc; break-inside: avoid; }
+        body { background: white !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Etiquetas</h1>
+        <div class="subtitle">Gere código de barras próprio pra produtos sem código de fábrica</div>
+    </div>
+</div>
+
+<form method="get" class="filtros">
+    <div>
+        <label>Categoria</label>
+        <select name="categoria">
+            <option value="">Todas</option>
+            {% for c in categorias %}
+            <option value="{{ c.id }}" {% if categoria_selecionada == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label>&nbsp;</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-primary);">
+            <input type="checkbox" name="apenas_sem_codigo" value="1" {% if apenas_sem_codigo %}checked{% endif %}>
+            Só sem código de barras
+        </label>
+    </div>
+    <button type="submit" class="btn-acao" style="background: var(--bg-2); border: 1px solid var(--border); color: var(--text-primary);">Filtrar</button>
+</form>
+
+<form method="get" class="form-selecao">
+    <input type="hidden" name="categoria" value="{{ categoria_selecionada|default:'' }}">
+    {% if apenas_sem_codigo %}<input type="hidden" name="apenas_sem_codigo" value="1">{% endif %}
+
+    <div class="card">
+        <table class="lista-produtos">
+            <thead><tr><th></th><th>Produto</th><th>SKU</th><th>Código de barras</th></tr></thead>
+            <tbody>
+                {% for produto in produtos %}
+                <tr>
+                    <td><input type="checkbox" name="produto_id" value="{{ produto.id }}"></td>
+                    <td>{{ produto.nome }}</td>
+                    <td class="num">{{ produto.sku }}</td>
+                    <td class="num">{{ produto.codigo_barras|default:"— nenhum ainda —" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="empty-row">Nenhum produto encontrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn-acao" style="margin-top: 14px;">Gerar etiquetas dos selecionados</button>
+    </div>
+</form>
+
+{% if etiquetas_geradas %}
+<div style="margin-top: 24px; display:flex; justify-content: space-between; align-items:center;">
+    <h2 style="font-family: var(--font-display); font-size: 16px;">{{ etiquetas_geradas|length }} etiqueta(s) pronta(s)</h2>
+    <button onclick="window.print()" class="btn-acao">Imprimir</button>
+</div>
+<div class="folha-etiquetas">
+    {% for item in etiquetas_geradas %}
+    <div class="etiqueta">
+        <div class="nome-produto">{{ item.produto.nome|truncatechars:28 }}</div>
+        {{ item.svg|safe }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

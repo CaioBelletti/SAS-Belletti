@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Extrato — {{ conta.nome }}{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Extrato — {{ conta.nome }}</h1><div class="subtitle">Saldo atual: R$ {{ conta.saldo_atual|floatformat:2 }}</div></div>
+</div>
+
+<div class="card">
+    <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Conciliado</th></tr></thead>
+        <tbody>
+            {% for m in movimentos %}
+            <tr>
+                <td class="num">{{ m.data|date:"d/m/Y" }}</td>
+                <td>{{ m.descricao }}</td>
+                <td style="color: {% if m.tipo == 'entrada' %}var(--green){% else %}var(--red){% endif %};">{{ m.get_tipo_display }}</td>
+                <td class="num">R$ {{ m.valor|floatformat:2 }}</td>
+                <td class="num">{% if m.conciliado %}<span style="color:var(--green);">✓</span>{% else %}<span style="color:var(--text-faint);">—</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-row">Nenhum movimento vinculado a essa conta ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação em duas etapas — Belletti Cards Universe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-card {
+            width: 100%; max-width: 340px; background: var(--bg-1);
+            border: 1px solid var(--border); border-radius: 14px; padding: 32px;
+        }
+        .login-card .brand { justify-content: center; padding-bottom: 16px; }
+        .login-card h1 { font-family: var(--font-display); font-size: 17px; text-align: center; margin: 0 0 6px; }
+        .login-card p { font-size: 13px; color: var(--text-muted); text-align: center; margin: 0 0 20px; }
+        .login-card input {
+            width: 100%; padding: 12px; border-radius: 8px; text-align: center;
+            border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary);
+            font-size: 22px; font-family: var(--font-mono); letter-spacing: 6px;
+        }
+        .login-card button {
+            width: 100%; margin-top: 16px; padding: 11px; border-radius: 8px; border: none;
+            background: var(--accent); color: white; font-weight: 600; font-size: 14px; cursor: pointer;
+        }
+        .msg { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+        .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="brand"><svg class="brand-mark" viewBox="0 0 40 40" fill="none" style="width:40px;height:40px;">
+    <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="#e8b34d" stroke-width="1.6"/>
+    <circle cx="19" cy="18" r="9" fill="#e8b34d"/>
+</svg></div>
+        <h1>Verificação em duas etapas</h1>
+        <p>Digite o código de 6 dígitos do seu app autenticador</p>
+        {% if messages %}
+        {% for message in messages %}
+        <div class="msg {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="codigo" inputmode="numeric" pattern="[0-9]*" maxlength="6" autofocus required>
+            <button type="submit">Verificar</button>
+        </form>
+    </div>
+</body>
+</html>

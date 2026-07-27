@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Aprovações pendentes — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .card-aprovacao { background: var(--bg-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+    .card-aprovacao .topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .card-aprovacao .valor { font-family: var(--font-mono); font-size: 17px; color: var(--gold); }
+    .card-aprovacao textarea {
+        width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 12.5px; box-sizing: border-box; margin-bottom: 8px;
+        resize: vertical; min-height: 40px;
+    }
+    .btn-aprovar { padding: 8px 16px; border-radius: 6px; border: none; background: var(--green, #4ade80); color: #06240f; font-weight: 600; font-size: 12.5px; cursor: pointer; margin-right: 8px; }
+    .btn-rejeitar { padding: 8px 16px; border-radius: 6px; border: none; background: var(--red); color: white; font-weight: 600; font-size: 12.5px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Aprovações pendentes</h1><div class="subtitle">Compras, pagamentos e descontos aguardando sua decisão</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card" style="margin-bottom: 18px;">
+    <div class="card-title">Aguardando você ({{ minhas_pendentes|length }})</div>
+    {% for s in minhas_pendentes %}
+    <div class="card-aprovacao">
+        <div class="topo">
+            <div>
+                <strong>{{ s.descricao }}</strong>
+                <div style="font-size: 11.5px; color: var(--text-faint);">
+                    {{ s.get_tipo_display }} · nível {{ s.nivel_atual }} de {{ s.total_niveis }} ·
+                    solicitado por {{ s.solicitado_por.username|default:"sistema" }} em {{ s.criada_em|date:"d/m/Y H:i" }}
+                </div>
+            </div>
+            <div class="valor">R$ {{ s.valor|floatformat:2 }}</div>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="solicitacao_id" value="{{ s.id }}">
+            <textarea name="comentario" placeholder="Comentário (opcional)"></textarea>
+            <button type="submit" name="decisao" value="aprovado" class="btn-aprovar">✓ Aprovar</button>
+            <button type="submit" name="decisao" value="rejeitado" class="btn-rejeitar">✕ Rejeitar</button>
+        </form>
+    </div>
+    {% empty %}
+    <div class="empty-row">Nenhuma aprovação esperando por você agora.</div>
+    {% endfor %}
+</div>
+
+{% if total_pendentes_sistema > minhas_pendentes|length %}
+<div class="card" style="margin-bottom: 18px;">
+    <div class="empty-row">
+        Existem {{ total_pendentes_sistema }} solicitação(ões) pendente(s) no total no sistema —
+        as que não aparecem acima estão esperando outro nível/perfil de aprovação.
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-title">Histórico recente</div>
+    <table>
+        <thead><tr><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th><th>Quando</th></tr></thead>
+        <tbody>
+            {% for s in historico %}
+            <tr>
+                <td>{{ s.descricao }}</td>
+                <td>{{ s.get_tipo_display }}</td>
+                <td class="num">R$ {{ s.valor|floatformat:2 }}</td>
+                <td style="color: {% if s.status == 'aprovada' %}var(--green){% else %}var(--red){% endif %};">{{ s.get_status_display }}</td>
+                <td class="num">{{ s.finalizada_em|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-row">Nenhuma decisão registrada ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

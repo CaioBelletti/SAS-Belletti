@@ -1,0 +1,27 @@
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Giro e cobertura de estoque (90 dias)</div>
+    <table>
+        <thead><tr><th>Produto</th><th>Estoque</th><th>Vendido (90d)</th><th>Giro</th><th>Cobertura</th></tr></thead>
+        <tbody>
+            {% for g in giro_cobertura %}
+            <tr>
+                <td>{{ g.produto.nome }}</td>
+                <td class="num">{{ g.produto.estoque_atual }}</td>
+                <td class="num">{{ g.vendido_90d }}</td>
+                <td class="num" style="color: {% if g.giro %}var(--green){% else %}var(--text-faint){% endif %};">
+                    {% if g.giro %}{{ g.giro }}x{% else %}—{% endif %}
+                </td>
+                <td class="num" style="color: {% if g.cobertura_dias and g.cobertura_dias < 15 %}var(--red){% elif g.cobertura_dias %}var(--text-primary){% else %}var(--text-faint){% endif %};">
+                    {% if g.cobertura_dias %}{{ g.cobertura_dias }} dias{% else %}sem giro{% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-row">Sem dados suficientes ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top: 10px; font-size: 11.5px; color: var(--text-faint);">
+        Giro = quantidade vendida ÷ estoque atual (quantas vezes o estoque "virou" nos últimos 90 dias).
+        Cobertura = quantos dias o estoque atual deve durar no ritmo de venda recente.
+    </div>
+</div>

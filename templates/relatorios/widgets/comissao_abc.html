@@ -1,0 +1,37 @@
+<div class="grid grid-2" style="margin-bottom: 0;">
+    <div class="card">
+        <div class="card-title">Comissão por vendedor (mês atual)</div>
+        <table>
+            <thead><tr><th>Vendedor</th><th>Vendido</th><th>%</th><th>Comissão</th></tr></thead>
+            <tbody>
+                {% for c in comissoes %}
+                <tr>
+                    <td>{{ c.vendedor }}</td>
+                    <td class="num">R$ {{ c.total_vendido|floatformat:2 }}</td>
+                    <td class="num">{{ c.percentual|floatformat:1 }}%</td>
+                    <td class="num" style="color: var(--gold);">R$ {{ c.comissao|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="empty-row">Nenhuma venda com vendedor identificado esse mês.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-title">Curva ABC de produtos (12 meses)</div>
+        <table>
+            <thead><tr><th>Produto</th><th>Valor</th><th>Classe</th></tr></thead>
+            <tbody>
+                {% for p in curva_abc|slice:":8" %}
+                <tr>
+                    <td>{{ p.nome }}</td>
+                    <td class="num">R$ {{ p.valor|floatformat:2 }}</td>
+                    <td class="num" style="color: {% if p.classe == 'A' %}var(--green){% elif p.classe == 'B' %}var(--gold){% else %}var(--text-faint){% endif %}; font-weight:600;">{{ p.classe }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-row">Sem dados suficientes ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

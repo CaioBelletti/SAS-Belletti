@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Análise de compras — Belletti Cards Universe{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Análise de compras</h1>
+        <div class="subtitle">Preço médio por produto e comparação entre fornecedores</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-title">Preço médio de compra por produto</div>
+        <table>
+            <thead><tr><th>Produto</th><th>Preço médio</th><th>Menor preço já pago</th><th>Qtd recebida</th></tr></thead>
+            <tbody>
+                {% for p in preco_medio_produtos %}
+                <tr>
+                    <td>{{ p.produto__nome }}</td>
+                    <td class="num">R$ {{ p.preco_medio|floatformat:2 }}</td>
+                    <td class="num" style="color: var(--green);">R$ {{ p.menor_preco|floatformat:2 }}</td>
+                    <td class="num">{{ p.qtd_total }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="empty-row">Nenhum recebimento registrado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Ranking de fornecedores</div>
+        <table>
+            <thead><tr><th>Fornecedor</th><th>Avaliação</th><th>Ordens</th><th>Valor total</th><th>Prazo médio</th><th>Atraso médio</th></tr></thead>
+            <tbody>
+                {% for r in ranking_fornecedores %}
+                <tr>
+                    <td>{{ r.fornecedor }}</td>
+                    <td style="color: var(--gold);">
+                        {% if r.avaliacao %}{% for i in "12345" %}{% if forloop.counter <= r.avaliacao %}★{% else %}<span style="color:var(--text-faint);">★</span>{% endif %}{% endfor %}{% else %}<span style="color:var(--text-faint);">sem avaliação</span>{% endif %}
+                    </td>
+                    <td class="num">{{ r.total_ordens }}</td>
+                    <td class="num">R$ {{ r.valor_total|floatformat:2 }}</td>
+                    <td class="num">{% if r.prazo_medio is not None %}{{ r.prazo_medio }} dias{% else %}sem dados{% endif %}</td>
+                    <td class="num" style="color: {% if r.atraso_medio and r.atraso_medio > 0 %}var(--red){% elif r.atraso_medio %}var(--green){% else %}var(--text-faint){% endif %};">
+                        {% if r.atraso_medio is not None %}
+                            {% if r.atraso_medio > 0 %}+{% endif %}{{ r.atraso_medio }} dias
+                        {% else %}sem dados{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="empty-row">Nenhum recebimento registrado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="margin-top: 10px; font-size: 11.5px; color: var(--text-faint);">
+            Prazo médio = quantos dias, em média, esse fornecedor demora do pedido até a entrega.
+            Atraso médio = diferença entre a data prevista e a data real (negativo = adiantado, positivo = atrasou).
+        </div>
+    </div>
+</div>
+{% endblock %}

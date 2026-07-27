@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Consulta de carta — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .jogo-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .jogo-tabs a {
+        padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px;
+        color: var(--text-muted); background: var(--bg-2);
+    }
+    .jogo-tabs a.ativo { background: var(--accent); color: white; border-color: var(--accent); }
+    .busca-form { display: flex; gap: 8px; margin-bottom: 20px; }
+    .busca-form input {
+        flex: 1; padding: 11px 14px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 14px;
+    }
+    .btn-acao {
+        padding: 11px 20px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    }
+    .resultados { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .resultado-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .resultado-card img { width: 100%; border-radius: 8px; margin-bottom: 10px; background: var(--bg-2); }
+    .resultado-card .titulo { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .resultado-card .edicao { font-size: 12px; color: var(--text-faint); margin-bottom: 8px; }
+    .resultado-card .linha { display: flex; justify-content: space-between; font-size: 12.5px; padding: 4px 0; border-top: 1px solid var(--border-soft); }
+    .resultado-card .preco { font-family: var(--font-mono); color: var(--gold); font-weight: 600; font-size: 15px; margin-top: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="topbar">
+    <div>
+        <h1>Consulta de carta</h1>
+        <div class="subtitle">Pesquise em Magic, Pokémon ou Yu-Gi-Oh! — edição, raridade e preço de referência de mercado</div>
+    </div>
+</div>
+
+<div class="jogo-tabs">
+    <a href="?jogo=magic&termo={{ termo }}" class="{% if jogo == 'magic' %}ativo{% endif %}">Magic: The Gathering</a>
+    <a href="?jogo=pokemon&termo={{ termo }}" class="{% if jogo == 'pokemon' %}ativo{% endif %}">Pokémon</a>
+    <a href="?jogo=yugioh&termo={{ termo }}" class="{% if jogo == 'yugioh' %}ativo{% endif %}">Yu-Gi-Oh!</a>
+</div>
+
+<form method="get" class="busca-form">
+    <input type="hidden" name="jogo" value="{{ jogo|default:'magic' }}">
+    <input type="text" name="termo" value="{{ termo }}" placeholder="Nome da carta..." autofocus>
+    <button type="submit" class="btn-acao">Buscar</button>
+</form>
+
+{% if jogo and termo %}
+    {% if resultados %}
+    <div class="resultados">
+        {% for r in resultados %}
+        <div class="resultado-card">
+            <img src="{{ r.thumb_url }}" alt="{{ r.titulo }}">
+            <div class="titulo">{{ r.titulo }}</div>
+            <div class="edicao">{{ r.edicao }}</div>
+            {% if r.tipo %}<div class="linha"><span style="color:var(--text-faint);">Tipo</span><span>{{ r.tipo }}</span></div>{% endif %}
+            {% if r.raridade %}<div class="linha"><span style="color:var(--text-faint);">Raridade</span><span>{{ r.raridade }}</span></div>{% endif %}
+            {% if r.preco_referencia %}
+            <div class="preco">$ {{ r.preco_referencia|stringformat:"0.2f" }} <span style="font-size:10px; color:var(--text-faint); font-weight:400;">({{ r.preco_moeda }}, referência)</span></div>
+            {% else %}
+            <div style="font-size:11px; color:var(--text-faint); margin-top:8px;">Sem preço de referência disponível</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card"><div class="empty-row">Nenhum resultado encontrado pra "{{ termo }}".</div></div>
+    {% endif %}
+{% else %}
+<div class="card"><div class="empty-row">Escolha o jogo e digite o nome da carta pra buscar.</div></div>
+{% endif %}
+
+<div style="margin-top: 16px; font-size: 11.5px; color: var(--text-faint);">
+    Preços de referência vêm do mercado americano (TCGplayer/Cardmarket, conforme a fonte) — servem como
+    ponto de partida, não como o preço que você deve cobrar. Câmbio e mercado local (BR) podem variar bastante.
+</div>
+{% endblock %}

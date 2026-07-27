@@ -1,0 +1,20 @@
+<div class="card" style="margin-bottom: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="card-title" style="margin-bottom: 0;"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Fluxo de caixa (entradas × saídas)</div>
+        <div style="display: flex; gap: 4px;">
+            <button type="button" class="fluxo-tab ativo" data-periodo="dia">Diário</button>
+            <button type="button" class="fluxo-tab" data-periodo="semana">Semanal</button>
+            <button type="button" class="fluxo-tab" data-periodo="mes">Mensal</button>
+            <button type="button" class="fluxo-tab" data-periodo="ano">Anual</button>
+        </div>
+    </div>
+    <canvas id="graficoFluxoCompleto" height="90"></canvas>
+</div>
+
+<style>
+    .fluxo-tab {
+        font-size: 11.5px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-muted); cursor: pointer;
+    }
+    .fluxo-tab.ativo { background: var(--accent); color: white; border-color: var(--accent); }
+</style>

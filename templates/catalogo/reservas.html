@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Reservas — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    .msg.success { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
+    .form-grid { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr; gap: 10px; margin-top: 10px; align-items: end; }
+    .form-grid label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .form-grid select, .form-grid input {
+        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13.5px;
+    }
+    .btn-acao {
+        padding: 9px 16px; border-radius: 8px; border: none; background: var(--accent);
+        color: white; font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .btn-mini {
+        padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 12px; cursor: pointer; margin-right: 6px;
+    }
+    .btn-mini.perigo { color: var(--red); }
+    .btn-mini:hover { border-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div>
+        <h1>Reservas</h1>
+        <div class="subtitle">Segure estoque pra um cliente sem finalizar a venda ainda</div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Nova reserva</div>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="criar">
+        <div class="form-grid">
+            <div>
+                <label>Produto</label>
+                <select name="produto_id" required>
+                    <option value="">Selecione...</option>
+                    {% for p in produtos %}
+                    <option value="{{ p.id }}">{{ p.nome }} ({{ p.sku }}) — disponível: {{ p.estoque_disponivel }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Cliente (opcional)</label>
+                <select name="cliente_id">
+                    <option value="">Sem cliente identificado</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Quantidade</label>
+                <input type="number" name="quantidade" min="1" value="1" required>
+            </div>
+            <div>
+                <label>Reservado até (opcional)</label>
+                <input type="date" name="validade">
+            </div>
+        </div>
+        <div style="margin-top: 10px;">
+            <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">Observações</label>
+            <input type="text" name="observacoes" style="width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); font-size:13.5px;">
+        </div>
+        <button type="submit" class="btn-acao" style="margin-top: 12px;">Criar reserva</button>
+    </form>
+</div>
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Reservas ativas</div>
+    <table>
+        <thead><tr><th>Produto</th><th>Cliente</th><th>Qtd</th><th>Até</th><th></th></tr></thead>
+        <tbody>
+            {% for r in reservas_ativas %}
+            <tr>
+                <td>{{ r.produto.nome }}</td>
+                <td>{{ r.cliente.nome|default:"—" }}</td>
+                <td class="num">{{ r.quantidade }}</td>
+                <td class="num" style="color: {% if r.expirada %}var(--red){% else %}var(--text-faint){% endif %};">
+                    {{ r.validade|date:"d/m/Y"|default:"sem prazo" }}{% if r.expirada %} (expirada){% endif %}
+                </td>
+                <td>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="reserva_id" value="{{ r.id }}">
+                        <button type="submit" name="acao" value="atender" class="btn-mini">Marcar atendida</button>
+                        <button type="submit" name="acao" value="cancelar" class="btn-mini perigo">Cancelar</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-row">Nenhuma reserva ativa agora.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if reservas_historico %}
+<div class="card">
+    <div class="card-title">Histórico recente</div>
+    <table>
+        <thead><tr><th>Produto</th><th>Cliente</th><th>Qtd</th><th>Status</th><th>Atualizada em</th></tr></thead>
+        <tbody>
+            {% for r in reservas_historico %}
+            <tr>
+                <td>{{ r.produto.nome }}</td>
+                <td>{{ r.cliente.nome|default:"—" }}</td>
+                <td class="num">{{ r.quantidade }}</td>
+                <td>{{ r.get_status_display }}</td>
+                <td class="num" style="color: var(--text-faint);">{{ r.atualizada_em|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
