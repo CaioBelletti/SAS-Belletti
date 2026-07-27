@@ -1,0 +1,828 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}PDV — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .pdv-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 900px) { .pdv-layout { grid-template-columns: 1fr; } }
+
+    .busca-wrap { position: relative; }
+    .busca-wrap svg.search-icon {
+        position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+        width: 16px; height: 16px; stroke: var(--text-faint); fill: none; stroke-width: 1.8;
+        pointer-events: none;
+    }
+    #buscaProduto {
+        width: 100%;
+        padding: 12px 40px 12px 40px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-2);
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+    #buscaProduto:focus { outline: 1.5px solid var(--accent); }
+
+    .resultados {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0; right: 0;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        z-index: 10;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+    .resultado-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 14px; cursor: pointer; font-size: 13.5px;
+        border-bottom: 1px solid var(--border-soft);
+    }
+    .resultado-item:hover { background: var(--bg-1); }
+    .resultado-item .nome { color: var(--text-primary); }
+    .resultado-item .meta { color: var(--text-faint); font-size: 12px; }
+    .resultado-item .preco { font-family: var(--font-mono); color: var(--accent-text); }
+
+    .carrinho-item {
+        display: grid;
+        grid-template-columns: 24px 1fr 55px 70px 90px 30px;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-soft);
+        font-size: 13.5px;
+    }
+    .carrinho-item .item-icon {
+        width: 24px; height: 24px; border-radius: 50%;
+        background: #8b6cf22e; color: #c4b5fd;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .carrinho-item .item-icon svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .carrinho-item input[type="number"] {
+        width: 100%; padding: 5px 6px; border-radius: 6px;
+        border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary);
+        font-family: var(--font-mono);
+    }
+    .carrinho-item .desc-item { color: var(--gold); }
+    .carrinho-item .remover { color: var(--red); cursor: pointer; text-align: center; }
+    .carrinho-vazio { color: var(--text-faint); padding: 34px 0 20px; text-align: center; font-size: 13.5px; }
+    .carrinho-vazio svg { width: 30px; height: 30px; stroke: var(--text-faint); fill: none; stroke-width: 1.4; margin-bottom: 10px; }
+    .carrinho-header {
+        display: grid; grid-template-columns: 24px 1fr 55px 70px 90px 30px; gap: 8px;
+        font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.03em;
+        padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    }
+
+    .resumo-linha { display: flex; justify-content: space-between; font-size: 13.5px; padding: 6px 0; color: var(--text-muted); }
+    .resumo-linha.total { font-size: 18px; color: var(--text-primary); font-family: var(--font-mono); border-top: 1px solid var(--border); margin-top: 8px; padding-top: 12px; }
+
+    .select-wrap { position: relative; margin-bottom: 10px; }
+    .select-wrap svg.chev-select {
+        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+        width: 13px; height: 13px; stroke: var(--text-faint); fill: none; stroke-width: 2;
+        pointer-events: none;
+    }
+    select, .desconto-input {
+        width: 100%; padding: 9px 34px 9px 10px; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary);
+        font-size: 13.5px; margin-bottom: 10px;
+        appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    }
+    .desconto-input { padding: 9px 10px; }
+    select:focus { outline: 1.5px solid var(--accent); }
+    label.campo-label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+
+    .btn-finalizar {
+        width: 100%; padding: 13px; border-radius: 8px; border: none;
+        background: var(--accent); color: white; font-weight: 600; font-size: 14px;
+        cursor: pointer; margin-top: 6px;
+    }
+    .btn-finalizar:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-finalizar:hover:not(:disabled) { filter: brightness(1.08); }
+
+    .mensagem { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+    .mensagem.erro { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
+    .mensagem.sucesso { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="topbar">
+    <div>
+        <h1>PDV</h1>
+        <div class="subtitle">Busque o produto pelo nome ou SKU e monte a venda</div>
+    </div>
+</div>
+
+<div id="indicadorOffline" style="display:none;"></div>
+<div id="mensagemArea"></div>
+
+<div class="pdv-layout">
+    <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Buscar produto</div>
+        <div class="busca-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="buscaProduto" placeholder="Digite o nome ou SKU..." autocomplete="off">
+            <button type="button" id="btnAbrirCamera" title="Ler código de barras pela câmera" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-faint); padding:4px;">
+                <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
+            <div class="resultados" id="resultados" style="display:none;"></div>
+        </div>
+
+        <div id="modalCamera" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; align-items:center; justify-content:center; flex-direction:column;">
+            <video id="videoCamera" style="width:90%; max-width:420px; border-radius:12px; border:2px solid var(--accent);" playsinline></video>
+            <div style="color:var(--text-primary); margin-top:14px; font-size:13px;">Aponte a câmera pro código de barras</div>
+            <button type="button" id="btnFecharCamera" style="margin-top:16px; padding:10px 24px; border-radius:8px; border:none; background:var(--red); color:white; font-weight:600; cursor:pointer;">Cancelar</button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Carrinho</div>
+            <div class="carrinho-header" id="carrinhoHeader" style="display:none;">
+                <span></span><span>Produto</span><span>Qtd</span><span>Desc.</span><span>Subtotal</span><span></span>
+            </div>
+            <div id="carrinho">
+                <div class="carrinho-vazio">
+                    <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                    <div>Nenhum item adicionado ainda.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4h16v16H4z" opacity="0"/><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M16 3H8a1 1 0 0 0-1 1v3h10V4a1 1 0 0 0-1-1z"/></svg> Fechamento</div>
+
+        <label class="campo-label">Canal da venda</label>
+        <div class="select-wrap">
+            <select id="canalVenda">
+                <option value="fisica">Loja física</option>
+                <option value="online">Online</option>
+            </select>
+            <svg class="chev-select" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <label class="campo-label">Cliente (opcional)</label>
+        <div class="select-wrap">
+            <select id="cliente">
+                <option value="">Sem cliente identificado</option>
+                {% for cliente in clientes %}
+                <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                {% endfor %}
+            </select>
+            <svg class="chev-select" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div id="avisoBlacklist" style="display:none; font-size:12.5px; color: var(--red); background: #f26d6d1a; border: 1px solid #f26d6d55; border-radius: 8px; padding: 8px 12px; margin: -4px 0 10px;"></div>
+
+        {% if fidelidade_ativa %}
+        <div id="infoPontos" style="display:none; font-size:12.5px; color: var(--gold); margin: -4px 0 10px;"></div>
+        <div id="resgatarPontosWrap" style="display:none;">
+            <label class="campo-label">Resgatar pontos (1 ponto = R$ {{ valor_resgate_ponto|floatformat:2 }})</label>
+            <input type="number" class="desconto-input" id="pontosResgatar" value="0" min="0" step="1">
+        </div>
+        {% endif %}
+
+        <label class="campo-label">Forma de pagamento</label>
+        <div class="select-wrap">
+            <select id="formaPagamentoNova">
+                <option value="dinheiro">Dinheiro</option>
+                <option value="pix">Pix</option>
+                <option value="debito">Cartão de débito</option>
+                <option value="credito_avista">Cartão de crédito à vista</option>
+                <option value="credito_parcelado">Cartão de crédito parcelado</option>
+                <option value="vale">Vale</option>
+            </select>
+            <svg class="chev-select" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <div id="parcelasWrap" style="display:none;">
+            <label class="campo-label">Parcelas</label>
+            <div class="select-wrap">
+                <select id="parcelas">
+                    <option value="2">2x</option>
+                    <option value="3">3x</option>
+                    <option value="4">4x</option>
+                    <option value="5">5x</option>
+                    <option value="6">6x</option>
+                </select>
+                <svg class="chev-select" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+        </div>
+
+        <div id="valeWrap" style="display:none;">
+            <label class="campo-label">Código do vale</label>
+            <div style="display:flex; gap:8px; margin-bottom:6px;">
+                <input type="text" class="desconto-input" id="valeCodigo" placeholder="Código do vale" style="text-transform:uppercase;">
+                <button type="button" id="btnValidarVale" class="btn-acao" style="padding:0 16px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); cursor:pointer; white-space:nowrap;">Consultar</button>
+            </div>
+            <div id="infoVale" style="display:none; font-size:12.5px; margin-bottom:10px;"></div>
+        </div>
+
+        <label class="campo-label">Valor deste pagamento (R$)</label>
+        <div style="display:flex; gap:8px;">
+            <input type="number" class="desconto-input" id="valorPagamentoNovo" step="0.01" min="0.01">
+            <button type="button" id="btnAddPagamento" class="btn-acao" style="padding:0 16px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); cursor:pointer; white-space:nowrap;">+ Adicionar</button>
+        </div>
+
+        <div id="listaPagamentos" style="margin-top:10px;"></div>
+        <div id="avisoPagamentos" style="font-size:12.5px; color: var(--gold); margin-top:6px;"></div>
+
+        <label class="campo-label">Cupom de desconto</label>
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+            <input type="text" class="desconto-input" id="cupomCodigo" placeholder="Código do cupom" style="text-transform:uppercase;">
+            <button type="button" id="btnAplicarCupom" class="btn-acao" style="padding:0 16px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); cursor:pointer; white-space:nowrap;">Aplicar</button>
+        </div>
+        <div id="infoCupom" style="display:none; font-size:12.5px; margin-bottom:10px;"></div>
+
+        {% if fidelidade_ativa %}
+        <div id="infoCredito" style="display:none; font-size:12.5px; color: var(--green); margin-bottom:6px;"></div>
+        <div id="usarCreditoWrap" style="display:none;">
+            <label class="campo-label">Usar crédito/cashback do cliente (R$)</label>
+            <input type="number" class="desconto-input" id="creditoUsar" value="0" min="0" step="0.01">
+        </div>
+        {% endif %}
+
+        <label class="campo-label">Desconto geral (R$)</label>
+        <input type="number" class="desconto-input" id="desconto" value="0" min="0" step="0.01">
+
+        <label class="campo-label">Acréscimo (R$)</label>
+        <input type="number" class="desconto-input" id="acrescimo" value="0" min="0" step="0.01">
+
+        <label class="campo-label">Observações</label>
+        <textarea id="observacoes" class="desconto-input" rows="2" style="resize:vertical; font-family:var(--font-body);" placeholder="Ex: embrulho pra presente, retirar às 18h..."></textarea>
+
+        <div class="resumo-linha"><span>Subtotal</span><span id="resumoSubtotal">R$ 0,00</span></div>
+        <div class="resumo-linha"><span>Desconto</span><span id="resumoDesconto">R$ 0,00</span></div>
+        <div class="resumo-linha"><span>Acréscimo</span><span id="resumoAcrescimo">R$ 0,00</span></div>
+        <div class="resumo-linha total"><span>Total</span><span id="resumoTotal">R$ 0,00</span></div>
+
+        <button class="btn-finalizar" id="btnFinalizar" disabled>Finalizar venda</button>
+        <button class="btn-acao" id="btnOrcamento" style="width:100%; margin-top:8px; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); cursor:pointer;" disabled>Salvar como orçamento</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="{% static 'js/offline-pdv.js' %}"></script>
+<script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+const csrftoken = getCookie('csrftoken');
+
+// --- Leitor de código de barras pela câmera (ZXing) -------------------------
+let leitorCamera = null;
+
+document.getElementById('btnAbrirCamera').addEventListener('click', async () => {
+    const modal = document.getElementById('modalCamera');
+    modal.style.display = 'flex';
+
+    if (typeof ZXingBrowser === 'undefined' && typeof ZXing === 'undefined') {
+        alert('Não consegui carregar o leitor de câmera (sem internet?). Use o campo de busca normal.');
+        modal.style.display = 'none';
+        return;
+    }
+
+    try {
+        const BrowserMultiFormatReader = (window.ZXingBrowser || window.ZXing).BrowserMultiFormatReader;
+        leitorCamera = new BrowserMultiFormatReader();
+        const dispositivos = await BrowserMultiFormatReader.listVideoInputDevices();
+        const idCamera = dispositivos.length > 1 ? dispositivos[dispositivos.length - 1].deviceId : undefined; // prefere a traseira, geralmente a última
+
+        leitorCamera.decodeFromVideoDevice(idCamera, 'videoCamera', (resultado, erro) => {
+            if (resultado) {
+                document.getElementById('buscaProduto').value = resultado.getText();
+                fecharCamera();
+                buscaInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+            }
+        });
+    } catch (err) {
+        console.error('Erro ao acessar a câmera:', err);
+        alert('Não consegui acessar a câmera. Verifique se você deu permissão pro navegador.');
+        modal.style.display = 'none';
+    }
+});
+
+function fecharCamera() {
+    document.getElementById('modalCamera').style.display = 'none';
+    if (leitorCamera) {
+        leitorCamera.reset();
+        leitorCamera = null;
+    }
+}
+document.getElementById('btnFecharCamera').addEventListener('click', fecharCamera);
+
+
+let carrinho = [];
+let pagamentos = [];
+const clientesPontos = {{ clientes_pontos_json|default:"{}"|safe }};
+
+document.getElementById('cliente').addEventListener('change', (e) => {
+    const info = document.getElementById('infoPontos');
+    const wrap = document.getElementById('resgatarPontosWrap');
+    const dados = clientesPontos[e.target.value];
+
+    if (info && wrap) {
+        if (dados && dados.pontos > 0) {
+            info.textContent = `Pontos disponíveis: ${dados.pontos} (equivalem a R$ ${parseFloat(dados.valor).toFixed(2)})`;
+            info.style.display = 'block';
+            wrap.style.display = 'block';
+            document.getElementById('pontosResgatar').max = dados.pontos;
+        } else {
+            info.style.display = 'none';
+            wrap.style.display = 'none';
+            document.getElementById('pontosResgatar').value = 0;
+        }
+    }
+
+    const infoCredito = document.getElementById('infoCredito');
+    const creditoWrap = document.getElementById('usarCreditoWrap');
+    if (infoCredito && creditoWrap) {
+        const credito = dados ? parseFloat(dados.credito) : 0;
+        if (credito > 0) {
+            infoCredito.textContent = `Crédito/cashback disponível: R$ ${credito.toFixed(2)}`;
+            infoCredito.style.display = 'block';
+            creditoWrap.style.display = 'block';
+            document.getElementById('creditoUsar').max = credito;
+        } else {
+            infoCredito.style.display = 'none';
+            creditoWrap.style.display = 'none';
+            document.getElementById('creditoUsar').value = 0;
+        }
+    }
+
+    const avisoBlacklist = document.getElementById('avisoBlacklist');
+    if (avisoBlacklist) {
+        if (dados && dados.blacklist) {
+            avisoBlacklist.textContent = `⚠ Cliente na lista de restrição${dados.blacklist_motivo ? ': ' + dados.blacklist_motivo : ''}.`;
+            avisoBlacklist.style.display = 'block';
+        } else {
+            avisoBlacklist.style.display = 'none';
+        }
+    }
+
+    atualizarResumo();
+});
+
+const creditoUsarInput = document.getElementById('creditoUsar');
+if (creditoUsarInput) creditoUsarInput.addEventListener('input', atualizarResumo);
+
+document.getElementById('formaPagamentoNova').addEventListener('change', (e) => {
+    document.getElementById('parcelasWrap').style.display = e.target.value === 'credito_parcelado' ? 'block' : 'none';
+    document.getElementById('valeWrap').style.display = e.target.value === 'vale' ? 'block' : 'none';
+});
+
+const NOMES_FORMA = {
+    dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito',
+    credito_avista: 'Crédito à vista', credito_parcelado: 'Crédito parcelado', vale: 'Vale',
+};
+const ICONES_FORMA = {
+    dinheiro: '💵', pix: '📱', debito: '💳', credito_avista: '💳', credito_parcelado: '💳', vale: '🎟️',
+};
+
+let valeValidado = null;
+
+document.getElementById('btnValidarVale').addEventListener('click', async () => {
+    const codigo = document.getElementById('valeCodigo').value.trim();
+    const infoVale = document.getElementById('infoVale');
+    if (!codigo) return;
+    try {
+        const resp = await fetch(`/pdv/api/validar-vale/?codigo=${encodeURIComponent(codigo)}`);
+        const data = await resp.json();
+        if (data.valido) {
+            valeValidado = { id: data.vale_id, codigo: data.codigo, saldo: parseFloat(data.saldo) };
+            infoVale.style.color = 'var(--green)';
+            infoVale.textContent = `Vale válido — saldo disponível: R$ ${valeValidado.saldo.toFixed(2)}`;
+            infoVale.style.display = 'block';
+            document.getElementById('valorPagamentoNovo').value = valeValidado.saldo.toFixed(2);
+            document.getElementById('valorPagamentoNovo').max = valeValidado.saldo;
+        } else {
+            valeValidado = null;
+            infoVale.style.color = 'var(--red)';
+            infoVale.textContent = data.erro || 'Vale inválido.';
+            infoVale.style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Erro ao validar vale:', err);
+        infoVale.style.color = 'var(--red)';
+        infoVale.textContent = 'Erro ao consultar o vale.';
+        infoVale.style.display = 'block';
+    }
+});
+
+document.getElementById('btnAddPagamento').addEventListener('click', () => {
+    const forma = document.getElementById('formaPagamentoNova').value;
+    const valorInput = document.getElementById('valorPagamentoNovo');
+    const valor = parseFloat(valorInput.value);
+    if (!valor || valor <= 0) {
+        valorInput.focus();
+        return;
+    }
+    if (forma === 'vale') {
+        if (!valeValidado) {
+            document.getElementById('infoVale').style.color = 'var(--red)';
+            document.getElementById('infoVale').textContent = 'Consulte um vale válido antes de adicionar.';
+            document.getElementById('infoVale').style.display = 'block';
+            return;
+        }
+        if (valor > valeValidado.saldo) {
+            document.getElementById('infoVale').style.color = 'var(--red)';
+            document.getElementById('infoVale').textContent = `O vale só tem R$ ${valeValidado.saldo.toFixed(2)} de saldo.`;
+            document.getElementById('infoVale').style.display = 'block';
+            return;
+        }
+    }
+    const parcelas = forma === 'credito_parcelado' ? parseInt(document.getElementById('parcelas').value) : 1;
+    pagamentos.push({
+        forma_pagamento: forma, valor, parcelas,
+        vale_id: forma === 'vale' ? valeValidado.id : null,
+        vale_codigo: forma === 'vale' ? valeValidado.codigo : null,
+    });
+    valorInput.value = '';
+    if (forma === 'vale') {
+        valeValidado = null;
+        document.getElementById('valeCodigo').value = '';
+        document.getElementById('infoVale').style.display = 'none';
+    }
+    renderPagamentos();
+});
+
+function renderPagamentos() {
+    const el = document.getElementById('listaPagamentos');
+    if (pagamentos.length === 0) {
+        el.innerHTML = '';
+    } else {
+        el.innerHTML = pagamentos.map((p, idx) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13px; border-bottom:1px solid var(--border-soft);">
+                <span>${ICONES_FORMA[p.forma_pagamento]} ${NOMES_FORMA[p.forma_pagamento]}${p.parcelas > 1 ? ' (' + p.parcelas + 'x)' : ''}${p.vale_codigo ? ' — ' + p.vale_codigo : ''}</span>
+                <span style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-family:var(--font-mono);">R$ ${p.valor.toFixed(2)}</span>
+                    <span class="remover-linha" data-idx="${idx}" style="color:var(--red); cursor:pointer;" onclick="removerPagamento(${idx})">✕</span>
+                </span>
+            </div>
+        `).join('');
+    }
+    atualizarResumo();
+}
+
+function removerPagamento(idx) {
+    pagamentos.splice(idx, 1);
+    renderPagamentos();
+}
+
+let cupomAplicado = null;
+
+document.getElementById('btnAplicarCupom').addEventListener('click', async () => {
+    const codigo = document.getElementById('cupomCodigo').value.trim();
+    const infoCupom = document.getElementById('infoCupom');
+    if (!codigo) return;
+
+    const subtotalAtual = carrinho.reduce((acc, i) => acc + (i.preco_unitario * i.quantidade - (i.desconto || 0)), 0);
+
+    try {
+        const resp = await fetch(`/pdv/api/validar-cupom/?codigo=${encodeURIComponent(codigo)}&subtotal=${subtotalAtual}`);
+        const data = await resp.json();
+        if (data.valido) {
+            cupomAplicado = { id: data.cupom_id, codigo: data.codigo, desconto: parseFloat(data.desconto_calculado) };
+            infoCupom.style.color = 'var(--green)';
+            infoCupom.textContent = `Cupom ${cupomAplicado.codigo} aplicado — desconto de R$ ${cupomAplicado.desconto.toFixed(2)}`;
+            infoCupom.style.display = 'block';
+        } else {
+            cupomAplicado = null;
+            infoCupom.style.color = 'var(--red)';
+            infoCupom.textContent = data.erro || 'Cupom inválido.';
+            infoCupom.style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Erro ao validar cupom:', err);
+        cupomAplicado = null;
+        infoCupom.style.color = 'var(--red)';
+        infoCupom.textContent = 'Erro ao consultar o cupom.';
+        infoCupom.style.display = 'block';
+    }
+    atualizarResumo();
+});
+
+const buscaInput = document.getElementById('buscaProduto');
+const resultadosEl = document.getElementById('resultados');
+let buscaTimeout = null;
+
+buscaInput.addEventListener('input', () => {
+    clearTimeout(buscaTimeout);
+    const termo = buscaInput.value.trim();
+    if (termo.length < 1) { resultadosEl.style.display = 'none'; return; }
+    buscaTimeout = setTimeout(() => buscarProdutos(termo), 200);
+});
+
+// Leitor de código de barras USB funciona como um teclado: ele digita o
+// código inteiro rapidamente e manda "Enter" sozinho no final. Interceptamos
+// esse Enter pra já adicionar o produto direto no carrinho, sem precisar
+// clicar em nada.
+buscaInput.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    clearTimeout(buscaTimeout);
+    const termo = buscaInput.value.trim();
+    if (termo.length < 1) return;
+
+    try {
+        const resp = await fetch(`/pdv/api/produtos/?q=${encodeURIComponent(termo)}`);
+        if (!resp.ok) throw new Error('status ' + resp.status);
+        const data = await resp.json();
+
+        if (data.produtos.length === 1) {
+            adicionarAoCarrinho(data.produtos[0]);
+            buscaInput.value = '';
+            resultadosEl.style.display = 'none';
+        } else {
+            // Mais de um resultado (ou nenhum) — mostra a lista pro usuário escolher.
+            renderResultados(data.produtos);
+        }
+    } catch (err) {
+        console.error('Erro ao buscar produtos:', err);
+        mostrarMensagem('Erro ao buscar o produto. Veja o console (F12) pra mais detalhes.', 'erro');
+    }
+});
+
+async function buscarProdutos(termo) {
+    try {
+        const resp = await fetch(`/pdv/api/produtos/?q=${encodeURIComponent(termo)}`);
+        if (!resp.ok) throw new Error('status ' + resp.status);
+        const data = await resp.json();
+        renderResultados(data.produtos);
+    } catch (err) {
+        // Sem conexão — busca no catálogo salvo localmente (IndexedDB)
+        try {
+            const produtosOffline = await buscarProdutosOffline(termo);
+            renderResultados(produtosOffline.map(p => ({ ...p, estoque_disponivel: p.estoque_atual })));
+        } catch (e2) {
+            resultadosEl.innerHTML = '<div class="resultado-item"><span class="meta">Sem conexão e sem catálogo salvo localmente ainda. Conecte à internet uma vez pra baixar o catálogo offline.</span></div>';
+            resultadosEl.style.display = 'block';
+        }
+    }
+}
+
+function renderResultados(produtos) {
+    if (produtos.length === 0) {
+        resultadosEl.innerHTML = '<div class="resultado-item" style="cursor:default;"><span class="meta">Nenhum produto encontrado com esse nome/SKU/código de barras.</span></div>';
+    } else {
+        resultadosEl.innerHTML = produtos.map(p => `
+            <div class="resultado-item" data-produto='${JSON.stringify(p)}'>
+                <div>
+                    <div class="nome">${p.nome}</div>
+                    <div class="meta">${p.sku} · estoque: ${p.estoque_atual}${p.estoque_disponivel !== p.estoque_atual ? ' (disponível: ' + p.estoque_disponivel + ')' : ''}${p.grading ? ' · <span style="color:#c4b5fd;">' + p.grading + '</span>' : ''}${p.variante ? ' · <span style="color:#e8b34d;">' + p.variante + '</span>' : ''}</div>
+                </div>
+                <div class="preco">R$ ${parseFloat(p.preco_venda).toFixed(2)}</div>
+            </div>
+        `).join('');
+    }
+    resultadosEl.style.display = 'block';
+}
+
+resultadosEl.addEventListener('click', (e) => {
+    const item = e.target.closest('.resultado-item[data-produto]');
+    if (!item) return;
+    const produto = JSON.parse(item.dataset.produto);
+    adicionarAoCarrinho(produto);
+    buscaInput.value = '';
+    resultadosEl.style.display = 'none';
+    buscaInput.focus();
+});
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.busca-wrap')) resultadosEl.style.display = 'none';
+});
+
+function adicionarAoCarrinho(produto) {
+    const existente = carrinho.find(i => i.produto_id === produto.id);
+    if (existente) {
+        existente.quantidade += 1;
+    } else {
+        carrinho.push({
+            produto_id: produto.id,
+            nome: produto.nome,
+            sku: produto.sku,
+            preco_unitario: parseFloat(produto.preco_venda),
+            quantidade: 1,
+            desconto: 0,
+        });
+    }
+    renderCarrinho();
+}
+
+function renderCarrinho() {
+    const carrinhoEl = document.getElementById('carrinho');
+    document.getElementById('carrinhoHeader').style.display = carrinho.length ? 'grid' : 'none';
+    if (carrinho.length === 0) {
+        carrinhoEl.innerHTML = '<div class="carrinho-vazio"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><div>Nenhum item adicionado ainda.</div></div>';
+    } else {
+        carrinhoEl.innerHTML = carrinho.map((item, idx) => `
+            <div class="carrinho-item">
+                <div class="item-icon"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 8.3L12 13l8.7-4.7"/><path d="M12 22V13"/></svg></div>
+                <div>${item.nome}<br><span class="meta" style="color:var(--text-faint); font-size:11.5px;">${item.sku}</span></div>
+                <input type="number" min="1" value="${item.quantidade}" data-idx="${idx}" class="qtd-input">
+                <input type="number" min="0" step="0.01" value="${item.desconto || 0}" data-idx="${idx}" class="desc-item-input desc-item" title="Desconto neste item (R$)">
+                <div style="font-family: var(--font-mono);">R$ ${Math.max(item.preco_unitario * item.quantidade - (item.desconto || 0), 0).toFixed(2)}</div>
+                <div class="remover" data-idx="${idx}">✕</div>
+            </div>
+        `).join('');
+    }
+    atualizarResumo();
+    document.getElementById('btnFinalizar').disabled = carrinho.length === 0;
+    document.getElementById('btnOrcamento').disabled = carrinho.length === 0;
+}
+
+document.getElementById('carrinho').addEventListener('change', (e) => {
+    if (e.target.classList.contains('qtd-input')) {
+        const idx = parseInt(e.target.dataset.idx);
+        const val = parseInt(e.target.value) || 1;
+        carrinho[idx].quantidade = val;
+        renderCarrinho();
+    }
+    if (e.target.classList.contains('desc-item-input')) {
+        const idx = parseInt(e.target.dataset.idx);
+        const val = parseFloat(e.target.value) || 0;
+        carrinho[idx].desconto = Math.max(val, 0);
+        renderCarrinho();
+    }
+});
+
+document.getElementById('carrinho').addEventListener('click', (e) => {
+    if (e.target.classList.contains('remover')) {
+        const idx = parseInt(e.target.dataset.idx);
+        carrinho.splice(idx, 1);
+        renderCarrinho();
+    }
+});
+
+document.getElementById('desconto').addEventListener('input', atualizarResumo);
+document.getElementById('acrescimo').addEventListener('input', atualizarResumo);
+const pontosResgatarInput = document.getElementById('pontosResgatar');
+if (pontosResgatarInput) pontosResgatarInput.addEventListener('input', atualizarResumo);
+
+function atualizarResumo() {
+    const subtotal = carrinho.reduce((acc, i) => acc + Math.max(i.preco_unitario * i.quantidade - (i.desconto || 0), 0), 0);
+    const desconto = parseFloat(document.getElementById('desconto').value) || 0;
+    const acrescimo = parseFloat(document.getElementById('acrescimo').value) || 0;
+
+    const pontosResgatarEl = document.getElementById('pontosResgatar');
+    const valorResgatePonto = {{ valor_resgate_ponto|default:"0"|stringformat:"0.2f" }};
+    const pontosResgatar = pontosResgatarEl ? (parseInt(pontosResgatarEl.value) || 0) : 0;
+    const descontoPontos = pontosResgatar * valorResgatePonto;
+
+    const creditoUsarEl = document.getElementById('creditoUsar');
+    const creditoUsar = creditoUsarEl ? (parseFloat(creditoUsarEl.value) || 0) : 0;
+
+    const descontoCupom = cupomAplicado ? cupomAplicado.desconto : 0;
+
+    const descontoTotal = desconto + descontoPontos + creditoUsar + descontoCupom;
+    const total = Math.max(subtotal - descontoTotal + acrescimo, 0);
+
+    document.getElementById('resumoSubtotal').textContent = `R$ ${subtotal.toFixed(2)}`;
+    document.getElementById('resumoDesconto').textContent = `R$ ${descontoTotal.toFixed(2)}`;
+    document.getElementById('resumoAcrescimo').textContent = `R$ ${acrescimo.toFixed(2)}`;
+    document.getElementById('resumoTotal').textContent = `R$ ${total.toFixed(2)}`;
+
+    const somaPagamentos = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    const diferenca = Math.round((total - somaPagamentos) * 100) / 100;
+    const aviso = document.getElementById('avisoPagamentos');
+    const btn = document.getElementById('btnFinalizar');
+
+    if (carrinho.length === 0) {
+        aviso.textContent = '';
+        btn.disabled = true;
+    } else if (diferenca > 0.005) {
+        aviso.textContent = `Falta alocar R$ ${diferenca.toFixed(2)} em pagamento.`;
+        btn.disabled = true;
+    } else if (diferenca < -0.005) {
+        aviso.textContent = `Pagamentos somam R$ ${Math.abs(diferenca).toFixed(2)} a mais que o total.`;
+        btn.disabled = true;
+    } else if (pagamentos.length === 0) {
+        aviso.textContent = '';
+        btn.disabled = true;
+    } else {
+        aviso.textContent = '';
+        btn.disabled = false;
+    }
+}
+
+function mostrarMensagem(texto, tipo) {
+    document.getElementById('mensagemArea').innerHTML = `<div class="mensagem ${tipo}">${texto}</div>`;
+}
+
+document.getElementById('btnFinalizar').addEventListener('click', async () => {
+    const btn = document.getElementById('btnFinalizar');
+    btn.disabled = true;
+    btn.textContent = 'Processando...';
+
+    const payload = {
+        itens: carrinho.map(i => ({
+            produto_id: i.produto_id,
+            quantidade: i.quantidade,
+            preco_unitario: i.preco_unitario,
+            desconto: i.desconto || 0,
+        })),
+        pagamentos: pagamentos.map(p => ({
+            forma_pagamento: p.forma_pagamento, valor: p.valor, parcelas: p.parcelas, vale_id: p.vale_id,
+        })),
+        desconto: document.getElementById('desconto').value || 0,
+        acrescimo: document.getElementById('acrescimo').value || 0,
+        observacoes: document.getElementById('observacoes').value || '',
+        cliente_id: document.getElementById('cliente').value || null,
+        canal: document.getElementById('canalVenda').value,
+        pontos_resgatar: document.getElementById('pontosResgatar') ? (document.getElementById('pontosResgatar').value || 0) : 0,
+        credito_usar: document.getElementById('creditoUsar') ? (document.getElementById('creditoUsar').value || 0) : 0,
+        cupom_id: cupomAplicado ? cupomAplicado.id : null,
+    };
+
+    try {
+        const resp = await fetch('/pdv/api/finalizar/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (data.ok && data.pendente_aprovacao) {
+            mostrarMensagem(data.mensagem || 'Venda enviada pra aprovação — aguarde a liberação do gerente.', 'atencao');
+            resetarFormulario();
+        } else if (data.ok) {
+            mostrarMensagem(`Venda #${data.venda_id} finalizada — total R$ ${parseFloat(data.total).toFixed(2)}`, 'sucesso');
+            resetarFormulario();
+        } else {
+            mostrarMensagem(data.erro || 'Erro ao finalizar a venda.', 'erro');
+        }
+    } catch (err) {
+        // Sem conexão de verdade (não é erro de validação, é falha de rede)
+        // — guarda a venda no navegador e sincroniza sozinho quando voltar.
+        try {
+            const uuid = await enfileirarVendaOffline(payload);
+            mostrarMensagem('Sem conexão — venda salva no aparelho e será sincronizada automaticamente assim que a internet voltar.', 'sucesso');
+            resetarFormulario();
+            if (typeof atualizarIndicadorOffline === 'function') atualizarIndicadorOffline();
+        } catch (e2) {
+            mostrarMensagem('Sem conexão e não consegui salvar a venda localmente. Anote os itens manualmente.', 'erro');
+        }
+    } finally {
+        btn.textContent = 'Finalizar venda';
+        atualizarResumo();
+    }
+});
+
+document.getElementById('btnOrcamento').addEventListener('click', async () => {
+    const btn = document.getElementById('btnOrcamento');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const payload = {
+        itens: carrinho.map(i => ({
+            produto_id: i.produto_id,
+            quantidade: i.quantidade,
+            preco_unitario: i.preco_unitario,
+        })),
+        desconto: document.getElementById('desconto').value || 0,
+        observacoes: document.getElementById('observacoes').value || '',
+        cliente_id: document.getElementById('cliente').value || null,
+    };
+
+    try {
+        const resp = await fetch('/pdv/api/orcamento/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            mostrarMensagem(`Orçamento #${data.venda_id} salvo — total R$ ${parseFloat(data.total).toFixed(2)} (não afeta estoque nem financeiro ainda).`, 'sucesso');
+            resetarFormulario();
+        } else {
+            mostrarMensagem(data.erro || 'Erro ao salvar o orçamento.', 'erro');
+        }
+    } catch (err) {
+        mostrarMensagem('Erro de conexão ao salvar o orçamento.', 'erro');
+    } finally {
+        btn.textContent = 'Salvar como orçamento';
+        btn.disabled = carrinho.length === 0;
+    }
+});
+
+function resetarFormulario() {
+    carrinho = [];
+    pagamentos = [];
+    cupomAplicado = null;
+    document.getElementById('desconto').value = 0;
+    document.getElementById('acrescimo').value = 0;
+    document.getElementById('observacoes').value = '';
+    document.getElementById('cupomCodigo').value = '';
+    document.getElementById('infoCupom').style.display = 'none';
+    if (document.getElementById('pontosResgatar')) document.getElementById('pontosResgatar').value = 0;
+    if (document.getElementById('creditoUsar')) document.getElementById('creditoUsar').value = 0;
+    renderPagamentos();
+    renderCarrinho();
+}
+</script>
+{% endblock %}
