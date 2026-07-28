@@ -97,7 +97,12 @@
     </div>
 
     <div class="cardapio-titulo">Cardápio</div>
-    <div class="cardapio-subtitulo">Monte seu pedido — a cozinha já recebe na hora</div>
+    <div class="cardapio-subtitulo">
+        {% if mesa %}{{ mesa }} — {% endif %}Monte seu pedido e a cozinha já recebe na hora
+    </div>
+    {% if mesa %}
+    <button type="button" id="btnChamarAtendente" style="background:var(--bg-2); border:1px solid var(--border); color:var(--text-muted); font-size:12px; padding:7px 12px; border-radius:8px; cursor:pointer; margin-bottom:6px;">🔔 Chamar atendente</button>
+    {% endif %}
     <div class="holo-divisor"></div>
 
     {% for categoria in categorias %}
@@ -230,6 +235,7 @@
                     mesa_ou_local: document.getElementById('inputMesa').value.trim(),
                     observacoes: document.getElementById('inputObs').value.trim(),
                     itens,
+                    mesa_token: "{{ mesa.token_publico|default:'' }}" || null,
                 }),
             });
             const data = await resp.json();
@@ -240,6 +246,19 @@
                 msgErro.style.display = 'block';
             }
         });
+
+        const btnChamarAtendente = document.getElementById('btnChamarAtendente');
+        if (btnChamarAtendente) {
+            btnChamarAtendente.addEventListener('click', async () => {
+                await fetch('{% if mesa %}{% url "chamar_atendente" mesa.token_publico %}{% endif %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                    body: new FormData(),
+                });
+                btnChamarAtendente.textContent = '✓ Atendente chamado!';
+                btnChamarAtendente.disabled = true;
+            });
+        }
     </script>
 </body>
 </html>

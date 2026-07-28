@@ -21,6 +21,19 @@ SECRET_KEY = config(
 
 DEBUG = config("DEBUG", default=True, cast=bool)
 
+if not DEBUG:
+    # Endurecimentos de segurança que só fazem sentido em produção
+    # (o Railway já serve tudo em HTTPS, então isso é seguro de
+    # ativar). Em desenvolvimento local (DEBUG=True) isso ficaria
+    # desligado, senão o login pararia de funcionar por HTTP simples.
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv()
 )

@@ -1,0 +1,32 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar mesa — Belletti Cards Universe</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+        .caixa { text-align: center; max-width: 340px; }
+        .caixa svg { width: 48px; height: 48px; margin-bottom: 14px; }
+        .caixa h1 { font-family: var(--font-display); font-size: 22px; margin: 0 0 6px; }
+        .caixa .mesa-numero { font-family: var(--font-mono); color: var(--gold); font-size: 28px; margin-bottom: 20px; }
+        .btn-confirmar {
+            display: block; width: 100%; padding: 14px; border-radius: 10px; border: none; background: var(--accent);
+            color: white; font-weight: 700; font-size: 15px; text-decoration: none; margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="caixa">
+        <svg viewBox="0 0 40 40" fill="none">
+            <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
+            <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
+        </svg>
+        <h1>Você está na</h1>
+        <div class="mesa-numero">{{ mesa }}</div>
+        <a href="{% url 'cardapio_mesa' mesa.token_publico %}" class="btn-confirmar">Sim, continuar</a>
+        <div style="font-size: 12px; color: var(--text-faint);">Se você não está nessa mesa, feche essa página.</div>
+    </div>
+</body>
+</html>

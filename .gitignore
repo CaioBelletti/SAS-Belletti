@@ -4,5 +4,11 @@ db.sqlite3
 .env
 staticfiles/
 venv/
+.venv/
 backups/
 media/
+.vscode/
+.idea/
+*.egg-info/
+.DS_Store
+Thumbs.db

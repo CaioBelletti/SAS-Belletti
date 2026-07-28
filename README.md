@@ -501,6 +501,57 @@ ficar consistente em lugares que ainda destoavam:
   diferentes que redefiniam a mesma caixinha de mensagem (com
   variações sutis) numa única definição compartilhada em `app.css`.
 
+## Auditoria final antes do Railway
+
+- **Endurecimentos de segurança de produção**: HTTPS obrigatório,
+  cookies de sessão/CSRF marcados como seguros, e HSTS ativado —
+  tudo isso só entra em vigor com `DEBUG=False` (não afeta o uso
+  local). Rodei `python manage.py check --deploy` com uma
+  `SECRET_KEY` de verdade: **zero avisos**.
+- **`.gitignore` revisado** — reforçado com entradas de ambiente
+  virtual, IDE e arquivos de sistema, além do que já cobria
+  (`db.sqlite3`, `media/`, `backups/`, `.env`).
+- **`requirements.txt` conferido**: escaneei todos os imports do
+  código inteiro e confirmei que cada biblioteca externa usada está
+  listada (ou vem junto como dependência de outra, como o
+  `py-vapid` que já vem com o `pywebpush`).
+- **`collectstatic` testado de verdade** — é o comando que o Railway
+  roda automaticamente antes de subir; confirmei que processa os
+  139 arquivos estáticos sem erro.
+
+## Belletti Menu — mesas, comandas e fechamento pelo PDV
+
+Evolução do cardápio digital, seguindo o MVP: mesas com QR code
+próprio, comanda por mesa, chamar atendente, e fechamento gerando
+uma venda de verdade no financeiro.
+
+- **Mesa com token imprevisível**: cada mesa tem um UUID no QR code
+  (não o número em texto puro), pra não dar pra forjar trocando um
+  número na URL. Cadastre em Admin → Cozinha → Mesas.
+- **Confirmação antes do pedido**: ao ler o QR, a primeira tela
+  pergunta "Você está na Mesa 07?" — evita pedido feito com foto de
+  QR antigo.
+- **Comanda por mesa**: os pedidos de uma mesa se acumulam numa
+  comanda só, com o total certo, até fechar.
+- **Chamar atendente**: botão no cardápio da mesa, aparece na hora
+  no painel da cozinha com destaque.
+- **Fechamento pelo PDV**: tela "Mesas abertas" mostra o consumo
+  de cada mesa — ao fechar, gera uma Venda de verdade (aparece no
+  financeiro/DRE normalmente).
+- **Proteções**: pedido duplicado (clique duplo) é bloqueado por 5
+  segundos; IP e dispositivo ficam registrados em cada pedido;
+  mesa pode ser pausada (não aceita pedido) sem apagar o cadastro.
+- **QR codes pra imprimir**: Admin → Cozinha → Mesas → link de QR
+  individual, ou baixe um PDF pronto com todas as mesas de uma vez
+  (Painel da cozinha → topo).
+
+**Ficou de fora por decisão consciente (fase 2, como definido)**:
+pagamento por PIX direto no celular do cliente, divisão de conta,
+adicionais com preço extra (só observação em texto por enquanto),
+cupom/fidelidade no cardápio, WebSockets (o painel atualiza por
+polling a cada 20s, que é suficiente pro volume esperado), e
+horários dinâmicos de cardápio.
+
 ## Preenchimento automático de endereço pelo CEP
 
 Na ficha de Cliente (Admin), assim que você termina de digitar o CEP

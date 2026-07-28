@@ -27,8 +27,23 @@
 {% csrf_token %}
 <div class="topbar">
     <div><h1>Painel da cozinha</h1><div class="subtitle">Pedidos ordenados por prioridade e horário</div></div>
-    <a href="{% url 'cozinha:qrcode' %}" target="_blank" class="btn-export" style="text-decoration:none; padding:9px 16px; border-radius:8px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:13px;">📱 Baixar QR code do cardápio</a>
+    <div style="display:flex; gap:10px;">
+        <a href="{% url 'cozinha:mesas_abertas' %}" style="text-decoration:none; padding:9px 16px; border-radius:8px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:13px;">🍽️ Mesas abertas</a>
+        <a href="{% url 'cozinha:qrcode' %}" target="_blank" class="btn-export" style="text-decoration:none; padding:9px 16px; border-radius:8px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:13px;">📱 QR do cardápio geral</a>
+    </div>
 </div>
+
+{% if chamados_pendentes %}
+<div class="card" style="margin-bottom: 16px; border-color: var(--gold);">
+    <div class="card-title">🔔 Chamados pendentes</div>
+    {% for chamado in chamados_pendentes %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft); font-size:13px;">
+        <span><strong>{{ chamado.mesa }}</strong> — {{ chamado.get_tipo_display }} ({{ chamado.criado_em|timesince }} atrás)</span>
+        <button class="btn-avancar" style="flex:none; padding:6px 12px;" onclick="atenderChamado({{ chamado.id }})">Atendido</button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <div class="colunas-pedidos">
     {% for pedido in pedidos_ativos %}
@@ -103,6 +118,11 @@ async function mudarPrioridade(id, prioridade) {
 async function cancelarPedido(id) {
     if (!confirm('Cancelar esse pedido?')) return;
     await fetch(`/cozinha/painel/${id}/cancelar/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+    window.location.reload();
+}
+
+async function atenderChamado(id) {
+    await fetch(`/cozinha/painel/chamado/${id}/atender/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
     window.location.reload();
 }
 

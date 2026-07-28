@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Mesas abertas — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .comanda-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    .comanda-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .comanda-mesa { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+    .comanda-total { font-family: var(--font-mono); color: var(--gold); font-size: 18px; font-weight: 700; }
+    .item-linha { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--border-soft); }
+    .form-fechar { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+    .form-fechar select { padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 13px; }
+    .btn-fechar { padding: 9px 18px; border-radius: 7px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Mesas abertas</h1><div class="subtitle">Comandas em aberto — feche pra gerar a venda no financeiro</div></div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+{% for comanda in comandas_abertas %}
+<div class="comanda-card">
+    <div class="comanda-topo">
+        <span class="comanda-mesa">{{ comanda.mesa }}</span>
+        <span class="comanda-total">R$ {{ comanda.valor_total|floatformat:2 }}</span>
+    </div>
+    {% for item in comanda.itens_agrupados %}
+    <div class="item-linha">
+        <span>{{ item.quantidade }}x {{ item.prato.nome }}</span>
+        <span>R$ {{ item.subtotal|floatformat:2 }}</span>
+    </div>
+    {% endfor %}
+    <form method="post" class="form-fechar">
+        {% csrf_token %}
+        <input type="hidden" name="comanda_id" value="{{ comanda.id }}">
+        <select name="forma_pagamento">
+            <option value="dinheiro">Dinheiro</option>
+            <option value="pix">Pix</option>
+            <option value="debito">Cartão débito</option>
+            <option value="credito_avista">Cartão crédito à vista</option>
+        </select>
+        <button type="submit" class="btn-fechar">Fechar comanda</button>
+    </form>
+</div>
+{% empty %}
+<div class="card"><div class="empty-row">Nenhuma mesa com comanda aberta agora.</div></div>
+{% endfor %}
+{% endblock %}
