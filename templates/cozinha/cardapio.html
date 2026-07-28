@@ -1,266 +1,161 @@
 {% load static %}<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cardápio — Belletti Cards Universe</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <style>
-        body { padding: 24px 18px 150px; max-width: 640px; margin: 0 auto; }
-
-        .cardapio-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-        .cardapio-brand svg { width: 34px; height: 34px; flex-shrink: 0; }
-        .cardapio-brand-text { font-family: var(--font-display); font-weight: 700; font-size: 16px; line-height: 1.2; }
-        .cardapio-brand-text .sub { display: block; font-family: var(--font-body); font-weight: 600; font-size: 10px; letter-spacing: 0.12em; color: var(--gold); }
-
-        .cardapio-titulo { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin: 22px 0 2px; letter-spacing: -0.01em; }
-        .cardapio-subtitulo { color: var(--text-muted); font-size: 13px; margin-bottom: 6px; }
-
-        .holo-divisor { height: 2px; background: var(--holo); background-size: 300% 300%; animation: holo-drift 6s ease infinite; opacity: 0.6; border-radius: 2px; margin: 18px 0 20px; }
-
-        .categoria-titulo {
-            font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--gold);
-            margin: 26px 0 12px; text-transform: uppercase; letter-spacing: 0.08em;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .categoria-titulo::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-
-        .prato-card {
-            background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px;
-            padding: 12px; margin-bottom: 10px; display: flex; gap: 12px;
-            box-shadow: var(--shadow-card); transition: border-color 0.2s ease, transform 0.2s ease;
-        }
-        .prato-card:hover { border-color: #33384a; transform: translateY(-1px); }
-        .prato-card img { width: 78px; height: 78px; border-radius: 9px; object-fit: cover; flex-shrink: 0; background: var(--bg-2); }
-        .prato-foto-vazia {
-            width: 78px; height: 78px; border-radius: 9px; background: var(--bg-2); flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 22px;
-        }
-        .prato-info { flex: 1; min-width: 0; }
-        .prato-nome { font-weight: 600; font-size: 14.5px; }
-        .prato-descricao { font-size: 12px; color: var(--text-muted); margin: 3px 0 7px; line-height: 1.4; }
-        .prato-preco { font-family: var(--font-mono); color: var(--accent-text); font-weight: 600; font-size: 14px; }
-        .prato-acoes { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-        .prato-acoes button {
-            width: 27px; height: 27px; border-radius: 7px; border: 1px solid var(--border);
-            background: var(--bg-2); color: var(--text-primary); font-size: 15px; cursor: pointer;
-            transition: background-color 0.15s ease, border-color 0.15s ease;
-        }
-        .prato-acoes button:hover { border-color: var(--accent); }
-        .prato-acoes .qtd { min-width: 18px; text-align: center; font-size: 13px; font-family: var(--font-mono); }
-
-        .carrinho-flutuante {
-            position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-1);
-            border-top: 1px solid var(--border); padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
-            display: none; box-shadow: 0 -8px 24px -12px rgba(0,0,0,0.5);
-        }
-        .carrinho-flutuante.visivel { display: block; }
-        .carrinho-resumo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13.5px; }
-        .carrinho-resumo strong { font-family: var(--font-mono); color: var(--gold); font-size: 16px; }
-        .btn-finalizar {
-            width: 100%; padding: 14px; border-radius: 10px; border: none; background: var(--accent);
-            color: white; font-weight: 700; font-size: 14.5px; cursor: pointer;
-            position: relative; overflow: hidden; isolation: isolate;
-        }
-        .btn-finalizar::after {
-            content: ""; position: absolute; inset: 0; background: var(--holo); background-size: 300% 300%;
-            background-position: 0% 50%; opacity: 0; transition: opacity 0.25s ease, background-position 0.6s ease; z-index: -1;
-        }
-        .btn-finalizar:hover::after { opacity: 0.9; background-position: 100% 50%; }
-
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
-        .modal.aberto { display: flex; }
-        .modal-conteudo { background: var(--bg-1); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 380px; width: 100%; box-shadow: var(--shadow-card-hover); }
-        .modal-conteudo h3 { font-family: var(--font-display); margin: 0 0 16px; font-size: 17px; }
-        .modal-conteudo input, .modal-conteudo textarea {
-            width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2);
-            color: var(--text-primary); font-size: 13.5px; margin-bottom: 10px; box-sizing: border-box; font-family: var(--font-body);
-        }
-        .modal-conteudo input:focus, .modal-conteudo textarea:focus { outline: none; border-color: var(--accent); }
-        .msg-erro { color: var(--red); font-size: 12.5px; margin-bottom: 10px; display: none; }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-faint); font-size: 13px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cardápio — Belletti Cards Universe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <style>
+    :root { --menu-max: 760px; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:0 0 118px; background:var(--bg); color:var(--text); font-family:Inter,sans-serif; }
+    .shell { max-width:var(--menu-max); margin:auto; }
+    .hero { padding:22px 18px 14px; background:linear-gradient(180deg,#17131f 0%,var(--bg) 100%); }
+    .brand { display:flex; align-items:center; gap:10px; font-family:'Space Grotesk'; font-weight:700; color:var(--gold); font-size:13px; }
+    .brand-dot { width:24px;height:24px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 5px #f5b82e18; }
+    .hero h1 { margin:18px 0 4px; font:700 28px 'Space Grotesk'; }
+    .hero p { margin:0;color:var(--text-muted);font-size:14px; }
+    .mesa-chip { display:inline-flex; margin-top:12px; padding:7px 11px; border:1px solid #8b6cf244; background:#8b6cf214; border-radius:999px; color:var(--accent-text); font-size:12px; font-weight:700; }
+    .summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+    .summary-card { border:1px solid var(--border); background:var(--bg-2); border-radius:12px; padding:12px; }
+    .summary-card small { color:var(--text-faint); display:block; margin-bottom:4px; }
+    .summary-card strong { font-family:'Space Grotesk'; }
+    .toolbar { position:sticky; top:0; z-index:20; background:rgba(10,11,15,.94); backdrop-filter:blur(12px); border-bottom:1px solid var(--border-soft); padding:12px 18px 10px; }
+    .search { display:flex;align-items:center;gap:9px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:0 13px; }
+    .search input { width:100%;padding:13px 0;background:none;border:0;color:var(--text);outline:0;font-size:15px; }
+    .cats { display:flex;gap:8px;overflow:auto;padding-top:10px;scrollbar-width:none; }
+    .cat { white-space:nowrap;border:1px solid var(--border);background:var(--bg-2);color:var(--text-muted);padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer; }
+    .cat.active { border-color:var(--accent);background:#8b6cf222;color:var(--accent-text); }
+    main { padding:16px 18px; }
+    .section-title { font:700 16px 'Space Grotesk'; margin:22px 0 10px; color:var(--gold); text-transform:uppercase; letter-spacing:.05em; }
+    .products { display:grid; gap:12px; }
+    .product { display:grid;grid-template-columns:88px 1fr auto;gap:13px;align-items:center;background:var(--bg-2);border:1px solid var(--border);border-radius:15px;padding:11px; }
+    .product[hidden] { display:none; }
+    .photo { width:88px;height:88px;border-radius:12px;background:#232633;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:31px;color:var(--text-faint);overflow:hidden; }
+    .photo img { width:100%;height:100%;object-fit:cover; }
+    .product h3 { margin:0 0 5px;font:700 15px 'Space Grotesk'; }
+    .desc { color:var(--text-muted);font-size:12px;line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+    .price { color:var(--accent-text);font-weight:800; }
+    .time { color:var(--text-faint);font-size:11px;margin-top:4px; }
+    .add { width:42px;height:42px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:24px;cursor:pointer;font-weight:700; }
+    .empty { color:var(--text-muted);text-align:center;padding:40px 10px;display:none; }
+    .quick-actions { display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 22px; }
+    .quick { border:1px solid var(--border);background:var(--bg-2);color:var(--text);border-radius:12px;padding:12px;font-weight:700;cursor:pointer; }
+    .history { margin-top:24px; }
+    .history-card { display:flex;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--bg-2);padding:12px;border-radius:12px;margin-bottom:8px;font-size:12px; }
+    .history-card strong { display:block;font-size:13px;margin-bottom:3px; }
+    .status { color:var(--accent-text);font-weight:700; }
+    .cart-bar { position:fixed;left:0;right:0;bottom:0;z-index:40;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,transparent,#090a0e 25%); }
+    .cart-bar button { max-width:var(--menu-max);margin:auto;width:100%;border:0;border-radius:14px;background:linear-gradient(135deg,var(--accent),#6d4dd8);color:#fff;padding:15px 17px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:14px;box-shadow:0 10px 30px #6d4dd844; }
+    .badge { background:#fff;color:#6d4dd8;border-radius:999px;min-width:24px;padding:4px 7px;margin-right:8px; }
+    .overlay { position:fixed;inset:0;background:#000a;z-index:60;display:none;align-items:flex-end; }
+    .overlay.open { display:flex; }
+    .sheet { width:100%;max-width:var(--menu-max);margin:0 auto;background:var(--bg-2);border:1px solid var(--border);border-radius:22px 22px 0 0;padding:18px;max-height:88vh;overflow:auto; }
+    .sheet-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:14px; }
+    .sheet h2 { margin:0;font:700 20px 'Space Grotesk'; }
+    .close { border:0;background:#272a35;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px; }
+    .cart-item { border-bottom:1px solid var(--border-soft);padding:12px 0; }
+    .cart-top { display:flex;justify-content:space-between;gap:12px; }
+    .qty { display:flex;align-items:center;gap:10px;margin-top:9px; }
+    .qty button { width:31px;height:31px;border:1px solid var(--border);background:#232633;color:#fff;border-radius:9px; }
+    .obs { width:100%;margin-top:9px;border:1px solid var(--border);background:#101117;color:#fff;padding:10px;border-radius:9px; }
+    .field { margin-top:12px; }
+    .field label { display:block;color:var(--text-muted);font-size:12px;margin-bottom:6px; }
+    .field input,.field textarea { width:100%;border:1px solid var(--border);background:#101117;color:#fff;padding:12px;border-radius:10px; }
+    .total { display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:16px 0; }
+    .send { width:100%;border:0;border-radius:12px;background:var(--green);color:#06140b;padding:14px;font-weight:900;font-size:15px; }
+    .toast { position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#222631;border:1px solid var(--border);padding:11px 15px;border-radius:10px;z-index:100;display:none;max-width:90%;text-align:center; }
+    @media(min-width:720px){ .products{grid-template-columns:1fr 1fr}.product{grid-template-columns:76px 1fr auto}.photo{width:76px;height:76px} }
+  </style>
 </head>
 <body>
-    {% csrf_token %}
-
-    <div class="cardapio-brand">
-        <svg class="brand-mark" viewBox="0 0 40 40" fill="none">
-            <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
-            <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
-            <circle cx="16" cy="15" r="1.6" fill="var(--bg-0)" opacity="0.35"/>
-            <circle cx="22" cy="20" r="1" fill="var(--bg-0)" opacity="0.3"/>
-        </svg>
-        <div class="cardapio-brand-text">Belletti<span class="sub">Cards Universe</span></div>
+<div class="shell">
+  <header class="hero">
+    <div class="brand"><span class="brand-dot"></span>BELLETTI CARDS UNIVERSE</div>
+    <h1>{% if mesa %}Olá! Bem-vindo à {{ mesa }} 👋{% else %}Cardápio Belletti{% endif %}</h1>
+    <p>Escolha com calma. A cozinha recebe seu pedido na hora.</p>
+    {% if mesa %}<div class="mesa-chip">📍 {{ mesa }}</div>{% endif %}
+    {% if comanda %}
+    <div class="summary">
+      <div class="summary-card"><small>Consumo da mesa</small><strong>R$ {{ comanda.valor_total|floatformat:2 }}</strong></div>
+      <div class="summary-card"><small>Pedidos realizados</small><strong>{{ pedidos_mesa|length }}</strong></div>
     </div>
-
-    <div class="cardapio-titulo">Cardápio</div>
-    <div class="cardapio-subtitulo">
-        {% if mesa %}{{ mesa }} — {% endif %}Monte seu pedido e a cozinha já recebe na hora
-    </div>
-    {% if mesa %}
-    <button type="button" id="btnChamarAtendente" style="background:var(--bg-2); border:1px solid var(--border); color:var(--text-muted); font-size:12px; padding:7px 12px; border-radius:8px; cursor:pointer; margin-bottom:6px;">🔔 Chamar atendente</button>
     {% endif %}
-    <div class="holo-divisor"></div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search">🔎<input id="searchInput" placeholder="Buscar por batata, café, refrigerante..."></div>
+    <div class="cats">
+      <button class="cat active" data-cat="all">Todos</button>
+      {% for categoria in categorias %}<button class="cat" data-cat="cat-{{ categoria.id }}">{{ categoria.nome }}</button>{% endfor %}
+      {% if pratos_sem_categoria %}<button class="cat" data-cat="sem-categoria">Outros</button>{% endif %}
+    </div>
+  </div>
+
+  <main>
+    {% if mesa %}
+    <div class="quick-actions">
+      <button class="quick" data-call="atendente">🔔 Chamar atendente</button>
+      <button class="quick" data-call="fechamento">💳 Pedir a conta</button>
+      <button class="quick" data-call="talheres">🍴 Pedir talheres</button>
+      <button class="quick" data-call="guardanapo">🧻 Guardanapos</button>
+    </div>
+    {% endif %}
 
     {% for categoria in categorias %}
-        {% if categoria.pratos.all %}
-        <div class="categoria-titulo">{{ categoria.nome }}</div>
-        {% for prato in categoria.pratos.all %}
-            {% if prato.disponivel %}
-            <div class="prato-card" data-prato-id="{{ prato.id }}" data-preco="{{ prato.preco }}">
-                {% if prato.foto %}<img src="{{ prato.foto.url }}" alt="{{ prato.nome }}">{% else %}<div class="prato-foto-vazia">🍽️</div>{% endif %}
-                <div class="prato-info">
-                    <div class="prato-nome">{{ prato.nome }}</div>
-                    <div class="prato-descricao">{{ prato.descricao|default:"" }}</div>
-                    <div class="prato-preco">R$ {{ prato.preco|floatformat:2 }}</div>
-                    <div class="prato-acoes">
-                        <button class="btn-menos" type="button">−</button>
-                        <span class="qtd">0</span>
-                        <button class="btn-mais" type="button">+</button>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        {% endfor %}
-        {% endif %}
+    <section class="menu-section" data-section="cat-{{ categoria.id }}">
+      <div class="section-title">{{ categoria.nome }}</div>
+      <div class="products">
+        {% for prato in categoria.pratos.all %}{% if prato.disponivel %}
+        <article class="product" data-id="{{ prato.id }}" data-name="{{ prato.nome|lower }}" data-cat="cat-{{ categoria.id }}" data-price="{{ prato.preco|stringformat:'f' }}">
+          <div class="photo">{% if prato.foto %}<img src="{{ prato.foto.url }}" alt="{{ prato.nome }}">{% else %}🍽️{% endif %}</div>
+          <div><h3>{{ prato.nome }}</h3><div class="desc">{{ prato.descricao|default:'Preparado com cuidado pela nossa equipe.' }}</div><div class="price">R$ {{ prato.preco|floatformat:2 }}</div><div class="time">⏱️ cerca de {{ prato.tempo_preparo_min }} min</div></div>
+          <button class="add" type="button" aria-label="Adicionar {{ prato.nome }}">+</button>
+        </article>
+        {% endif %}{% endfor %}
+      </div>
+    </section>
     {% endfor %}
 
     {% if pratos_sem_categoria %}
-    <div class="categoria-titulo">Outros</div>
-    {% for prato in pratos_sem_categoria %}
-    <div class="prato-card" data-prato-id="{{ prato.id }}" data-preco="{{ prato.preco }}">
-        {% if prato.foto %}<img src="{{ prato.foto.url }}" alt="{{ prato.nome }}">{% else %}<div class="prato-foto-vazia">🍽️</div>{% endif %}
-        <div class="prato-info">
-            <div class="prato-nome">{{ prato.nome }}</div>
-            <div class="prato-descricao">{{ prato.descricao|default:"" }}</div>
-            <div class="prato-preco">R$ {{ prato.preco|floatformat:2 }}</div>
-            <div class="prato-acoes">
-                <button class="btn-menos" type="button">−</button>
-                <span class="qtd">0</span>
-                <button class="btn-mais" type="button">+</button>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
+    <section class="menu-section" data-section="sem-categoria"><div class="section-title">Outros</div><div class="products">
+    {% for prato in pratos_sem_categoria %}<article class="product" data-id="{{ prato.id }}" data-name="{{ prato.nome|lower }}" data-cat="sem-categoria" data-price="{{ prato.preco|stringformat:'f' }}"><div class="photo">{% if prato.foto %}<img src="{{ prato.foto.url }}" alt="{{ prato.nome }}">{% else %}🍽️{% endif %}</div><div><h3>{{ prato.nome }}</h3><div class="desc">{{ prato.descricao }}</div><div class="price">R$ {{ prato.preco|floatformat:2 }}</div></div><button class="add" type="button">+</button></article>{% endfor %}
+    </div></section>
     {% endif %}
 
-    {% if not categorias and not pratos_sem_categoria %}
-    <div class="empty-state">O cardápio ainda está sendo preparado. Volte em instantes! 🎴</div>
+    <div id="empty" class="empty">Nenhum item encontrado.</div>
+
+    {% if pedidos_mesa %}
+    <section class="history"><div class="section-title">Seus pedidos nesta mesa</div>
+      {% for p in pedidos_mesa|slice:':5' %}<a href="{% url 'acompanhar_pedido' p.codigo_acompanhamento %}" style="text-decoration:none;color:inherit"><div class="history-card"><div><strong>Pedido #{{ p.id }}</strong>{{ p.criado_em|date:'H:i' }} · {{ p.itens.count }} item(ns)</div><div style="text-align:right"><span class="status">{{ p.get_status_display }}</span><br>R$ {{ p.valor_total|floatformat:2 }}</div></div></a>{% endfor %}
+    </section>
     {% endif %}
+  </main>
+</div>
 
-    <div class="carrinho-flutuante" id="carrinhoFlutuante">
-        <div class="carrinho-resumo">
-            <span id="carrinhoResumoTexto">0 item(ns)</span>
-            <strong id="carrinhoTotal">R$ 0,00</strong>
-        </div>
-        <button class="btn-finalizar" id="btnAbrirModal">Fazer pedido</button>
-    </div>
+<div class="cart-bar"><button id="openCart"><span><span class="badge" id="cartCount">0</span>Ver carrinho</span><span id="cartTotal">R$ 0,00</span></button></div>
+<div class="overlay" id="cartOverlay"><div class="sheet"><div class="sheet-header"><h2>Seu pedido</h2><button class="close" id="closeCart">×</button></div><div id="cartItems"></div><div class="field"><label>Seu nome</label><input id="customerName" maxlength="80" placeholder="Como podemos chamar você?"></div><div class="field"><label>Observação geral</label><textarea id="generalNote" rows="2" placeholder="Ex.: entregar tudo junto"></textarea></div><div class="total"><span>Total</span><span id="sheetTotal">R$ 0,00</span></div><button class="send" id="sendOrder">Enviar pedido para a cozinha</button></div></div>
+<div class="toast" id="toast"></div>
 
-    <div class="modal" id="modalPedido">
-        <div class="modal-conteudo">
-            <h3>Finalizar pedido</h3>
-            <div class="msg-erro" id="msgErro"></div>
-            <input type="text" id="inputNome" placeholder="Seu nome (pra chamarmos)" required>
-            <input type="text" id="inputMesa" placeholder="Mesa ou local (opcional)">
-            <textarea id="inputObs" placeholder="Alguma observação geral? (opcional)" rows="2"></textarea>
-            <button class="btn-finalizar" id="btnEnviarPedido">Confirmar pedido</button>
-        </div>
-    </div>
-
-    <script>
-        const carrinho = {};
-
-        function atualizarCarrinhoUI() {
-            let totalItens = 0, totalValor = 0;
-            for (const id in carrinho) {
-                totalItens += carrinho[id].quantidade;
-                totalValor += carrinho[id].quantidade * carrinho[id].preco;
-            }
-            const flutuante = document.getElementById('carrinhoFlutuante');
-            flutuante.classList.toggle('visivel', totalItens > 0);
-            document.getElementById('carrinhoResumoTexto').textContent = `${totalItens} item(ns)`;
-            document.getElementById('carrinhoTotal').textContent = `R$ ${totalValor.toFixed(2).replace('.', ',')}`;
-        }
-
-        document.querySelectorAll('.prato-card').forEach(card => {
-            const id = card.dataset.pratoId;
-            const preco = parseFloat(card.dataset.preco);
-            const qtdEl = card.querySelector('.qtd');
-
-            card.querySelector('.btn-mais').addEventListener('click', () => {
-                carrinho[id] = carrinho[id] || { quantidade: 0, preco };
-                carrinho[id].quantidade++;
-                qtdEl.textContent = carrinho[id].quantidade;
-                atualizarCarrinhoUI();
-            });
-            card.querySelector('.btn-menos').addEventListener('click', () => {
-                if (!carrinho[id] || carrinho[id].quantidade === 0) return;
-                carrinho[id].quantidade--;
-                qtdEl.textContent = carrinho[id].quantidade;
-                atualizarCarrinhoUI();
-            });
-        });
-
-        document.getElementById('btnAbrirModal').addEventListener('click', () => {
-            document.getElementById('modalPedido').classList.add('aberto');
-        });
-
-        function getCookie(nome) {
-            const valor = `; ${document.cookie}`;
-            const partes = valor.split(`; ${nome}=`);
-            if (partes.length === 2) return partes.pop().split(';').shift();
-        }
-
-        document.getElementById('btnEnviarPedido').addEventListener('click', async () => {
-            const nome = document.getElementById('inputNome').value.trim();
-            const msgErro = document.getElementById('msgErro');
-            if (!nome) {
-                msgErro.textContent = 'Por favor, informe seu nome.';
-                msgErro.style.display = 'block';
-                return;
-            }
-
-            localStorage.setItem('bellettiNomeCliente', nome);
-
-            const itens = Object.entries(carrinho)
-                .filter(([_, v]) => v.quantidade > 0)
-                .map(([prato_id, v]) => ({ prato_id: parseInt(prato_id), quantidade: v.quantidade }));
-
-            const resp = await fetch('/cardapio/pedido/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({
-                    nome,
-                    mesa_ou_local: document.getElementById('inputMesa').value.trim(),
-                    observacoes: document.getElementById('inputObs').value.trim(),
-                    itens,
-                    mesa_token: "{{ mesa.token_publico|default:'' }}" || null,
-                }),
-            });
-            const data = await resp.json();
-            if (data.ok) {
-                window.location.href = `/cardapio/acompanhar/${data.codigo}/`;
-            } else {
-                msgErro.textContent = data.erro || 'Erro ao enviar o pedido.';
-                msgErro.style.display = 'block';
-            }
-        });
-
-        const btnChamarAtendente = document.getElementById('btnChamarAtendente');
-        if (btnChamarAtendente) {
-            btnChamarAtendente.addEventListener('click', async () => {
-                await fetch('{% if mesa %}{% url "chamar_atendente" mesa.token_publico %}{% endif %}', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                    body: new FormData(),
-                });
-                btnChamarAtendente.textContent = '✓ Atendente chamado!';
-                btnChamarAtendente.disabled = true;
-            });
-        }
-    </script>
-</body>
-</html>
+<script>
+const CART_KEY='belletti_cart_v3'; const NAME_KEY='belletti_customer_name';
+let cart=JSON.parse(localStorage.getItem(CART_KEY)||'{}');
+const money=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const toast=(m)=>{const el=document.getElementById('toast');el.textContent=m;el.style.display='block';setTimeout(()=>el.style.display='none',2600)};
+const save=()=>{localStorage.setItem(CART_KEY,JSON.stringify(cart));renderCart()};
+function renderCart(){let count=0,total=0,html='';Object.values(cart).forEach(i=>{count+=i.qty;total+=i.qty*i.price;html+=`<div class="cart-item"><div class="cart-top"><div><strong>${i.name}</strong><div style="color:var(--accent-text);margin-top:4px">${money(i.qty*i.price)}</div></div><button onclick="removeItem('${i.id}')" class="close">×</button></div><div class="qty"><button onclick="changeQty('${i.id}',-1)">−</button><strong>${i.qty}</strong><button onclick="changeQty('${i.id}',1)">+</button></div><input class="obs" value="${(i.note||'').replace(/"/g,'&quot;')}" oninput="setNote('${i.id}',this.value)" placeholder="Observação deste item"></div>`});document.getElementById('cartCount').textContent=count;document.getElementById('cartTotal').textContent=money(total);document.getElementById('sheetTotal').textContent=money(total);document.getElementById('cartItems').innerHTML=html||'<p style="color:var(--text-muted);text-align:center;padding:24px">Seu carrinho está vazio.</p>'}
+function addProduct(el){const id=el.dataset.id;if(!cart[id])cart[id]={id,name:el.querySelector('h3').textContent,price:Number(el.dataset.price.replace(',','.')),qty:0,note:''};cart[id].qty++;save();toast('Item adicionado ao carrinho')}
+function changeQty(id,d){cart[id].qty+=d;if(cart[id].qty<=0)delete cart[id];save()} function removeItem(id){delete cart[id];save()} function setNote(id,v){cart[id].note=v;localStorage.setItem(CART_KEY,JSON.stringify(cart))}
+document.querySelectorAll('.product .add').forEach(b=>b.onclick=()=>addProduct(b.closest('.product')));
+document.getElementById('openCart').onclick=()=>document.getElementById('cartOverlay').classList.add('open');document.getElementById('closeCart').onclick=()=>document.getElementById('cartOverlay').classList.remove('open');
+document.getElementById('customerName').value=localStorage.getItem(NAME_KEY)||'';
+document.querySelectorAll('.cat').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));btn.classList.add('active');const cat=btn.dataset.cat;document.querySelectorAll('.menu-section').forEach(s=>s.style.display=(cat==='all'||s.dataset.section===cat)?'block':'none')});
+document.getElementById('searchInput').oninput=e=>{const q=e.target.value.trim().toLowerCase();let visible=0;document.querySelectorAll('.product').forEach(p=>{const ok=p.dataset.name.includes(q);p.hidden=!ok;if(ok)visible++});document.getElementById('empty').style.display=visible?'none':'block'};
+function csrf(){return document.cookie.split('; ').find(x=>x.startsWith('csrftoken='))?.split('=')[1]||''}
+{% if mesa %}document.querySelectorAll('[data-call]').forEach(b=>b.onclick=async()=>{const fd=new FormData();fd.append('tipo',b.dataset.call);const r=await fetch('{% url "chamar_atendente" mesa.token_publico %}',{method:'POST',headers:{'X-CSRFToken':csrf()},body:fd});if(r.ok){toast(b.dataset.call==='fechamento'?'Conta solicitada. Nossa equipe irá até a mesa.':'Solicitação enviada à equipe.');b.disabled=true;setTimeout(()=>b.disabled=false,15000)}});{% endif %}
+document.getElementById('sendOrder').onclick=async()=>{const name=document.getElementById('customerName').value.trim();const itens=Object.values(cart);if(!itens.length)return toast('Adicione pelo menos um item.');if(!name)return toast('Informe seu nome.');localStorage.setItem(NAME_KEY,name);const btn=document.getElementById('sendOrder');btn.disabled=true;btn.textContent='Enviando...';try{const r=await fetch('{% url "fazer_pedido" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({nome:name,mesa_token:'{% if mesa %}{{ mesa.token_publico }}{% endif %}',mesa_ou_local:'{% if mesa %}{{ mesa }}{% endif %}',observacoes:document.getElementById('generalNote').value,itens:itens.map(i=>({prato_id:i.id,quantidade:i.qty,observacao:i.note}))})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.erro||'Não foi possível enviar.');cart={};save();window.location.href=`/cardapio/acompanhar/${d.codigo}/`}catch(e){toast(e.message);btn.disabled=false;btn.textContent='Enviar pedido para a cozinha'}};
+renderCart();
+</script>
+</body></html>

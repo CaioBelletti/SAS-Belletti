@@ -24,9 +24,32 @@ def _get_ip(request):
 
 
 def _contexto_cardapio(mesa=None):
-    categorias = CategoriaPrato.objects.prefetch_related("pratos").all()
-    pratos_sem_categoria = Prato.objects.filter(categoria__isnull=True, disponivel=True)
-    return {"categorias": categorias, "pratos_sem_categoria": pratos_sem_categoria, "mesa": mesa}
+    categorias = CategoriaPrato.objects.prefetch_related(
+        "pratos"
+    ).filter(pratos__disponivel=True).distinct()
+    pratos_sem_categoria = Prato.objects.filter(
+        categoria__isnull=True,
+        disponivel=True,
+    )
+
+    comanda = None
+    pedidos_mesa = PedidoCozinha.objects.none()
+    if mesa:
+        comanda = mesa.comanda_aberta
+        if comanda:
+            pedidos_mesa = (
+                comanda.pedidos.exclude(status="cancelado")
+                .prefetch_related("itens__prato")
+                .order_by("-criado_em")
+            )
+
+    return {
+        "categorias": categorias,
+        "pratos_sem_categoria": pratos_sem_categoria,
+        "mesa": mesa,
+        "comanda": comanda,
+        "pedidos_mesa": pedidos_mesa,
+    }
 
 
 def cardapio_publico(request):
@@ -138,9 +161,29 @@ def chamar_atendente(request, token):
 
 
 def acompanhar_pedido(request, codigo):
-    """Tela sem login — o cliente acompanha o status do próprio pedido pelo link único."""
-    pedido = get_object_or_404(PedidoCozinha, codigo_acompanhamento=codigo)
-    return render(request, "cozinha/acompanhar.html", {"pedido": pedido})
+    """Tela sem login — acompanhamento, atalhos e histórico da comanda."""
+    pedido = get_object_or_404(
+        PedidoCozinha.objects.select_related("mesa", "comanda").prefetch_related(
+            "itens__prato"
+        ),
+        codigo_acompanhamento=codigo,
+    )
+    pedidos_comanda = PedidoCozinha.objects.none()
+    if pedido.comanda_id:
+        pedidos_comanda = (
+            pedido.comanda.pedidos.exclude(status="cancelado")
+            .prefetch_related("itens__prato")
+            .order_by("-criado_em")
+        )
+    return render(
+        request,
+        "cozinha/acompanhar.html",
+        {
+            "pedido": pedido,
+            "pedidos_comanda": pedidos_comanda,
+            "comanda": pedido.comanda,
+        },
+    )
 
 
 @login_required
