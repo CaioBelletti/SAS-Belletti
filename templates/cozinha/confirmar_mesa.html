@@ -19,7 +19,7 @@
             content: ""; position: absolute; inset: -18px; border-radius: 50%;
             background: radial-gradient(circle, #e8b34d22 0%, transparent 70%); z-index: -1;
         }
-        .caixa svg { width: 52px; height: 52px; }
+        .caixa img { height: 64px; width: auto; }
         .caixa .eyebrow { font-family: var(--font-body); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
         .caixa h1 { font-family: var(--font-display); font-size: 23px; margin: 0 0 8px; font-weight: 700; letter-spacing: -.01em; }
         .caixa .mesa-numero {
@@ -43,12 +43,7 @@
 {% csrf_token %}
     <div class="caixa">
         <div class="logo-wrap">
-            <svg viewBox="0 0 40 40" fill="none">
-                <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
-                <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
-                <circle cx="16" cy="15" r="1.6" fill="var(--bg-0)" opacity="0.35"/>
-                <circle cx="22" cy="20" r="1" fill="var(--bg-0)" opacity="0.3"/>
-            </svg>
+            <img src="{% static 'images/logo-icone.png' %}" alt="Belletti Cards Universe">
         </div>
         <div class="eyebrow">Belletti Cards Universe</div>
         <h1>Você está na</h1>

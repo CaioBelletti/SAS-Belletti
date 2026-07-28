@@ -625,3 +625,28 @@ def preferencias_mesa(request, token):
         "favoritos": favoritos,
         "jogadores": list(comanda.participantes.filter(ativo=True).values("nome", "token_dispositivo")) if comanda else [],
     })
+
+
+@login_required
+def avaliacoes_view(request):
+    """Painel com o resumo das avaliações deixadas pelos clientes (nota da comida/atendimento + comentário)."""
+    from .models import AvaliacaoMesa
+
+    todas = AvaliacaoMesa.objects.select_related("comanda__mesa", "participante").all()
+
+    resumo = todas.aggregate(
+        media_comida=Avg("nota_comida"), media_atendimento=Avg("nota_atendimento"), total=Count("id"),
+    )
+    distribuicao_comida = {
+        nota: todas.filter(nota_comida=nota).count() for nota in (5, 4, 3, 2, 1)
+    }
+
+    baixas = todas.filter(Q(nota_comida__lte=2) | Q(nota_atendimento__lte=2))[:20]
+    recentes = todas[:100]
+
+    return render(request, "cozinha/avaliacoes.html", {
+        "resumo": resumo,
+        "distribuicao_comida": distribuicao_comida,
+        "avaliacoes_baixas": baixas,
+        "avaliacoes_recentes": recentes,
+    })

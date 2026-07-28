@@ -78,9 +78,10 @@ select:focus-visible, summary:focus-visible {
 }
 
 .brand-mark {
-    width: 34px;
-    height: 34px;
+    height: 36px;
+    width: auto;
     flex-shrink: 0;
+    object-fit: contain;
 }
 
 .brand-text {

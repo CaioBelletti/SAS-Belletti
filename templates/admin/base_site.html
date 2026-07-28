@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block branding %}
-<div id="site-name"><a href="{% url 'admin:index' %}">🪐 {{ site_header|default:_('Belletti Cards Universe') }}</a></div>
+<div id="site-name"><a href="{% url 'admin:index' %}" style="display:flex; align-items:center; gap:8px;"><img src="{% static 'images/logo-icone.png' %}" alt="" style="height:28px; width:auto;"> {{ site_header|default:_('Belletti Cards Universe') }}</a></div>
 {% if user.is_anonymous %}
   {% include "admin/color_theme_toggle.html" %}
 {% endif %}

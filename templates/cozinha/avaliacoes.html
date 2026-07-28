@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Avaliações dos clientes — Belletti Cards Universe{% endblock %}
+
+{% block extra_head %}
+<style>
+    .resumo-avaliacoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .resumo-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: 13px; padding: 16px; }
+    .resumo-card .valor { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--gold); }
+    .resumo-card .label { color: var(--text-faint); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+    .barra-distribuicao { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 6px; }
+    .barra-distribuicao .trilha { flex: 1; height: 8px; background: var(--bg-2); border-radius: 99px; overflow: hidden; }
+    .barra-distribuicao .preenchido { height: 100%; background: var(--gold); }
+    .avaliacao-item { border-bottom: 1px solid var(--border-soft); padding: 12px 0; }
+    .avaliacao-item:last-child { border-bottom: none; }
+    .avaliacao-topo { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .notas { font-family: var(--font-mono); }
+    .nota-baixa { color: var(--red); font-weight: 700; }
+    .comentario { color: var(--text-muted); font-size: 13px; margin-top: 5px; font-style: italic; }
+    .badge-alerta { background: #f26d6d22; color: var(--red); border: 1px solid #f26d6d55; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div><h1>Avaliações dos clientes</h1><div class="subtitle">Notas e comentários deixados pela Mesa Inteligente</div></div>
+</div>
+
+<div class="resumo-avaliacoes">
+    <div class="resumo-card">
+        <div class="valor">{{ resumo.media_comida|floatformat:1|default:"—" }}</div>
+        <div class="label">Nota média — comida</div>
+    </div>
+    <div class="resumo-card">
+        <div class="valor">{{ resumo.media_atendimento|floatformat:1|default:"—" }}</div>
+        <div class="label">Nota média — atendimento</div>
+    </div>
+    <div class="resumo-card">
+        <div class="valor">{{ resumo.total }}</div>
+        <div class="label">Avaliações no total</div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 18px;">
+    <div class="card-title">Distribuição das notas de comida</div>
+    {% for nota, quantidade in distribuicao_comida.items %}
+    <div class="barra-distribuicao">
+        <span style="width: 50px;">{{ nota }} ⭐</span>
+        <div class="trilha"><div class="preenchido" style="width: {% widthratio quantidade resumo.total 100 %}%;"></div></div>
+        <span style="width: 30px; text-align: right;">{{ quantidade }}</span>
+    </div>
+    {% endfor %}
+</div>
+
+{% if avaliacoes_baixas %}
+<div class="card" style="margin-bottom: 18px; border-color: var(--red);">
+    <div class="card-title">⚠️ Avaliações com nota baixa (2 ou menos) — vale dar uma olhada</div>
+    {% for a in avaliacoes_baixas %}
+    <div class="avaliacao-item">
+        <div class="avaliacao-topo">
+            <span><strong>{{ a.comanda.mesa }}</strong> — {{ a.participante.nome|default:"Cliente" }} · {{ a.criado_em|date:"d/m/Y H:i" }}</span>
+            <span class="notas">🍽️ <span class="{% if a.nota_comida <= 2 %}nota-baixa{% endif %}">{{ a.nota_comida }}</span> · 🙋 <span class="{% if a.nota_atendimento <= 2 %}nota-baixa{% endif %}">{{ a.nota_atendimento }}</span></span>
+        </div>
+        {% if a.comentario %}<div class="comentario">"{{ a.comentario }}"</div>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-title">Todas as avaliações recentes</div>
+    {% for a in avaliacoes_recentes %}
+    <div class="avaliacao-item">
+        <div class="avaliacao-topo">
+            <span><strong>{{ a.comanda.mesa }}</strong> — {{ a.participante.nome|default:"Cliente" }} · {{ a.criado_em|date:"d/m/Y H:i" }}</span>
+            <span class="notas">🍽️ {{ a.nota_comida }} · 🙋 {{ a.nota_atendimento }}</span>
+        </div>
+        {% if a.comentario %}<div class="comentario">"{{ a.comentario }}"</div>{% endif %}
+    </div>
+    {% empty %}
+    <div class="empty-row">Nenhuma avaliação recebida ainda.</div>
+    {% endfor %}
+</div>
+{% endblock %}

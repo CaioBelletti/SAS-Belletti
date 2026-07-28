@@ -15,6 +15,7 @@ urlpatterns = [
     path("painel/<int:pedido_id>/cancelar/", views.cancelar_pedido, name="cancelar"),
     path("painel/chamado/<int:chamado_id>/atender/", views.atender_chamado, name="atender_chamado"),
     path("mesas-abertas/", views.mesas_abertas, name="mesas_abertas"),
+    path("avaliacoes/", views.avaliacoes_view, name="avaliacoes"),
     path("qrcode/", views.qrcode_cardapio, name="qrcode"),
     path("qrcode/mesa/<int:mesa_id>/", views.qrcode_mesa, name="qrcode_mesa"),
     path("qrcode/todas-mesas/", views.qrcodes_todas_mesas_pdf, name="qrcodes_todas_mesas"),

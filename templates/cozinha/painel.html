@@ -61,6 +61,7 @@ body.modo-tv main, body.modo-tv .main-content { margin:0!important; width:100%!i
 <div class="kds-top">
   <div><h1 style="margin:0">Cozinha 2.0</h1><div class="subtitle">Kanban de produção e painel inteligente</div></div>
   <div class="kds-actions">
+    <button class="kds-link" id="btnSomCozinha">🔇 Ativar alertas sonoros</button>
     <button class="kds-link" onclick="alternarModoTV()">📺 Modo TV</button>
     <a class="kds-link" href="{% url 'cozinha:mesas_abertas' %}">🍽️ Mesas abertas</a>
     <a class="kds-link" href="/admin/cozinha/prato/">⚙️ Receitas e estações</a>
@@ -155,8 +156,75 @@ async function atenderChamado(id){await post(`/cozinha/painel/chamado/${id}/aten
 async function alternarChecklist(id,el){el.closest('.check-item').classList.toggle('concluido',el.checked);await post(`/cozinha/painel/checklist/${id}/alternar/`);}
 function alternarModoTV(){document.body.classList.toggle('modo-tv');localStorage.setItem('cozinhaModoTV',document.body.classList.contains('modo-tv')?'1':'0');}
 if(localStorage.getItem('cozinhaModoTV')==='1')document.body.classList.add('modo-tv');
+
+// --- Alertas sonoros: mesmo esquema robusto do painel do garçom ---
+// (Audio.play() sozinho, sem gesto do usuário, é bloqueado pelo navegador
+// silenciosamente — por isso trocamos pra AudioContext com reativação
+// automática ao trocar de aba, e reativação por qualquer clique na tela.)
+let audioCtxCozinha = null;
+let somAtivoCozinha = false;
+let somDesejadoCozinha = localStorage.getItem('cozinhaSomDesejado') === '1';
+
+function atualizarBotaoSomCozinha(){
+  const btn = document.getElementById('btnSomCozinha');
+  if(!btn) return;
+  if(somAtivoCozinha){ btn.textContent = '🔊 Alertas sonoros ativos'; }
+  else if(somDesejadoCozinha){ btn.textContent = '👆 Toque em qualquer lugar pra reativar o som'; }
+  else { btn.textContent = '🔇 Ativar alertas sonoros'; }
+}
+async function ativarAudioCozinha(){
+  audioCtxCozinha = audioCtxCozinha || new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtxCozinha.state === 'suspended') await audioCtxCozinha.resume();
+  somAtivoCozinha = true; somDesejadoCozinha = true;
+  localStorage.setItem('cozinhaSomDesejado', '1');
+  atualizarBotaoSomCozinha();
+}
+function desativarAudioCozinha(){
+  somAtivoCozinha = false; somDesejadoCozinha = false;
+  localStorage.setItem('cozinhaSomDesejado', '0');
+  atualizarBotaoSomCozinha();
+}
+function tocarAlertaNovoPedido(){
+  if(!somAtivoCozinha || !audioCtxCozinha) return;
+  const tocarBeep = (freq, inicio, duracao) => {
+    const o = audioCtxCozinha.createOscillator(), g = audioCtxCozinha.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.15, audioCtxCozinha.currentTime + inicio);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtxCozinha.currentTime + inicio + duracao);
+    o.connect(g); g.connect(audioCtxCozinha.destination);
+    o.start(audioCtxCozinha.currentTime + inicio); o.stop(audioCtxCozinha.currentTime + inicio + duracao);
+  };
+  tocarBeep(740, 0, 0.16); tocarBeep(988, 0.18, 0.22);
+  if(navigator.vibrate) navigator.vibrate([180]);
+}
+document.getElementById('btnSomCozinha')?.addEventListener('click', async () => {
+  if(!somAtivoCozinha) await ativarAudioCozinha(); else desativarAudioCozinha();
+});
+document.addEventListener('click', () => { if(somDesejadoCozinha && !somAtivoCozinha) ativarAudioCozinha(); });
+document.addEventListener('touchstart', () => { if(somDesejadoCozinha && !somAtivoCozinha) ativarAudioCozinha(); }, {passive:true});
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && somDesejadoCozinha && audioCtxCozinha && audioCtxCozinha.state === 'suspended'){
+    audioCtxCozinha.resume().then(() => { somAtivoCozinha = true; atualizarBotaoSomCozinha(); });
+  }
+});
+atualizarBotaoSomCozinha();
+
 let estadoAtual=null;
-async function verificarAtualizacoes(){try{const r=await fetch('{% url "cozinha:dados_painel" %}');const d=await r.json();const chave=`${d.recebidos}-${d.em_preparo}-${d.prontos}-${d.em_entrega}-${d.chamados}`;if(estadoAtual && chave!==estadoAtual){try{new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj').play()}catch(e){}location.reload();}estadoAtual=chave;}catch(e){}setTimeout(verificarAtualizacoes,5000)}
+let recebidosAnterior=null;
+async function verificarAtualizacoes(){
+  try{
+    const r=await fetch('{% url "cozinha:dados_painel" %}');
+    const d=await r.json();
+    const chave=`${d.recebidos}-${d.em_preparo}-${d.prontos}-${d.em_entrega}-${d.chamados}`;
+    if(recebidosAnterior !== null && d.recebidos > recebidosAnterior){
+      tocarAlertaNovoPedido();
+    }
+    recebidosAnterior = d.recebidos;
+    if(estadoAtual && chave!==estadoAtual){ location.reload(); }
+    estadoAtual=chave;
+  }catch(e){}
+  setTimeout(verificarAtualizacoes,5000)
+}
 verificarAtualizacoes();
 </script>
 {% endblock %}

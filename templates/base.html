@@ -33,12 +33,7 @@
                 <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <div class="brand">
-                <svg class="brand-mark" viewBox="0 0 40 40" fill="none">
-                    <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
-                    <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
-                    <circle cx="16" cy="15" r="1.6" fill="var(--bg-0)" opacity="0.35"/>
-                    <circle cx="22" cy="20" r="1" fill="var(--bg-0)" opacity="0.3"/>
-                </svg>
+                <img class="brand-mark" src="{% static 'images/logo-icone.png' %}" alt="Belletti Cards Universe">
                 <div class="brand-text">BELLETTI<span class="sub">CARDS UNIVERSE</span></div>
             </div>
             {% if request.user.is_staff %}
@@ -77,6 +72,11 @@
             <a href="{% url 'cozinha:painel_garcom' %}" class="nav-link {% if request.resolver_match.url_name == 'painel_garcom' %}active{% endif %}">
                 <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
                 Painel do Garçom
+            </a>
+
+            <a href="{% url 'cozinha:avaliacoes' %}" class="nav-link {% if request.resolver_match.url_name == 'avaliacoes' %}active{% endif %}">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15 8.5 22 9.5 17 14.5 18.5 21.5 12 18 5.5 21.5 7 14.5 2 9.5 9 8.5 12 2"/></svg>
+                Avaliações
             </a>
             {% endif %}
 

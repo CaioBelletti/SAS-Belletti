@@ -23,7 +23,7 @@
       background:radial-gradient(circle, #8b6cf21c 0%, transparent 70%); pointer-events:none;
     }
     .brand { display:flex; align-items:center; gap:9px; font-family:'Space Grotesk'; font-weight:700; color:var(--gold); font-size:12.5px; letter-spacing:.06em; position:relative; z-index:1; }
-    .brand-dot { width:26px; height:26px; flex-shrink:0; }
+    .brand-dot { height:30px; width:auto; flex-shrink:0; object-fit:contain; }
     .hero h1 { margin:20px 0 5px; font:700 27px/1.2 'Space Grotesk'; letter-spacing:-.015em; position:relative; z-index:1; }
     .hero p { margin:0; color:var(--text-muted); font-size:13.5px; position:relative; z-index:1; }
     .mesa-chip {
@@ -205,12 +205,7 @@
 <div class="shell">
   <header class="hero">
     <div class="brand">
-      <svg class="brand-dot" viewBox="0 0 40 40" fill="none">
-        <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
-        <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
-        <circle cx="16" cy="15" r="1.6" fill="var(--bg-0)" opacity="0.35"/>
-        <circle cx="22" cy="20" r="1" fill="var(--bg-0)" opacity="0.3"/>
-      </svg>
+      <img class="brand-dot" src="{% static 'images/logo-icone.png' %}" alt="Belletti Cards Universe">
       BELLETTI CARDS UNIVERSE
     </div>
     <h1>{% if mesa %}Olá! Bem-vindo à {{ mesa }} 👋{% else %}Cardápio Belletti{% endif %}</h1>
