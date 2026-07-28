@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.db.models import Avg, Count, Max, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -147,7 +148,12 @@ def fazer_pedido(request):
         pedido.delete()
         return JsonResponse({"ok": False, "erro": "Nenhum item válido no pedido."}, status=400)
 
-    return JsonResponse({"ok": True, "pedido_id": pedido.id, "codigo": pedido.codigo_acompanhamento})
+    return JsonResponse({
+        "ok": True,
+        "pedido_id": pedido.id,
+        "codigo": pedido.codigo_acompanhamento,
+        "redirect_url": reverse("acompanhar_pedido", kwargs={"codigo": pedido.codigo_acompanhamento}),
+    })
 
 
 @require_POST

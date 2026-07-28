@@ -140,22 +140,151 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const CART_KEY='belletti_cart_v3'; const NAME_KEY='belletti_customer_name';
-let cart=JSON.parse(localStorage.getItem(CART_KEY)||'{}');
-const money=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const toast=(m)=>{const el=document.getElementById('toast');el.textContent=m;el.style.display='block';setTimeout(()=>el.style.display='none',2600)};
-const save=()=>{localStorage.setItem(CART_KEY,JSON.stringify(cart));renderCart()};
-function renderCart(){let count=0,total=0,html='';Object.values(cart).forEach(i=>{count+=i.qty;total+=i.qty*i.price;html+=`<div class="cart-item"><div class="cart-top"><div><strong>${i.name}</strong><div style="color:var(--accent-text);margin-top:4px">${money(i.qty*i.price)}</div></div><button onclick="removeItem('${i.id}')" class="close">×</button></div><div class="qty"><button onclick="changeQty('${i.id}',-1)">−</button><strong>${i.qty}</strong><button onclick="changeQty('${i.id}',1)">+</button></div><input class="obs" value="${(i.note||'').replace(/"/g,'&quot;')}" oninput="setNote('${i.id}',this.value)" placeholder="Observação deste item"></div>`});document.getElementById('cartCount').textContent=count;document.getElementById('cartTotal').textContent=money(total);document.getElementById('sheetTotal').textContent=money(total);document.getElementById('cartItems').innerHTML=html||'<p style="color:var(--text-muted);text-align:center;padding:24px">Seu carrinho está vazio.</p>'}
-function addProduct(el){const id=el.dataset.id;if(!cart[id])cart[id]={id,name:el.querySelector('h3').textContent,price:Number(el.dataset.price.replace(',','.')),qty:0,note:''};cart[id].qty++;save();toast('Item adicionado ao carrinho')}
-function changeQty(id,d){cart[id].qty+=d;if(cart[id].qty<=0)delete cart[id];save()} function removeItem(id){delete cart[id];save()} function setNote(id,v){cart[id].note=v;localStorage.setItem(CART_KEY,JSON.stringify(cart))}
-document.querySelectorAll('.product .add').forEach(b=>b.onclick=()=>addProduct(b.closest('.product')));
-document.getElementById('openCart').onclick=()=>document.getElementById('cartOverlay').classList.add('open');document.getElementById('closeCart').onclick=()=>document.getElementById('cartOverlay').classList.remove('open');
-document.getElementById('customerName').value=localStorage.getItem(NAME_KEY)||'';
-document.querySelectorAll('.cat').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));btn.classList.add('active');const cat=btn.dataset.cat;document.querySelectorAll('.menu-section').forEach(s=>s.style.display=(cat==='all'||s.dataset.section===cat)?'block':'none')});
-document.getElementById('searchInput').oninput=e=>{const q=e.target.value.trim().toLowerCase();let visible=0;document.querySelectorAll('.product').forEach(p=>{const ok=p.dataset.name.includes(q);p.hidden=!ok;if(ok)visible++});document.getElementById('empty').style.display=visible?'none':'block'};
-function csrf(){return document.cookie.split('; ').find(x=>x.startsWith('csrftoken='))?.split('=')[1]||''}
-{% if mesa %}document.querySelectorAll('[data-call]').forEach(b=>b.onclick=async()=>{const fd=new FormData();fd.append('tipo',b.dataset.call);const r=await fetch('{% url "chamar_atendente" mesa.token_publico %}',{method:'POST',headers:{'X-CSRFToken':csrf()},body:fd});if(r.ok){toast(b.dataset.call==='fechamento'?'Conta solicitada. Nossa equipe irá até a mesa.':'Solicitação enviada à equipe.');b.disabled=true;setTimeout(()=>b.disabled=false,15000)}});{% endif %}
-document.getElementById('sendOrder').onclick=async()=>{const name=document.getElementById('customerName').value.trim();const itens=Object.values(cart);if(!itens.length)return toast('Adicione pelo menos um item.');if(!name)return toast('Informe seu nome.');localStorage.setItem(NAME_KEY,name);const btn=document.getElementById('sendOrder');btn.disabled=true;btn.textContent='Enviando...';try{const r=await fetch('{% url "fazer_pedido" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({nome:name,mesa_token:'{% if mesa %}{{ mesa.token_publico }}{% endif %}',mesa_ou_local:'{% if mesa %}{{ mesa }}{% endif %}',observacoes:document.getElementById('generalNote').value,itens:itens.map(i=>({prato_id:i.id,quantidade:i.qty,observacao:i.note}))})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.erro||'Não foi possível enviar.');cart={};save();window.location.href=`/cardapio/acompanhar/${d.codigo}/`}catch(e){toast(e.message);btn.disabled=false;btn.textContent='Enviar pedido para a cozinha'}};
+const TABLE_TOKEN = '{% if mesa %}{{ mesa.token_publico|escapejs }}{% endif %}';
+const ORDER_URL = '{% url "fazer_pedido" %}';
+const CART_KEY = TABLE_TOKEN ? `belletti_cart_v3_${TABLE_TOKEN}` : 'belletti_cart_v3_balcao';
+const NAME_KEY = 'belletti_customer_name';
+
+function safeStorageGet(key, fallback = null) {
+  try { return localStorage.getItem(key) ?? fallback; }
+  catch (error) { console.warn('Armazenamento indisponível:', error); return fallback; }
+}
+function safeStorageSet(key, value) {
+  try { localStorage.setItem(key, value); }
+  catch (error) { console.warn('Não foi possível salvar no aparelho:', error); }
+}
+function loadCart() {
+  try {
+    const parsed = JSON.parse(safeStorageGet(CART_KEY, '{}'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (error) {
+    console.warn('Carrinho local inválido. Criando um novo:', error);
+    safeStorageSet(CART_KEY, '{}');
+    return {};
+  }
+}
+
+let cart = loadCart();
+const money = value => Number(value || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const toast = message => {
+  const element = document.getElementById('toast');
+  element.textContent = message;
+  element.style.display = 'block';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => element.style.display = 'none', 3600);
+};
+const save = () => { safeStorageSet(CART_KEY, JSON.stringify(cart)); renderCart(); };
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+function renderCart() {
+  let count = 0, total = 0, html = '';
+  Object.values(cart).forEach(item => {
+    const qty = Number(item.qty || 0);
+    const price = Number(item.price || 0);
+    count += qty;
+    total += qty * price;
+    html += `<div class="cart-item"><div class="cart-top"><div><strong>${escapeHtml(item.name)}</strong><div style="color:var(--accent-text);margin-top:4px">${money(qty * price)}</div></div><button type="button" onclick="removeItem('${escapeHtml(item.id)}')" class="close">×</button></div><div class="qty"><button type="button" onclick="changeQty('${escapeHtml(item.id)}',-1)">−</button><strong>${qty}</strong><button type="button" onclick="changeQty('${escapeHtml(item.id)}',1)">+</button></div><input class="obs" value="${escapeHtml(item.note || '')}" oninput="setNote('${escapeHtml(item.id)}',this.value)" placeholder="Observação deste item"></div>`;
+  });
+  document.getElementById('cartCount').textContent = count;
+  document.getElementById('cartTotal').textContent = money(total);
+  document.getElementById('sheetTotal').textContent = money(total);
+  document.getElementById('cartItems').innerHTML = html || '<p style="color:var(--text-muted);text-align:center;padding:24px">Seu carrinho está vazio.</p>';
+}
+function addProduct(element) {
+  const id = String(element.dataset.id);
+  if (!cart[id]) cart[id] = {id, name: element.querySelector('h3').textContent.trim(), price: Number(String(element.dataset.price).replace(',', '.')), qty: 0, note: ''};
+  cart[id].qty += 1; save(); toast('Item adicionado ao carrinho');
+}
+function changeQty(id, delta) { if (!cart[id]) return; cart[id].qty += delta; if (cart[id].qty <= 0) delete cart[id]; save(); }
+function removeItem(id) { delete cart[id]; save(); }
+function setNote(id, value) { if (!cart[id]) return; cart[id].note = value; safeStorageSet(CART_KEY, JSON.stringify(cart)); }
+
+document.querySelectorAll('.product .add').forEach(button => button.onclick = () => addProduct(button.closest('.product')));
+document.getElementById('openCart').onclick = () => document.getElementById('cartOverlay').classList.add('open');
+document.getElementById('closeCart').onclick = () => document.getElementById('cartOverlay').classList.remove('open');
+document.getElementById('customerName').value = safeStorageGet(NAME_KEY, '');
+document.querySelectorAll('.cat').forEach(button => button.onclick = () => {
+  document.querySelectorAll('.cat').forEach(item => item.classList.remove('active'));
+  button.classList.add('active');
+  const category = button.dataset.cat;
+  document.querySelectorAll('.menu-section').forEach(section => section.style.display = (category === 'all' || section.dataset.section === category) ? 'block' : 'none');
+});
+document.getElementById('searchInput').oninput = event => {
+  const query = event.target.value.trim().toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('.product').forEach(product => {
+    const matches = product.dataset.name.includes(query);
+    product.hidden = !matches;
+    if (matches) visible += 1;
+  });
+  document.getElementById('empty').style.display = visible ? 'none' : 'block';
+};
+
+function getCookie(name) {
+  const prefix = `${name}=`;
+  const cookie = document.cookie.split(';').map(item => item.trim()).find(item => item.startsWith(prefix));
+  if (!cookie) return '';
+  try { return decodeURIComponent(cookie.slice(prefix.length)); }
+  catch (_) { return cookie.slice(prefix.length); }
+}
+
+{% if mesa %}
+document.querySelectorAll('[data-call]').forEach(button => button.onclick = async () => {
+  try {
+    const form = new FormData();
+    form.append('tipo', button.dataset.call);
+    const response = await fetch('{% url "chamar_atendente" mesa.token_publico %}', {
+      method: 'POST', credentials: 'same-origin', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: form,
+    });
+    if (!response.ok) throw new Error('Não foi possível enviar a solicitação.');
+    toast(button.dataset.call === 'fechamento' ? 'Conta solicitada. Nossa equipe irá até a mesa.' : 'Solicitação enviada à equipe.');
+    button.disabled = true; setTimeout(() => button.disabled = false, 15000);
+  } catch (error) { toast(error.message || 'Falha ao chamar a equipe.'); }
+});
+{% endif %}
+
+document.getElementById('sendOrder').onclick = async () => {
+  const name = document.getElementById('customerName').value.trim();
+  const items = Object.values(cart);
+  if (!items.length) return toast('Adicione pelo menos um item.');
+  if (!name) return toast('Informe seu nome.');
+  safeStorageSet(NAME_KEY, name);
+
+  const button = document.getElementById('sendOrder');
+  button.disabled = true; button.textContent = 'Enviando...';
+  try {
+    const payload = {
+      nome: name,
+      mesa_token: TABLE_TOKEN,
+      mesa_ou_local: '{% if mesa %}{{ mesa|escapejs }}{% endif %}',
+      observacoes: document.getElementById('generalNote').value,
+      itens: items.map(item => ({prato_id: Number(item.id), quantidade: Number(item.qty), observacao: String(item.note || '')})),
+    };
+    const response = await fetch(ORDER_URL, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify(payload),
+    });
+    let data;
+    try { data = await response.json(); }
+    catch (_) { throw new Error('O servidor respondeu em um formato inesperado. Atualize a página e tente novamente.'); }
+    if (!response.ok || !data.ok) throw new Error(data.erro || 'Não foi possível enviar o pedido.');
+    if (!data.redirect_url || typeof data.redirect_url !== 'string') throw new Error('Pedido criado, mas o endereço de acompanhamento não foi retornado.');
+
+    cart = {}; save();
+    window.location.assign(data.redirect_url);
+  } catch (error) {
+    console.error('Falha ao enviar pedido:', error);
+    toast(error?.message || 'Falha inesperada ao enviar o pedido.');
+    button.disabled = false; button.textContent = 'Enviar pedido para a cozinha';
+  }
+};
 renderCart();
 </script>
 </body></html>
