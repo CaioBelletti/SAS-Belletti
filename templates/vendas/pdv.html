@@ -94,6 +94,24 @@
     select:focus { outline: 1.5px solid var(--accent); }
     label.campo-label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
 
+    .secao-titulo {
+        font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase;
+        letter-spacing: .06em; margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .secao-titulo:first-child { margin-top: 0; }
+    .secao-titulo::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .ajustes-recolhivel { border: 1px solid var(--border); border-radius: 10px; margin: 16px 0; overflow: hidden; }
+    .ajustes-recolhivel summary {
+        padding: 11px 14px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
+        list-style: none; display: flex; align-items: center; justify-content: space-between;
+        background: var(--bg-2);
+    }
+    .ajustes-recolhivel summary::-webkit-details-marker { display: none; }
+    .ajustes-recolhivel summary .chev-ajuste { transition: transform .18s ease; }
+    .ajustes-recolhivel[open] summary .chev-ajuste { transform: rotate(180deg); }
+    .ajustes-recolhivel .ajustes-conteudo { padding: 14px; }
+    .resumo-bloco { background: var(--bg-2); border-radius: 10px; padding: 12px 14px; margin-top: 18px; }
+
     .btn-finalizar {
         width: 100%; padding: 13px; border-radius: 8px; border: none;
         background: var(--accent); color: white; font-weight: 600; font-size: 14px;
@@ -155,6 +173,7 @@
     <div class="card">
         <div class="card-title"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4h16v16H4z" opacity="0"/><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M16 3H8a1 1 0 0 0-1 1v3h10V4a1 1 0 0 0-1-1z"/></svg> Fechamento</div>
 
+        <div class="secao-titulo">Venda</div>
         <label class="campo-label">Canal da venda</label>
         <div class="select-wrap">
             <select id="canalVenda">
@@ -184,6 +203,7 @@
         </div>
         {% endif %}
 
+        <div class="secao-titulo">Pagamento</div>
         <label class="campo-label">Forma de pagamento</label>
         <div class="select-wrap">
             <select id="formaPagamentoNova">
@@ -229,6 +249,9 @@
         <div id="listaPagamentos" style="margin-top:10px;"></div>
         <div id="avisoPagamentos" style="font-size:12.5px; color: var(--gold); margin-top:6px;"></div>
 
+        <details class="ajustes-recolhivel">
+            <summary>Descontos e ajustes (opcional) <svg class="chev-ajuste" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></summary>
+            <div class="ajustes-conteudo">
         <label class="campo-label">Cupom de desconto</label>
         <div style="display:flex; gap:8px; margin-bottom:6px;">
             <input type="text" class="desconto-input" id="cupomCodigo" placeholder="Código do cupom" style="text-transform:uppercase;">
@@ -252,11 +275,15 @@
 
         <label class="campo-label">Observações</label>
         <textarea id="observacoes" class="desconto-input" rows="2" style="resize:vertical; font-family:var(--font-body);" placeholder="Ex: embrulho pra presente, retirar às 18h..."></textarea>
+            </div>
+        </details>
 
+        <div class="resumo-bloco">
         <div class="resumo-linha"><span>Subtotal</span><span id="resumoSubtotal">R$ 0,00</span></div>
         <div class="resumo-linha"><span>Desconto</span><span id="resumoDesconto">R$ 0,00</span></div>
         <div class="resumo-linha"><span>Acréscimo</span><span id="resumoAcrescimo">R$ 0,00</span></div>
         <div class="resumo-linha total"><span>Total</span><span id="resumoTotal">R$ 0,00</span></div>
+        </div>
 
         <button class="btn-finalizar" id="btnFinalizar" disabled>Finalizar venda</button>
         <button class="btn-acao" id="btnOrcamento" style="width:100%; margin-top:8px; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); cursor:pointer;" disabled>Salvar como orçamento</button>

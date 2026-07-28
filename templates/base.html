@@ -43,6 +43,7 @@
             </a>
             {% endif %}
 
+            <div class="sidebar-nav">
             {% if request.user.is_staff %}
             <a href="{% url 'relatorios:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                 <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-4h2v4a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-9"/></svg>
@@ -149,6 +150,7 @@
                 </div>
             </details>
             {% endif %}
+            </div>
 
             <div class="sidebar-bottom">
                 <div class="crown-card">
