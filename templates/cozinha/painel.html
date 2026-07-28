@@ -30,7 +30,7 @@
 .pedido-nome { font-size:16px; font-weight:800; }
 .pedido-meta { font-size:11px; color:var(--text-faint); margin-top:2px; }
 .timer { font-variant-numeric:tabular-nums; font-size:18px; font-weight:900; }
-.progresso { height:6px; background:var(--bg-3); border-radius:99px; overflow:hidden; margin:9px 0; }
+.progresso { height:6px; background:var(--bg-2); border-radius:99px; overflow:hidden; margin:9px 0; }
 .progresso > span { display:block; height:100%; background:var(--accent); }
 .item-pedido { border-top:1px solid var(--border-soft); padding:9px 0; }
 .item-titulo { display:flex; justify-content:space-between; gap:8px; font-size:14px; font-weight:800; }
@@ -51,7 +51,7 @@
 .painel-footer { margin-top:20px; }
 @media (max-width:1200px) { .metricas{grid-template-columns:repeat(3,1fr)} .kanban{grid-template-columns:1fr} }
 @media (max-width:640px) { .metricas{grid-template-columns:repeat(2,1fr)} .kds-actions{width:100%}.kds-link{flex:1;text-align:center} }
-body.modo-tv .sidebar, body.modo-tv .top-nav, body.modo-tv header { display:none!important; }
+body.modo-tv .sidebar, body.modo-tv .mobile-topbar { display:none!important; }
 body.modo-tv main, body.modo-tv .main-content { margin:0!important; width:100%!important; max-width:none!important; padding:12px!important; }
 </style>
 {% endblock %}

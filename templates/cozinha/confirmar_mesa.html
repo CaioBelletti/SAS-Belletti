@@ -4,29 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirmar mesa — Belletti Cards Universe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <style>
-        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
-        .caixa { text-align: center; max-width: 340px; }
-        .caixa svg { width: 48px; height: 48px; margin-bottom: 14px; }
-        .caixa h1 { font-family: var(--font-display); font-size: 22px; margin: 0 0 6px; }
-        .caixa .mesa-numero { font-family: var(--font-mono); color: var(--gold); font-size: 28px; margin-bottom: 20px; }
-        .btn-confirmar {
-            display: block; width: 100%; padding: 14px; border-radius: 10px; border: none; background: var(--accent);
-            color: white; font-weight: 700; font-size: 15px; text-decoration: none; margin-bottom: 10px;
+        body {
+            display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px;
+            background: radial-gradient(circle at 50% 30%, #17131f 0%, var(--bg-0) 60%);
         }
+        .caixa { text-align: center; max-width: 340px; animation: aparecer .4s cubic-bezier(.2,.7,.3,1); }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .logo-wrap { position: relative; display: inline-block; margin-bottom: 18px; }
+        .logo-wrap::after {
+            content: ""; position: absolute; inset: -18px; border-radius: 50%;
+            background: radial-gradient(circle, #e8b34d22 0%, transparent 70%); z-index: -1;
+        }
+        .caixa svg { width: 52px; height: 52px; }
+        .caixa .eyebrow { font-family: var(--font-body); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+        .caixa h1 { font-family: var(--font-display); font-size: 23px; margin: 0 0 8px; font-weight: 700; letter-spacing: -.01em; }
+        .caixa .mesa-numero {
+            font-family: var(--font-mono); color: var(--gold); font-size: 30px; font-weight: 600; margin-bottom: 26px;
+        }
+        .btn-confirmar {
+            display: block; width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent);
+            color: white; font-weight: 700; font-size: 15px; text-decoration: none; margin-bottom: 14px;
+            font-family: var(--font-display); transition: transform .15s ease; position: relative; overflow: hidden; isolation: isolate;
+        }
+        .btn-confirmar::after {
+            content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0; transition: opacity .3s ease;
+            background: var(--holo); background-size: 250% 250%; animation: holo-drift 5s ease infinite;
+        }
+        .btn-confirmar:active { transform: scale(.97); }
+        .btn-confirmar:active::after { opacity: .85; }
+        .aviso { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
     </style>
 </head>
 <body>
+{% csrf_token %}
     <div class="caixa">
-        <svg viewBox="0 0 40 40" fill="none">
-            <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
-            <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
-        </svg>
+        <div class="logo-wrap">
+            <svg viewBox="0 0 40 40" fill="none">
+                <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
+                <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
+                <circle cx="16" cy="15" r="1.6" fill="var(--bg-0)" opacity="0.35"/>
+                <circle cx="22" cy="20" r="1" fill="var(--bg-0)" opacity="0.3"/>
+            </svg>
+        </div>
+        <div class="eyebrow">Belletti Cards Universe</div>
         <h1>Você está na</h1>
         <div class="mesa-numero">{{ mesa }}</div>
         <a href="{% url 'cardapio_mesa' mesa.token_publico %}" class="btn-confirmar">Sim, continuar</a>
-        <div style="font-size: 12px; color: var(--text-faint);">Se você não está nessa mesa, feche essa página.</div>
+        <div class="aviso">Se você não está nessa mesa, feche essa página.</div>
     </div>
 </body>
 </html>

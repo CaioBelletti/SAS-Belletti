@@ -1,4 +1,5 @@
 import json
+import uuid
 from decimal import Decimal
 
 from django.contrib import messages
@@ -14,6 +15,7 @@ from django.views.decorators.http import require_POST
 from .models import (
     CategoriaPrato, ChamadoAtendente, ChecklistItemProducao, Comanda, EstacaoProducao,
     HistoricoStatusPedido, ItemPedidoCozinha, Mesa, PedidoCozinha, Prato,
+    ParticipanteMesa, PromocaoCardapio, AvaliacaoMesa,
 )
 
 
@@ -44,12 +46,16 @@ def _contexto_cardapio(mesa=None):
                 .order_by("-criado_em")
             )
 
+    participantes = comanda.participantes.filter(ativo=True).order_by("entrou_em") if comanda else ParticipanteMesa.objects.none()
+    promocoes = [p for p in PromocaoCardapio.objects.prefetch_related("itens__prato").filter(ativa=True, destaque=True) if p.disponivel_agora]
     return {
         "categorias": categorias,
         "pratos_sem_categoria": pratos_sem_categoria,
         "mesa": mesa,
         "comanda": comanda,
         "pedidos_mesa": pedidos_mesa,
+        "participantes": participantes,
+        "promocoes": promocoes,
     }
 
 
@@ -113,7 +119,23 @@ def fazer_pedido(request):
         if not comanda:
             comanda = Comanda.objects.create(mesa=mesa)
 
+    participante = None
+    participante_token = dados.get("participante_token")
+    if comanda:
+        try:
+            token_valido = participante_token or uuid.uuid4()
+            participante, _ = ParticipanteMesa.objects.get_or_create(
+                comanda=comanda, token_dispositivo=token_valido,
+                defaults={"nome": nome},
+            )
+            if participante.nome != nome:
+                participante.nome = nome
+                participante.save(update_fields=["nome"])
+        except (ValueError, TypeError):
+            participante = ParticipanteMesa.objects.create(comanda=comanda, nome=nome)
+
     pedido = PedidoCozinha.objects.create(
+        participante=participante,
         nome_para_chamar=nome,
         mesa_ou_local=(dados.get("mesa_ou_local") or "").strip() or (str(mesa) if mesa else ""),
         observacoes=(dados.get("observacoes") or "").strip(),
@@ -121,27 +143,54 @@ def fazer_pedido(request):
         ip=ip, dispositivo=request.META.get("HTTP_USER_AGENT", "")[:255],
     )
 
-    for item in itens:
-        prato = Prato.objects.filter(pk=item.get("prato_id"), disponivel=True).first()
-        if not prato:
-            continue
+    from .models import AdicionalPrato, ItemPedidoAdicional
+
+    def criar_item(prato, quantidade, preco_unitario, observacao="", adicional_ids=None):
         item_pedido = ItemPedidoCozinha.objects.create(
-            pedido=pedido, prato=prato,
-            quantidade=max(int(item.get("quantidade") or 1), 1),
-            preco_unitario=prato.preco,
-            observacao=(item.get("observacao") or "").strip(),
+            pedido=pedido, prato=prato, quantidade=quantidade,
+            preco_unitario=preco_unitario, observacao=observacao,
         )
+        if adicional_ids:
+            adicionais = AdicionalPrato.objects.filter(
+                pk__in=adicional_ids, prato=prato, disponivel=True
+            )
+            ItemPedidoAdicional.objects.bulk_create([
+                ItemPedidoAdicional(item_pedido=item_pedido, adicional=a, nome=a.nome, preco_extra=a.preco_extra)
+                for a in adicionais
+            ])
         etapas = list(prato.etapas_preparo.all())
         if etapas:
             ChecklistItemProducao.objects.bulk_create([
-                ChecklistItemProducao(
-                    item_pedido=item_pedido, descricao=etapa.descricao,
-                    ordem=etapa.ordem, obrigatoria=etapa.obrigatoria,
-                ) for etapa in etapas
+                ChecklistItemProducao(item_pedido=item_pedido, descricao=e.descricao, ordem=e.ordem, obrigatoria=e.obrigatoria)
+                for e in etapas
             ])
         elif prato.instrucoes_preparo.strip():
-            ChecklistItemProducao.objects.create(
-                item_pedido=item_pedido, descricao=prato.instrucoes_preparo.strip(), ordem=0
+            ChecklistItemProducao.objects.create(item_pedido=item_pedido, descricao=prato.instrucoes_preparo.strip(), ordem=0)
+
+    for item in itens:
+        quantidade_carrinho = max(int(item.get("quantidade") or 1), 1)
+        promocao_id = item.get("promocao_id")
+        if promocao_id:
+            promocao = PromocaoCardapio.objects.prefetch_related("itens__prato").filter(pk=promocao_id, ativa=True).first()
+            if not promocao or not promocao.disponivel_agora:
+                continue
+            promo_itens = list(promocao.itens.all())
+            total_regular = sum((pi.prato.preco * pi.quantidade for pi in promo_itens), Decimal("0"))
+            restante = promocao.preco_promocional
+            for idx, pi in enumerate(promo_itens):
+                if idx == len(promo_itens)-1:
+                    preco_linha = restante
+                else:
+                    preco_linha = (promocao.preco_promocional * (pi.prato.preco*pi.quantidade) / total_regular).quantize(Decimal("0.01")) if total_regular else Decimal("0")
+                    restante -= preco_linha
+                unitario = (preco_linha / pi.quantidade).quantize(Decimal("0.01")) if pi.quantidade else Decimal("0")
+                criar_item(pi.prato, pi.quantidade * quantidade_carrinho, unitario, f"Promoção: {promocao.titulo}")
+            continue
+        prato = Prato.objects.filter(pk=item.get("prato_id"), disponivel=True).first()
+        if prato:
+            criar_item(
+                prato, quantidade_carrinho, prato.preco, (item.get("observacao") or "").strip(),
+                adicional_ids=item.get("adicionais") or [],
             )
 
     if not pedido.itens.exists():
@@ -153,6 +202,7 @@ def fazer_pedido(request):
         "pedido_id": pedido.id,
         "codigo": pedido.codigo_acompanhamento,
         "redirect_url": reverse("acompanhar_pedido", kwargs={"codigo": pedido.codigo_acompanhamento}),
+        "participante_token": str(participante.token_dispositivo) if participante else None,
     })
 
 
@@ -410,20 +460,47 @@ def dados_garcom(request):
 
 @login_required
 def mesas_abertas(request):
-    """Tela pro PDV/equipe fechar a conta de uma mesa — vira uma Venda de verdade."""
-    from .services import fechar_comanda
+    """Tela pro PDV/equipe fechar a conta de uma mesa — vira uma Venda de verdade (junto ou dividida)."""
+    from .services import DivisaoInvalidaError, fechar_comanda, fechar_comanda_dividida
 
     if request.method == "POST":
         comanda = get_object_or_404(Comanda, pk=request.POST.get("comanda_id"))
-        forma_pagamento = request.POST.get("forma_pagamento", "dinheiro")
+        acao = request.POST.get("acao", "fechar_junto")
+
         try:
-            venda = fechar_comanda(comanda, forma_pagamento, request.user)
-            messages.success(request, f"Comanda fechada — Venda #{venda.pk} gerada, R$ {venda.total:.2f}.")
-        except ValueError as exc:
+            if acao == "dividir_igual":
+                partes = max(int(request.POST.get("partes") or 1), 1)
+                valor_parte = (comanda.valor_total / partes).quantize(Decimal("0.01"))
+                divisoes = [{"descricao": f"Parte {i+1} de {partes}", "valor": valor_parte, "forma_pagamento": request.POST.get("forma_pagamento", "dinheiro")} for i in range(partes)]
+                diferenca = comanda.valor_total - (valor_parte * partes)
+                if diferenca:
+                    divisoes[-1]["valor"] += diferenca
+                vendas = fechar_comanda_dividida(comanda, divisoes, request.user)
+                messages.success(request, f"Comanda dividida em {len(vendas)} parte(s) — {len(vendas)} venda(s) geradas.")
+            elif acao == "dividir_pessoa":
+                divisoes = []
+                for participante in comanda.participantes.filter(ativo=True):
+                    valor_pessoa = participante.total_consumido
+                    if valor_pessoa > 0:
+                        divisoes.append({
+                            "descricao": participante.nome, "valor": valor_pessoa,
+                            "forma_pagamento": request.POST.get("forma_pagamento", "dinheiro"),
+                        })
+                vendas = fechar_comanda_dividida(comanda, divisoes, request.user)
+                messages.success(request, f"Comanda dividida por pessoa — {len(vendas)} venda(s) geradas.")
+            else:
+                forma_pagamento = request.POST.get("forma_pagamento", "dinheiro")
+                venda = fechar_comanda(comanda, forma_pagamento, request.user)
+                messages.success(request, f"Comanda fechada — Venda #{venda.pk} gerada, R$ {venda.total:.2f}.")
+        except (ValueError, DivisaoInvalidaError) as exc:
             messages.error(request, str(exc))
         return redirect("cozinha:mesas_abertas")
 
-    comandas_abertas = Comanda.objects.filter(status="aberta").select_related("mesa").prefetch_related("pedidos__itens__prato")
+    comandas_abertas = (
+        Comanda.objects.filter(status="aberta")
+        .select_related("mesa")
+        .prefetch_related("pedidos__itens__prato", "participantes")
+    )
     return render(request, "cozinha/mesas_abertas.html", {"comandas_abertas": comandas_abertas})
 
 
@@ -501,3 +578,50 @@ def qrcodes_todas_mesas_pdf(request):
     response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="qrcodes_mesas.pdf"'
     return response
+
+
+@require_POST
+def avaliar_experiencia(request, token):
+    mesa = get_object_or_404(Mesa, token_publico=token, ativa=True)
+    comanda = mesa.comanda_aberta
+    if not comanda:
+        return JsonResponse({"ok": False, "erro": "Não há comanda aberta para esta mesa."}, status=400)
+    try:
+        dados = json.loads(request.body)
+        comida = int(dados.get("nota_comida"))
+        atendimento = int(dados.get("nota_atendimento"))
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "erro": "Avaliação inválida."}, status=400)
+    if comida not in range(1,6) or atendimento not in range(1,6):
+        return JsonResponse({"ok": False, "erro": "As notas devem ser de 1 a 5."}, status=400)
+    participante = None
+    token_participante = dados.get("participante_token")
+    if token_participante:
+        participante = ParticipanteMesa.objects.filter(comanda=comanda, token_dispositivo=token_participante).first()
+    AvaliacaoMesa.objects.create(
+        comanda=comanda, participante=participante,
+        nota_comida=comida, nota_atendimento=atendimento,
+        comentario=(dados.get("comentario") or "").strip()[:500],
+    )
+    return JsonResponse({"ok": True})
+
+
+def preferencias_mesa(request, token):
+    mesa = get_object_or_404(Mesa, token_publico=token, ativa=True)
+    comanda = mesa.comanda_aberta
+    token_participante = request.GET.get("participante_token")
+    participante = None
+    if comanda and token_participante:
+        participante = ParticipanteMesa.objects.filter(comanda=comanda, token_dispositivo=token_participante).first()
+    favoritos = []
+    if participante:
+        qs = (ItemPedidoCozinha.objects.filter(pedido__participante=participante)
+              .values("prato_id", "prato__nome", "prato__preco")
+              .annotate(total=Sum("quantidade")).filter(total__gte=3).order_by("-total")[:6])
+        favoritos = list(qs)
+    return JsonResponse({
+        "ok": True,
+        "participante": participante.nome if participante else None,
+        "favoritos": favoritos,
+        "jogadores": list(comanda.participantes.filter(ativo=True).values("nome", "token_dispositivo")) if comanda else [],
+    })

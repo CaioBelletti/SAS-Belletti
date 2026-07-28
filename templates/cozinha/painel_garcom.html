@@ -64,22 +64,43 @@ const urls = {
 };
 const csrf = (() => { const m=document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; })();
 let audioCtx = null;
-let somAtivo = false; // o navegador exige um clique a cada abertura da página
+let somAtivo = false; // o AudioContext em si nao sobrevive a um recarregamento de pagina
+let somDesejado = localStorage.getItem('bellettiSomDesejado') === '1'; // isso sim persiste
 let primeiraCarga = true;
 const vistosChamados = new Set(JSON.parse(localStorage.getItem('bellettiChamadosVistos') || '[]'));
 const vistosProntos = new Set(JSON.parse(localStorage.getItem('bellettiProntosVistos') || '[]'));
 
 function atualizarBotaoSom(){
   const btn=document.getElementById('btnSom');
-  btn.textContent = somAtivo ? '🔊 Alertas sonoros ativos' : '🔇 Ativar alertas sonoros';
-  btn.className='sound-btn '+(somAtivo?'active':'muted');
+  if(somAtivo){ btn.textContent='🔊 Alertas sonoros ativos'; btn.className='sound-btn active'; }
+  else if(somDesejado){ btn.textContent='👆 Toque em qualquer lugar pra reativar o som'; btn.className='sound-btn muted'; }
+  else { btn.textContent='🔇 Ativar alertas sonoros'; btn.className='sound-btn muted'; }
 }
 async function ativarAudio(){
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   if(audioCtx.state==='suspended') await audioCtx.resume();
-  somAtivo=true; atualizarBotaoSom();
+  somAtivo=true; somDesejado=true; localStorage.setItem('bellettiSomDesejado','1'); atualizarBotaoSom();
   tocarSom('teste');
 }
+function desativarAudio(){
+  somAtivo=false; somDesejado=false; localStorage.setItem('bellettiSomDesejado','0'); atualizarBotaoSom();
+}
+// Se a pessoa ja tinha ativado o som antes, qualquer toque na tela reativa
+// sozinho, sem precisar achar o botao de novo (o navegador so exige ALGUM
+// gesto do usuario, nao precisa ser exatamente no botao de som).
+function tentarReativarComGesto(){
+  if(somDesejado && !somAtivo){ ativarAudio(); }
+}
+document.addEventListener('click', tentarReativarComGesto);
+document.addEventListener('touchstart', tentarReativarComGesto, {passive:true});
+// Ao voltar pra essa aba, tenta retomar o audio sozinho (sem pedir clique de
+// novo) — funciona porque o AudioContext ja tinha sido liberado antes nessa
+// mesma pagina, so trocar de aba nao invalida essa liberacao.
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState==='visible' && somDesejado && audioCtx && audioCtx.state==='suspended'){
+    audioCtx.resume().then(()=>{ somAtivo=true; atualizarBotaoSom(); });
+  }
+});
 function beep(freq, inicio, duracao, volume=.13){
   if(!audioCtx || !somAtivo) return;
   const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -130,7 +151,7 @@ async function carregar(){
     persistirVistos(); primeiraCarga=false;
   }catch(e){ console.warn('Falha ao atualizar painel do garçom',e); }
 }
-document.getElementById('btnSom').addEventListener('click',async()=>{ if(!somAtivo) await ativarAudio(); else { somAtivo=false; atualizarBotaoSom(); } });
+document.getElementById('btnSom').addEventListener('click',async()=>{ if(!somAtivo) await ativarAudio(); else desativarAudio(); });
 document.getElementById('btnTeste').addEventListener('click',async()=>{ if(!audioCtx || !somAtivo) await ativarAudio(); else tocarSom('pronto'); });
 atualizarBotaoSom(); carregar(); setInterval(carregar,5000);
 </script>

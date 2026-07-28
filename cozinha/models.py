@@ -106,6 +106,27 @@ class Mesa(models.Model):
         return self.comandas.filter(status="aberta").first()
 
 
+class FechamentoComanda(models.Model):
+    """
+    Cada parte de um fechamento de comanda vira um registro aqui — se
+    fechar tudo junto, é um registro só; se dividir a conta, é um
+    registro por parte/pessoa. Cada um gera uma Venda de verdade.
+    """
+    comanda = models.ForeignKey("Comanda", on_delete=models.CASCADE, related_name="fechamentos")
+    venda = models.ForeignKey("vendas.Venda", on_delete=models.SET_NULL, null=True, blank=True)
+    descricao = models.CharField(max_length=120, blank=True, help_text="Ex: 'Parte 1 de 3' ou o nome da pessoa")
+    valor = models.DecimalField(max_digits=10, decimal_places=2)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Fechamento da comanda"
+        verbose_name_plural = "Fechamentos da comanda"
+        ordering = ["criado_em"]
+
+    def __str__(self):
+        return f"{self.comanda.mesa} — {self.descricao or 'fechamento'} — R$ {self.valor}"
+
+
 class Comanda(models.Model):
     STATUS_CHOICES = [
         ("aberta", "Aberta"),
@@ -186,6 +207,9 @@ class PedidoCozinha(models.Model):
     codigo_acompanhamento = models.CharField(max_length=40, unique=True, default=uuid.uuid4, editable=False)
     cliente = models.ForeignKey(
         "vendas.Cliente", on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos_cozinha"
+    )
+    participante = models.ForeignKey(
+        "ParticipanteMesa", on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos"
     )
     nome_para_chamar = models.CharField("Nome (pra chamar quando ficar pronto)", max_length=80, blank=True)
     mesa_ou_local = models.CharField(max_length=40, blank=True, help_text="Ex: Mesa 3, Balcão, Retirada")
@@ -274,6 +298,23 @@ class PedidoCozinha(models.Model):
         self.save()
 
 
+class AdicionalPrato(models.Model):
+    """Um extra opcional que pode ser adicionado a um prato, com preço próprio (ex: bacon +R$4)."""
+    prato = models.ForeignKey(Prato, on_delete=models.CASCADE, related_name="adicionais")
+    nome = models.CharField(max_length=80)
+    preco_extra = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
+    disponivel = models.BooleanField(default=True)
+    ordem = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Adicional do prato"
+        verbose_name_plural = "Adicionais do prato"
+        ordering = ["ordem", "nome"]
+
+    def __str__(self):
+        return f"{self.prato.nome} — {self.nome} (+R$ {self.preco_extra})"
+
+
 class ItemPedidoCozinha(models.Model):
     pedido = models.ForeignKey(PedidoCozinha, on_delete=models.CASCADE, related_name="itens")
     prato = models.ForeignKey(Prato, on_delete=models.PROTECT)
@@ -292,12 +333,36 @@ class ItemPedidoCozinha(models.Model):
         return f"{self.quantidade}x {self.prato.nome}"
 
     @property
+    def preco_adicionais_unitario(self):
+        return sum((a.preco_extra for a in self.adicionais_escolhidos.all()), Decimal("0"))
+
+    @property
     def subtotal(self):
-        return self.quantidade * self.preco_unitario
+        return self.quantidade * (self.preco_unitario + self.preco_adicionais_unitario)
 
     @property
     def estacao(self):
         return self.prato.estacao
+
+
+class ItemPedidoAdicional(models.Model):
+    """
+    Guarda o adicional escolhido num item do pedido, com nome e preço
+    'congelados' no momento do pedido — assim, se o preço do adicional
+    mudar depois no cardápio, o pedido antigo continua mostrando o
+    valor que o cliente realmente pagou.
+    """
+    item_pedido = models.ForeignKey(ItemPedidoCozinha, on_delete=models.CASCADE, related_name="adicionais_escolhidos")
+    adicional = models.ForeignKey(AdicionalPrato, on_delete=models.SET_NULL, null=True, blank=True)
+    nome = models.CharField(max_length=80)
+    preco_extra = models.DecimalField(max_digits=8, decimal_places=2)
+
+    class Meta:
+        verbose_name = "Adicional escolhido"
+        verbose_name_plural = "Adicionais escolhidos"
+
+    def __str__(self):
+        return f"{self.nome} (+R$ {self.preco_extra})"
 
 
 class ChecklistItemProducao(models.Model):
@@ -332,3 +397,79 @@ class HistoricoStatusPedido(models.Model):
 
     def __str__(self):
         return f"Pedido #{self.pedido_id}: {self.status_anterior} → {self.status_novo}"
+
+
+class ParticipanteMesa(models.Model):
+    comanda = models.ForeignKey(Comanda, on_delete=models.CASCADE, related_name="participantes")
+    nome = models.CharField(max_length=80)
+    token_dispositivo = models.UUIDField(default=uuid.uuid4, db_index=True)
+    entrou_em = models.DateTimeField(auto_now_add=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Jogador/cliente da mesa"
+        verbose_name_plural = "Jogadores/clientes da mesa"
+        constraints = [models.UniqueConstraint(fields=["comanda", "token_dispositivo"], name="uniq_participante_dispositivo_comanda")]
+
+    def __str__(self):
+        return f"{self.nome} — {self.comanda.mesa}"
+
+    @property
+    def total_consumido(self):
+        return sum((p.valor_total for p in self.pedidos.exclude(status="cancelado")), Decimal("0"))
+
+
+class PromocaoCardapio(models.Model):
+    titulo = models.CharField(max_length=120)
+    descricao = models.CharField(max_length=240, blank=True)
+    preco_promocional = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
+    imagem = models.ImageField(upload_to="promocoes/%Y/%m/", blank=True)
+    ativa = models.BooleanField(default=True)
+    destaque = models.BooleanField(default=True)
+    inicio = models.DateTimeField(null=True, blank=True)
+    fim = models.DateTimeField(null=True, blank=True)
+    ordem = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Promoção do cardápio"
+        verbose_name_plural = "Promoções do cardápio"
+        ordering = ["ordem", "titulo"]
+
+    def __str__(self):
+        return self.titulo
+
+    @property
+    def disponivel_agora(self):
+        agora = timezone.now()
+        return self.ativa and (not self.inicio or self.inicio <= agora) and (not self.fim or self.fim >= agora)
+
+
+class ItemPromocao(models.Model):
+    promocao = models.ForeignKey(PromocaoCardapio, on_delete=models.CASCADE, related_name="itens")
+    prato = models.ForeignKey(Prato, on_delete=models.PROTECT)
+    quantidade = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        verbose_name = "Item da promoção"
+        verbose_name_plural = "Itens da promoção"
+
+    def __str__(self):
+        return f"{self.quantidade}x {self.prato.nome}"
+
+
+class AvaliacaoMesa(models.Model):
+    comanda = models.ForeignKey(Comanda, on_delete=models.CASCADE, related_name="avaliacoes")
+    participante = models.ForeignKey(ParticipanteMesa, on_delete=models.SET_NULL, null=True, blank=True, related_name="avaliacoes")
+    pedido = models.ForeignKey(PedidoCozinha, on_delete=models.SET_NULL, null=True, blank=True, related_name="avaliacoes")
+    nota_comida = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    nota_atendimento = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    comentario = models.CharField(max_length=500, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Avaliação da mesa"
+        verbose_name_plural = "Avaliações das mesas"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"Avaliação {self.comanda.mesa} — comida {self.nota_comida}/5, atendimento {self.nota_atendimento}/5"

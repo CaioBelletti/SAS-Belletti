@@ -92,7 +92,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("catalogo", "0012_produto_preco_maximo_historicopreco"),
-        ("vendas", "0011_venda_mensagem_recuperacao_enviada"),
+        ("vendas", "0013_alter_venda_status"),
         ("financeiro", "0006_configuracaocobranca_and_more"),
     ]
 

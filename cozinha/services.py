@@ -32,15 +32,30 @@ def get_produto_consumo_cozinha():
     return produto
 
 
+def _gerar_venda_parcial(valor, forma_pagamento, usuario, parcelas=1):
+    """Cria uma Venda de verdade no PDV pra um valor específico (uma parte ou o total)."""
+    from vendas.models import ItemVenda, PagamentoVenda, Venda
+    from vendas.services import fechar_venda
+
+    produto_consumo = get_produto_consumo_cozinha()
+    venda = Venda.objects.create(canal="fisica", vendedor=usuario, forma_pagamento=forma_pagamento)
+    ItemVenda.objects.create(venda=venda, produto=produto_consumo, quantidade=1, preco_unitario=valor)
+    PagamentoVenda.objects.create(venda=venda, forma_pagamento=forma_pagamento, valor=valor, parcelas=parcelas)
+    fechar_venda(venda)
+    return venda
+
+
 @transaction.atomic
 def fechar_comanda(comanda, forma_pagamento, usuario, parcelas=1):
     """
-    Fecha a comanda de verdade: cria uma Venda no PDV com o valor
-    total consumido, processa o pagamento, e linka tudo — assim o
-    consumo da cozinha aparece no financeiro/DRE normalmente.
+    Fecha a comanda de verdade (tudo junto, sem dividir): cria uma
+    Venda no PDV com o valor total consumido, processa o pagamento,
+    e linka tudo — assim o consumo da cozinha aparece no
+    financeiro/DRE normalmente.
     """
-    from vendas.models import ItemVenda, PagamentoVenda, Venda
-    from vendas.services import fechar_venda
+    from django.utils import timezone
+
+    from .models import FechamentoComanda
 
     if comanda.status != "aberta":
         raise ValueError("Essa comanda já não está mais aberta.")
@@ -49,17 +64,9 @@ def fechar_comanda(comanda, forma_pagamento, usuario, parcelas=1):
     if valor_total <= 0:
         raise ValueError("Essa comanda não tem nenhum consumo pra cobrar.")
 
-    produto_consumo = get_produto_consumo_cozinha()
+    venda = _gerar_venda_parcial(valor_total, forma_pagamento, usuario, parcelas)
+    FechamentoComanda.objects.create(comanda=comanda, venda=venda, descricao="Fechamento único", valor=valor_total)
 
-    venda = Venda.objects.create(canal="fisica", vendedor=usuario, forma_pagamento=forma_pagamento)
-    ItemVenda.objects.create(
-        venda=venda, produto=produto_consumo, quantidade=1, preco_unitario=valor_total,
-    )
-    PagamentoVenda.objects.create(venda=venda, forma_pagamento=forma_pagamento, valor=valor_total, parcelas=parcelas)
-
-    fechar_venda(venda)
-
-    from django.utils import timezone
     comanda.status = "fechada"
     comanda.venda = venda
     comanda.fechada_por = usuario
@@ -67,3 +74,56 @@ def fechar_comanda(comanda, forma_pagamento, usuario, parcelas=1):
     comanda.save(update_fields=["status", "venda", "fechada_por", "fechada_em"])
 
     return venda
+
+
+class DivisaoInvalidaError(ValueError):
+    pass
+
+
+@transaction.atomic
+def fechar_comanda_dividida(comanda, divisoes, usuario):
+    """
+    Fecha a comanda dividindo em várias partes — cada uma vira uma
+    Venda própria no PDV. `divisoes` é uma lista de dicts:
+    [{"descricao": "...", "valor": Decimal, "forma_pagamento": "..."}]
+    A soma das partes precisa bater com o total da comanda (com uma
+    tolerância mínima de 1 centavo pra arredondamento).
+    """
+    from django.utils import timezone
+
+    from .models import FechamentoComanda
+
+    if comanda.status != "aberta":
+        raise ValueError("Essa comanda já não está mais aberta.")
+
+    if not divisoes:
+        raise DivisaoInvalidaError("Informe pelo menos uma parte pra dividir a conta.")
+
+    valor_total = comanda.valor_total
+    if valor_total <= 0:
+        raise ValueError("Essa comanda não tem nenhum consumo pra cobrar.")
+
+    soma_partes = sum((Decimal(str(d["valor"])) for d in divisoes), Decimal("0"))
+    if abs(soma_partes - valor_total) > Decimal("0.01"):
+        raise DivisaoInvalidaError(
+            f"A soma das partes (R$ {soma_partes:.2f}) não bate com o total da comanda (R$ {valor_total:.2f})."
+        )
+
+    vendas_geradas = []
+    for divisao in divisoes:
+        valor_parte = Decimal(str(divisao["valor"]))
+        if valor_parte <= 0:
+            continue
+        venda = _gerar_venda_parcial(valor_parte, divisao["forma_pagamento"], usuario)
+        FechamentoComanda.objects.create(
+            comanda=comanda, venda=venda, descricao=divisao.get("descricao", ""), valor=valor_parte,
+        )
+        vendas_geradas.append(venda)
+
+    comanda.status = "fechada"
+    comanda.venda = vendas_geradas[-1] if vendas_geradas else None
+    comanda.fechada_por = usuario
+    comanda.fechada_em = timezone.now()
+    comanda.save(update_fields=["status", "venda", "fechada_por", "fechada_em"])
+
+    return vendas_geradas

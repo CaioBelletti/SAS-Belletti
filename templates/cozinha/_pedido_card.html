@@ -8,6 +8,7 @@
   {% if not estacao_selecionada or item.prato.estacao_id == estacao_selecionada %}
   <div class="item-pedido">
     <div class="item-titulo"><span>{{ item.quantidade }}x {{ item.prato.nome }}</span><span class="estacao">{% if item.prato.estacao %}{{ item.prato.estacao.icone }} {{ item.prato.estacao.nome }}{% else %}Sem estação{% endif %}</span></div>
+    {% if item.adicionais_escolhidos.all %}<div class="observacao">➕ {% for a in item.adicionais_escolhidos.all %}{{ a.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
     {% if item.observacao %}<div class="observacao">⚠ {{ item.observacao }}</div>{% endif %}
     {% if item.prato.instrucoes_preparo %}<div class="instrucoes">📋 {{ item.prato.instrucoes_preparo }}</div>{% endif %}
     {% if item.checklist.all %}<div class="checklist">{% for check in item.checklist.all %}<label class="check-item {% if check.concluido %}concluido{% endif %}"><input type="checkbox" {% if check.concluido %}checked{% endif %} onchange="alternarChecklist({{ check.id }},this)"><span>{{ check.descricao }}</span></label>{% endfor %}</div>{% endif %}

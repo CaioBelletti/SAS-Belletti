@@ -17,4 +17,9 @@
 {% endif %}
 {% endblock %}
 
+{% block userlinks %}
+<a href="/cardapio/" target="_blank" rel="noopener">🍽️ Ver cardápio</a> /
+{{ block.super }}
+{% endblock %}
+
 {% block nav-global %}{% endblock %}

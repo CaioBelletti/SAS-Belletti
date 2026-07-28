@@ -35,6 +35,8 @@ urlpatterns = [
     path('cardapio/m/<uuid:token>/', cozinha_views.confirmar_mesa, name='confirmar_mesa'),
     path('cardapio/m/<uuid:token>/cardapio/', cozinha_views.cardapio_mesa, name='cardapio_mesa'),
     path('cardapio/m/<uuid:token>/chamar/', cozinha_views.chamar_atendente, name='chamar_atendente'),
+    path('cardapio/m/<uuid:token>/preferencias/', cozinha_views.preferencias_mesa, name='preferencias_mesa'),
+    path('cardapio/m/<uuid:token>/avaliar/', cozinha_views.avaliar_experiencia, name='avaliar_experiencia'),
     path('sw.js', sw_view, name='sw'),
     # Ao acessar a raiz do site, manda direto pro dashboard.
     path('', RedirectView.as_view(url='relatorios/', permanent=False)),

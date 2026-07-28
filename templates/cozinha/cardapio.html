@@ -8,72 +8,211 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <style>
-    :root { --menu-max: 760px; }
-    * { box-sizing: border-box; }
-    body { margin:0; padding:0 0 118px; background:var(--bg); color:var(--text); font-family:Inter,sans-serif; }
+    :root { --menu-max: 720px; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin:0; padding:0 0 130px; background:var(--bg-0); color:var(--text-primary);
+      font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+    }
     .shell { max-width:var(--menu-max); margin:auto; }
-    .hero { padding:22px 18px 14px; background:linear-gradient(180deg,#17131f 0%,var(--bg) 100%); }
-    .brand { display:flex; align-items:center; gap:10px; font-family:'Space Grotesk'; font-weight:700; color:var(--gold); font-size:13px; }
-    .brand-dot { width:24px;height:24px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 5px #f5b82e18; }
-    .hero h1 { margin:18px 0 4px; font:700 28px 'Space Grotesk'; }
-    .hero p { margin:0;color:var(--text-muted);font-size:14px; }
-    .mesa-chip { display:inline-flex; margin-top:12px; padding:7px 11px; border:1px solid #8b6cf244; background:#8b6cf214; border-radius:999px; color:var(--accent-text); font-size:12px; font-weight:700; }
-    .summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
-    .summary-card { border:1px solid var(--border); background:var(--bg-2); border-radius:12px; padding:12px; }
-    .summary-card small { color:var(--text-faint); display:block; margin-bottom:4px; }
-    .summary-card strong { font-family:'Space Grotesk'; }
-    .toolbar { position:sticky; top:0; z-index:20; background:rgba(10,11,15,.94); backdrop-filter:blur(12px); border-bottom:1px solid var(--border-soft); padding:12px 18px 10px; }
-    .search { display:flex;align-items:center;gap:9px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:0 13px; }
-    .search input { width:100%;padding:13px 0;background:none;border:0;color:var(--text);outline:0;font-size:15px; }
-    .cats { display:flex;gap:8px;overflow:auto;padding-top:10px;scrollbar-width:none; }
-    .cat { white-space:nowrap;border:1px solid var(--border);background:var(--bg-2);color:var(--text-muted);padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer; }
-    .cat.active { border-color:var(--accent);background:#8b6cf222;color:var(--accent-text); }
-    main { padding:16px 18px; }
-    .section-title { font:700 16px 'Space Grotesk'; margin:22px 0 10px; color:var(--gold); text-transform:uppercase; letter-spacing:.05em; }
-    .products { display:grid; gap:12px; }
-    .product { display:grid;grid-template-columns:88px 1fr auto;gap:13px;align-items:center;background:var(--bg-2);border:1px solid var(--border);border-radius:15px;padding:11px; }
+
+    /* ---------- Cabeçalho ---------- */
+    .hero { padding:26px 20px 18px; background:linear-gradient(180deg,#171320 0%,var(--bg-0) 78%); position:relative; overflow:hidden; }
+    .hero::after {
+      content:""; position:absolute; top:-40%; right:-15%; width:280px; height:280px; border-radius:50%;
+      background:radial-gradient(circle, #8b6cf21c 0%, transparent 70%); pointer-events:none;
+    }
+    .brand { display:flex; align-items:center; gap:9px; font-family:'Space Grotesk'; font-weight:700; color:var(--gold); font-size:12.5px; letter-spacing:.06em; position:relative; z-index:1; }
+    .brand-dot { width:26px; height:26px; flex-shrink:0; }
+    .hero h1 { margin:20px 0 5px; font:700 27px/1.2 'Space Grotesk'; letter-spacing:-.015em; position:relative; z-index:1; }
+    .hero p { margin:0; color:var(--text-muted); font-size:13.5px; position:relative; z-index:1; }
+    .mesa-chip {
+      display:inline-flex; align-items:center; gap:5px; margin-top:14px; padding:7px 13px;
+      border:1px solid #8b6cf240; background:#8b6cf215; border-radius:999px; color:var(--accent-text);
+      font-size:12px; font-weight:700; position:relative; z-index:1;
+    }
+    .summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; position:relative; z-index:1; }
+    .summary-card { border:1px solid var(--border); background:var(--bg-1); border-radius:13px; padding:13px 14px; }
+    .summary-card small { color:var(--text-faint); display:block; margin-bottom:5px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+    .summary-card strong { font-family:'Space Grotesk'; font-size:16px; }
+
+    /* ---------- Busca + categorias ---------- */
+    .toolbar {
+      position:sticky; top:0; z-index:20; background:rgba(12,13,17,.92); backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--border-soft); padding:12px 20px 11px;
+    }
+    .search {
+      display:flex; align-items:center; gap:10px; background:var(--bg-1); border:1px solid var(--border);
+      border-radius:13px; padding:0 14px; transition:border-color .18s ease;
+    }
+    .search:focus-within { border-color:var(--accent); }
+    .search input { width:100%; padding:13px 0; background:none; border:0; color:var(--text-primary); outline:0; font-size:14.5px; font-family:'Inter'; }
+    .search input::placeholder { color:var(--text-faint); }
+    .cats { display:flex; gap:8px; overflow:auto; padding-top:11px; scrollbar-width:none; }
+    .cats::-webkit-scrollbar { display:none; }
+    .cat {
+      white-space:nowrap; border:1px solid var(--border); background:var(--bg-1); color:var(--text-muted);
+      padding:8px 14px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer;
+      transition:all .16s ease; font-family:'Inter';
+    }
+    .cat.active { border-color:var(--accent); background:#8b6cf224; color:var(--accent-text); font-weight:700; }
+
+    main { padding:6px 20px; }
+    .section-title {
+      font:700 13px 'Space Grotesk'; margin:28px 0 12px; color:var(--gold); text-transform:uppercase;
+      letter-spacing:.08em; display:flex; align-items:center; gap:9px;
+    }
+    .section-title::after { content:""; flex:1; height:1px; background:var(--border); }
+
+    /* ---------- Cards de produto ---------- */
+    .products { display:grid; gap:11px; }
+    .product {
+      display:grid; grid-template-columns:84px 1fr auto; gap:13px; align-items:start;
+      background:var(--bg-1); border:1px solid var(--border); border-radius:16px; padding:12px;
+      transition:border-color .18s ease, transform .18s ease; box-shadow:0 1px 0 rgba(255,255,255,.02) inset;
+    }
+    .product:active { transform:scale(.985); }
     .product[hidden] { display:none; }
-    .photo { width:88px;height:88px;border-radius:12px;background:#232633;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:31px;color:var(--text-faint);overflow:hidden; }
-    .photo img { width:100%;height:100%;object-fit:cover; }
-    .product h3 { margin:0 0 5px;font:700 15px 'Space Grotesk'; }
-    .desc { color:var(--text-muted);font-size:12px;line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
-    .price { color:var(--accent-text);font-weight:800; }
-    .time { color:var(--text-faint);font-size:11px;margin-top:4px; }
-    .add { width:42px;height:42px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:24px;cursor:pointer;font-weight:700; }
-    .empty { color:var(--text-muted);text-align:center;padding:40px 10px;display:none; }
-    .quick-actions { display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 22px; }
-    .quick { border:1px solid var(--border);background:var(--bg-2);color:var(--text);border-radius:12px;padding:12px;font-weight:700;cursor:pointer; }
-    .history { margin-top:24px; }
-    .history-card { display:flex;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--bg-2);padding:12px;border-radius:12px;margin-bottom:8px;font-size:12px; }
-    .history-card strong { display:block;font-size:13px;margin-bottom:3px; }
-    .status { color:var(--accent-text);font-weight:700; }
-    .cart-bar { position:fixed;left:0;right:0;bottom:0;z-index:40;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,transparent,#090a0e 25%); }
-    .cart-bar button { max-width:var(--menu-max);margin:auto;width:100%;border:0;border-radius:14px;background:linear-gradient(135deg,var(--accent),#6d4dd8);color:#fff;padding:15px 17px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:14px;box-shadow:0 10px 30px #6d4dd844; }
-    .badge { background:#fff;color:#6d4dd8;border-radius:999px;min-width:24px;padding:4px 7px;margin-right:8px; }
-    .overlay { position:fixed;inset:0;background:#000a;z-index:60;display:none;align-items:flex-end; }
-    .overlay.open { display:flex; }
-    .sheet { width:100%;max-width:var(--menu-max);margin:0 auto;background:var(--bg-2);border:1px solid var(--border);border-radius:22px 22px 0 0;padding:18px;max-height:88vh;overflow:auto; }
-    .sheet-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:14px; }
-    .sheet h2 { margin:0;font:700 20px 'Space Grotesk'; }
-    .close { border:0;background:#272a35;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px; }
-    .cart-item { border-bottom:1px solid var(--border-soft);padding:12px 0; }
-    .cart-top { display:flex;justify-content:space-between;gap:12px; }
-    .qty { display:flex;align-items:center;gap:10px;margin-top:9px; }
-    .qty button { width:31px;height:31px;border:1px solid var(--border);background:#232633;color:#fff;border-radius:9px; }
-    .obs { width:100%;margin-top:9px;border:1px solid var(--border);background:#101117;color:#fff;padding:10px;border-radius:9px; }
-    .field { margin-top:12px; }
-    .field label { display:block;color:var(--text-muted);font-size:12px;margin-bottom:6px; }
-    .field input,.field textarea { width:100%;border:1px solid var(--border);background:#101117;color:#fff;padding:12px;border-radius:10px; }
-    .total { display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:16px 0; }
-    .send { width:100%;border:0;border-radius:12px;background:var(--green);color:#06140b;padding:14px;font-weight:900;font-size:15px; }
-    .toast { position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#222631;border:1px solid var(--border);padding:11px 15px;border-radius:10px;z-index:100;display:none;max-width:90%;text-align:center; }
-    @media(min-width:720px){ .products{grid-template-columns:1fr 1fr}.product{grid-template-columns:76px 1fr auto}.photo{width:76px;height:76px} }
+    .photo {
+      width:84px; height:84px; border-radius:12px; background:var(--bg-2); object-fit:cover;
+      display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--text-faint);
+      overflow:hidden; align-self:center;
+    }
+    .photo img { width:100%; height:100%; object-fit:cover; }
+    .product h3 { margin:0 0 4px; font:700 14.5px 'Space Grotesk'; line-height:1.3; }
+    .desc { color:var(--text-muted); font-size:12px; line-height:1.45; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .price { color:var(--accent-text); font-weight:700; font-family:'Space Grotesk'; font-size:14px; }
+    .time { color:var(--text-faint); font-size:10.5px; margin-top:4px; }
+    .add {
+      width:40px; height:40px; border:0; border-radius:11px; background:var(--accent); color:#fff;
+      font-size:22px; cursor:pointer; font-weight:600; align-self:center; transition:transform .15s ease, background-color .15s ease;
+      line-height:1;
+    }
+    .add:active { transform:scale(.9); background:#7c5ce0; }
+    .adicionais-lista { margin-top:9px; display:flex; flex-direction:column; gap:6px; border-top:1px dashed var(--border); padding-top:8px; }
+    .adicional-item { display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-muted); cursor:pointer; }
+    .adicional-item input { accent-color:var(--accent); width:14px; height:14px; }
+    .adicional-item strong { color:var(--accent-text); font-weight:600; }
+    .empty { color:var(--text-faint); text-align:center; padding:50px 10px; display:none; font-size:13px; }
+
+    /* ---------- Ações rápidas ---------- */
+    .quick-actions { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin:10px 0 24px; }
+    .quick {
+      border:1px solid var(--border); background:var(--bg-1); color:var(--text-primary); border-radius:12px;
+      padding:12px; font-weight:600; font-size:13px; cursor:pointer; transition:border-color .15s ease, background-color .15s ease;
+    }
+    .quick:active { background:var(--bg-2); border-color:var(--accent); }
+
+    /* ---------- Histórico ---------- */
+    .history { margin-top:26px; }
+    .history-card {
+      display:flex; justify-content:space-between; gap:12px; border:1px solid var(--border);
+      background:var(--bg-1); padding:13px 14px; border-radius:13px; margin-bottom:8px; font-size:12px;
+      transition:border-color .15s ease;
+    }
+    .history-card:active { border-color:var(--accent); }
+    .history-card strong { display:block; font-size:13.5px; margin-bottom:3px; font-family:'Space Grotesk'; }
+    .status { color:var(--accent-text); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; }
+
+    /* ---------- Barra flutuante do carrinho ---------- */
+    .cart-bar { position:fixed; left:0; right:0; bottom:0; z-index:40; padding:14px 20px calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,transparent,#0a0b0f 30%); }
+    .cart-bar button {
+      max-width:var(--menu-max); margin:auto; width:100%; border:0; border-radius:15px;
+      background:linear-gradient(135deg,var(--accent),#6d4dd8); color:#fff; padding:16px 18px;
+      display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px;
+      box-shadow:0 12px 28px -8px #6d4dd866; position:relative; overflow:hidden; isolation:isolate;
+      font-family:'Space Grotesk'; transition:transform .12s ease;
+    }
+    .cart-bar button:active { transform:scale(.98); }
+    .cart-bar button::after {
+      content:""; position:absolute; inset:0; z-index:-1; opacity:0; transition:opacity .3s ease;
+      background:linear-gradient(120deg, transparent 30%, #ffffff2e 45%, #f5d78f3a 50%, transparent 65%);
+      background-size:250% 250%; animation:holo-drift 5s ease infinite;
+    }
+    .cart-bar button:active::after { opacity:1; }
+    .badge { background:#fff; color:#6d4dd8; border-radius:999px; min-width:24px; text-align:center; padding:4px 8px; margin-right:9px; font-size:12.5px; }
+
+    /* ---------- Bottom sheet (carrinho, avaliação) ---------- */
+    .overlay { position:fixed; inset:0; background:rgba(6,7,10,.72); backdrop-filter:blur(2px); z-index:60; display:none; align-items:flex-end; }
+    .overlay.open { display:flex; animation:fade-in .18s ease; }
+    .sheet {
+      width:100%; max-width:var(--menu-max); margin:0 auto; background:var(--bg-1); border:1px solid var(--border);
+      border-radius:24px 24px 0 0; padding:20px; max-height:88vh; overflow:auto; animation:slide-up .22s cubic-bezier(.2,.7,.3,1);
+      box-shadow:0 -20px 50px -20px rgba(0,0,0,.5);
+    }
+    @keyframes slide-up { from { transform:translateY(24px); opacity:.6; } to { transform:translateY(0); opacity:1; } }
+    @keyframes fade-in { from { opacity:0; } to { opacity:1; } }
+    .sheet-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .sheet h2 { margin:0; font:700 19px 'Space Grotesk'; }
+    .close { border:0; background:var(--bg-2); color:#fff; width:34px; height:34px; border-radius:50%; font-size:18px; cursor:pointer; transition:background-color .15s ease; }
+    .close:active { background:var(--border); }
+    .cart-item { border-bottom:1px solid var(--border-soft); padding:13px 0; }
+    .cart-top { display:flex; justify-content:space-between; gap:12px; }
+    .qty { display:flex; align-items:center; gap:10px; margin-top:10px; }
+    .qty button { width:30px; height:30px; border:1px solid var(--border); background:var(--bg-2); color:#fff; border-radius:8px; cursor:pointer; font-size:15px; }
+    .obs { width:100%; margin-top:10px; border:1px solid var(--border); background:var(--bg-0); color:#fff; padding:10px 11px; border-radius:9px; font-family:'Inter'; font-size:12.5px; }
+    .field { margin-top:13px; }
+    .field label { display:block; color:var(--text-muted); font-size:11.5px; margin-bottom:6px; font-weight:600; }
+    .field input, .field textarea { width:100%; border:1px solid var(--border); background:var(--bg-0); color:#fff; padding:12px 13px; border-radius:10px; font-family:'Inter'; font-size:13.5px; }
+    .field input:focus, .field textarea:focus, .obs:focus { outline:none; border-color:var(--accent); }
+    .total { display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--text-muted); padding:18px 0 6px; font-weight:600; }
+    .total span:last-child { font-family:'Space Grotesk'; font-size:20px; color:var(--gold); font-weight:700; }
+    .send {
+      width:100%; border:0; border-radius:13px; background:var(--green); color:#06240f; padding:15px;
+      font-weight:700; font-size:14.5px; cursor:pointer; font-family:'Space Grotesk'; transition:transform .12s ease;
+    }
+    .send:active { transform:scale(.98); }
+    .toast {
+      position:fixed; left:50%; bottom:104px; transform:translateX(-50%); background:var(--bg-2);
+      border:1px solid var(--border); padding:11px 16px; border-radius:11px; z-index:100; display:none;
+      max-width:90%; text-align:center; font-size:13px; box-shadow:0 8px 24px -8px rgba(0,0,0,.5);
+    }
+    @media(min-width:720px) { .products{grid-template-columns:1fr 1fr} .product{grid-template-columns:72px 1fr auto} .photo{width:72px;height:72px} }
+
+    /* ---------- Mesa inteligente, promoções, favoritos, avaliação ---------- */
+    .smart-table, .promo-wrap, .favorite-wrap, .rating-card {
+      margin:0 0 20px; padding:17px; border:1px solid var(--border); border-radius:17px; background:var(--bg-1);
+    }
+    .smart-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:13px; }
+    .smart-head strong { font-family:'Space Grotesk'; font-size:16px; color:var(--gold); }
+    .smart-head h2, .promo-wrap h2, .favorite-wrap h2, .rating-card h2 { font:700 16.5px 'Space Grotesk'; margin:0; }
+    .players { display:flex; gap:8px; flex-wrap:wrap; }
+    .player-chip { padding:7px 12px; border-radius:999px; background:#8b6cf218; border:1px solid #8b6cf240; color:var(--accent-text); font-size:12px; font-weight:600; }
+    .promo-card {
+      display:grid; grid-template-columns:1fr auto; gap:14px; align-items:center; padding:15px;
+      border-radius:15px; background:linear-gradient(135deg,#241a10,#1f1530); border:1px solid #e8b34d3d; margin-top:11px;
+      position:relative; overflow:hidden;
+    }
+    .promo-card::before {
+      content:""; position:absolute; inset:0; background:var(--holo); background-size:250% 250%;
+      opacity:.06; animation:holo-drift 8s ease infinite; pointer-events:none;
+    }
+    .promo-card strong { display:block; font-size:15.5px; font-family:'Space Grotesk'; position:relative; }
+    .promo-price { color:var(--gold); font-weight:700; font-size:18px; font-family:'Space Grotesk'; position:relative; }
+    .promo-add { border:0; border-radius:11px; background:var(--gold); color:#1b1200; font-weight:700; padding:11px 15px; cursor:pointer; font-family:'Space Grotesk'; position:relative; }
+    .favorite-list { display:flex; gap:10px; overflow:auto; margin-top:11px; scrollbar-width:none; }
+    .favorite-list::-webkit-scrollbar { display:none; }
+    .favorite { min-width:170px; padding:13px; border-radius:14px; background:var(--bg-2); border:1px solid var(--border); }
+    .favorite button { margin-top:9px; width:100%; border:0; border-radius:9px; background:var(--accent); color:white; padding:9px; font-weight:700; cursor:pointer; font-size:12.5px; }
+    .rating-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .rating-card select, .rating-card textarea { width:100%; background:var(--bg-0); color:var(--text-primary); border:1px solid var(--border); border-radius:10px; padding:11px; font-family:'Inter'; font-size:13px; }
+    .rating-card button { margin-top:11px; width:100%; border:0; border-radius:12px; background:var(--green); color:#06240f; padding:13px; font-weight:700; cursor:pointer; font-family:'Space Grotesk'; }
+    .mini { font-size:12px; color:var(--text-muted); }
   </style>
 </head>
 <body>
+{% csrf_token %}
 <div class="shell">
   <header class="hero">
-    <div class="brand"><span class="brand-dot"></span>BELLETTI CARDS UNIVERSE</div>
+    <div class="brand">
+      <svg class="brand-dot" viewBox="0 0 40 40" fill="none">
+        <ellipse cx="20" cy="22" rx="17" ry="6" transform="rotate(-18 20 22)" stroke="var(--gold)" stroke-width="1.6"/>
+        <circle cx="19" cy="18" r="9" fill="var(--gold)"/>
+        <circle cx="16" cy="15" r="1.6" fill="var(--bg-0)" opacity="0.35"/>
+        <circle cx="22" cy="20" r="1" fill="var(--bg-0)" opacity="0.3"/>
+      </svg>
+      BELLETTI CARDS UNIVERSE
+    </div>
     <h1>{% if mesa %}Olá! Bem-vindo à {{ mesa }} 👋{% else %}Cardápio Belletti{% endif %}</h1>
     <p>Escolha com calma. A cozinha recebe seu pedido na hora.</p>
     {% if mesa %}<div class="mesa-chip">📍 {{ mesa }}</div>{% endif %}
@@ -96,6 +235,23 @@
 
   <main>
     {% if mesa %}
+    <section class="smart-table">
+      <div class="smart-head"><div><h2>🎮 Mesa inteligente</h2><div class="mini">{{ mesa }} · pedidos e consumo por jogador</div></div>{% if comanda %}<strong>R$ {{ comanda.valor_total|floatformat:2 }}</strong>{% endif %}</div>
+      <div class="players" id="playersList">
+        {% for participante in participantes %}<span class="player-chip">👤 {{ participante.nome }} · R$ {{ participante.total_consumido|floatformat:2 }}</span>{% empty %}<span class="mini">O primeiro jogador aparecerá aqui após enviar um pedido.</span>{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if promocoes %}
+    <section class="promo-wrap"><h2>🔥 Promoções da casa</h2>
+      {% for promocao in promocoes %}<article class="promo-card" data-promo-id="{{ promocao.id }}" data-title="{{ promocao.titulo|escapejs }}" data-price="{{ promocao.preco_promocional|stringformat:'f' }}"><div><strong>{{ promocao.titulo }}</strong><div class="mini">{{ promocao.descricao }}</div><div class="mini">{% for item in promocao.itens.all %}{{ item.quantidade }}x {{ item.prato.nome }}{% if not forloop.last %} + {% endif %}{% endfor %}</div><div class="promo-price">R$ {{ promocao.preco_promocional|floatformat:2 }}</div></div><button class="promo-add" type="button">Adicionar</button></article>{% endfor %}
+    </section>
+    {% endif %}
+
+    {% if mesa %}<section class="favorite-wrap" id="favoriteWrap" hidden><h2>💜 Você costuma pedir</h2><div class="mini">Seus favoritos aparecem depois de 3 pedidos do mesmo item.</div><div class="favorite-list" id="favoriteList"></div></section>{% endif %}
+
+    {% if mesa %}
     <div class="quick-actions">
       <button class="quick" data-call="atendente">🔔 Chamar atendente</button>
       <button class="quick" data-call="fechamento">💳 Pedir a conta</button>
@@ -111,7 +267,9 @@
         {% for prato in categoria.pratos.all %}{% if prato.disponivel %}
         <article class="product" data-id="{{ prato.id }}" data-name="{{ prato.nome|lower }}" data-cat="cat-{{ categoria.id }}" data-price="{{ prato.preco|stringformat:'f' }}">
           <div class="photo">{% if prato.foto %}<img src="{{ prato.foto.url }}" alt="{{ prato.nome }}">{% else %}🍽️{% endif %}</div>
-          <div><h3>{{ prato.nome }}</h3><div class="desc">{{ prato.descricao|default:'Preparado com cuidado pela nossa equipe.' }}</div><div class="price">R$ {{ prato.preco|floatformat:2 }}</div><div class="time">⏱️ cerca de {{ prato.tempo_preparo_min }} min</div></div>
+          <div><h3>{{ prato.nome }}</h3><div class="desc">{{ prato.descricao|default:'Preparado com cuidado pela nossa equipe.' }}</div><div class="price">R$ {{ prato.preco|floatformat:2 }}</div><div class="time">⏱️ cerca de {{ prato.tempo_preparo_min }} min</div>
+          {% if prato.adicionais.all %}<div class="adicionais-lista">{% for adicional in prato.adicionais.all %}{% if adicional.disponivel %}<label class="adicional-item"><input type="checkbox" data-adicional-id="{{ adicional.id }}" data-adicional-nome="{{ adicional.nome|escapejs }}" data-adicional-preco="{{ adicional.preco_extra|stringformat:'f' }}"><span>{{ adicional.nome }} <strong>+R$ {{ adicional.preco_extra|floatformat:2 }}</strong></span></label>{% endif %}{% endfor %}</div>{% endif %}
+          </div>
           <button class="add" type="button" aria-label="Adicionar {{ prato.nome }}">+</button>
         </article>
         {% endif %}{% endfor %}
@@ -132,6 +290,14 @@
       {% for p in pedidos_mesa|slice:':5' %}<a href="{% url 'acompanhar_pedido' p.codigo_acompanhamento %}" style="text-decoration:none;color:inherit"><div class="history-card"><div><strong>Pedido #{{ p.id }}</strong>{{ p.criado_em|date:'H:i' }} · {{ p.itens.count }} item(ns)</div><div style="text-align:right"><span class="status">{{ p.get_status_display }}</span><br>R$ {{ p.valor_total|floatformat:2 }}</div></div></a>{% endfor %}
     </section>
     {% endif %}
+
+    {% if mesa and pedidos_mesa %}
+    <section class="rating-card">
+      <h2>⭐ Avalie sua experiência</h2><div class="mini">Sua opinião ajuda a melhorar a comida e o atendimento.</div>
+      <div class="rating-grid"><label>Comida<select id="foodRating"><option value="5">5 — Excelente</option><option value="4">4 — Muito boa</option><option value="3">3 — Boa</option><option value="2">2 — Regular</option><option value="1">1 — Ruim</option></select></label><label>Atendimento<select id="serviceRating"><option value="5">5 — Excelente</option><option value="4">4 — Muito bom</option><option value="3">3 — Bom</option><option value="2">2 — Regular</option><option value="1">1 — Ruim</option></select></label></div>
+      <textarea id="ratingComment" rows="2" placeholder="Conte como foi sua experiência (opcional)"></textarea><button id="sendRating" type="button">Enviar avaliação</button>
+    </section>
+    {% endif %}
   </main>
 </div>
 
@@ -144,6 +310,7 @@ const TABLE_TOKEN = '{% if mesa %}{{ mesa.token_publico|escapejs }}{% endif %}';
 const ORDER_URL = '{% url "fazer_pedido" %}';
 const CART_KEY = TABLE_TOKEN ? `belletti_cart_v3_${TABLE_TOKEN}` : 'belletti_cart_v3_balcao';
 const NAME_KEY = 'belletti_customer_name';
+const PARTICIPANT_KEY = TABLE_TOKEN ? `belletti_participant_${TABLE_TOKEN}` : 'belletti_participant_balcao';
 
 function safeStorageGet(key, fallback = null) {
   try { return localStorage.getItem(key) ?? fallback; }
@@ -195,15 +362,38 @@ function renderCart() {
   document.getElementById('cartItems').innerHTML = html || '<p style="color:var(--text-muted);text-align:center;padding:24px">Seu carrinho está vazio.</p>';
 }
 function addProduct(element) {
-  const id = String(element.dataset.id);
-  if (!cart[id]) cart[id] = {id, name: element.querySelector('h3').textContent.trim(), price: Number(String(element.dataset.price).replace(',', '.')), qty: 0, note: ''};
+  const baseId = String(element.dataset.id);
+  const basePrice = Number(String(element.dataset.price).replace(',', '.'));
+  const checkboxes = [...element.querySelectorAll('.adicional-item input:checked')];
+  const adicionais = checkboxes.map(cb => ({
+    id: cb.dataset.adicionalId, nome: cb.dataset.adicionalNome,
+    preco: Number(String(cb.dataset.adicionalPreco).replace(',', '.')),
+  }));
+  const precoAdicionais = adicionais.reduce((soma, a) => soma + a.preco, 0);
+  const chaveAdicionais = adicionais.map(a => a.id).sort().join('-');
+  const id = chaveAdicionais ? `${baseId}::${chaveAdicionais}` : baseId;
+  const nomeAdicionais = adicionais.length ? ' (' + adicionais.map(a => a.nome).join(', ') + ')' : '';
+
+  if (!cart[id]) {
+    cart[id] = {
+      id: baseId, name: element.querySelector('h3').textContent.trim() + nomeAdicionais,
+      price: basePrice + precoAdicionais, qty: 0, note: '',
+      adicionais: adicionais.map(a => a.id),
+    };
+  }
   cart[id].qty += 1; save(); toast('Item adicionado ao carrinho');
+  checkboxes.forEach(cb => cb.checked = false);
 }
 function changeQty(id, delta) { if (!cart[id]) return; cart[id].qty += delta; if (cart[id].qty <= 0) delete cart[id]; save(); }
 function removeItem(id) { delete cart[id]; save(); }
 function setNote(id, value) { if (!cart[id]) return; cart[id].note = value; safeStorageSet(CART_KEY, JSON.stringify(cart)); }
 
 document.querySelectorAll('.product .add').forEach(button => button.onclick = () => addProduct(button.closest('.product')));
+document.querySelectorAll('.promo-add').forEach(button => button.onclick = () => {
+  const el=button.closest('.promo-card'); const id=`promo-${el.dataset.promoId}`;
+  if(!cart[id]) cart[id]={id,name:el.dataset.title,price:Number(el.dataset.price.replace(',','.')),qty:0,note:'',promocao_id:el.dataset.promoId};
+  cart[id].qty++; save(); toast('Promoção adicionada ao carrinho');
+});
 document.getElementById('openCart').onclick = () => document.getElementById('cartOverlay').classList.add('open');
 document.getElementById('closeCart').onclick = () => document.getElementById('cartOverlay').classList.remove('open');
 document.getElementById('customerName').value = safeStorageGet(NAME_KEY, '');
@@ -261,8 +451,9 @@ document.getElementById('sendOrder').onclick = async () => {
       nome: name,
       mesa_token: TABLE_TOKEN,
       mesa_ou_local: '{% if mesa %}{{ mesa|escapejs }}{% endif %}',
+      participante_token: safeStorageGet(PARTICIPANT_KEY, ''),
       observacoes: document.getElementById('generalNote').value,
-      itens: items.map(item => ({prato_id: Number(item.id), quantidade: Number(item.qty), observacao: String(item.note || '')})),
+      itens: items.map(item => ({prato_id: item.promocao_id ? null : Number(item.id), promocao_id: item.promocao_id || null, quantidade: Number(item.qty), observacao: String(item.note || ''), adicionais: item.adicionais || []})),
     };
     const response = await fetch(ORDER_URL, {
       method: 'POST',
@@ -277,6 +468,7 @@ document.getElementById('sendOrder').onclick = async () => {
     if (!response.ok || !data.ok) throw new Error(data.erro || 'Não foi possível enviar o pedido.');
     if (!data.redirect_url || typeof data.redirect_url !== 'string') throw new Error('Pedido criado, mas o endereço de acompanhamento não foi retornado.');
 
+    if (data.participante_token) safeStorageSet(PARTICIPANT_KEY, data.participante_token);
     cart = {}; save();
     window.location.assign(data.redirect_url);
   } catch (error) {
@@ -285,6 +477,19 @@ document.getElementById('sendOrder').onclick = async () => {
     button.disabled = false; button.textContent = 'Enviar pedido para a cozinha';
   }
 };
+
+{% if mesa %}
+async function loadPreferences(){
+  const token=safeStorageGet(PARTICIPANT_KEY,''); if(!token)return;
+  try{const r=await fetch('{% url "preferencias_mesa" mesa.token_publico %}?participante_token='+encodeURIComponent(token));const d=await r.json();if(!d.ok||!d.favoritos.length)return;
+    const wrap=document.getElementById('favoriteWrap'), list=document.getElementById('favoriteList');wrap.hidden=false;list.innerHTML=d.favoritos.map(f=>`<div class="favorite"><strong>${f.prato__nome}</strong><div class="mini">Pedido ${f.total} vezes</div><div class="price">${money(f.prato__preco)}</div><button data-fav-id="${f.prato_id}" data-fav-name="${f.prato__nome}" data-fav-price="${f.prato__preco}">Adicionar</button></div>`).join('');
+    list.querySelectorAll('button').forEach(b=>b.onclick=()=>{const id=String(b.dataset.favId);if(!cart[id])cart[id]={id,name:b.dataset.favName,price:Number(b.dataset.favPrice),qty:0,note:''};cart[id].qty++;save();toast('Favorito adicionado');});
+  }catch(e){console.warn('Preferências indisponíveis',e)}
+}
+const ratingButton=document.getElementById('sendRating');if(ratingButton)ratingButton.onclick=async()=>{ratingButton.disabled=true;try{const r=await fetch('{% url "avaliar_experiencia" mesa.token_publico %}',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({nota_comida:document.getElementById('foodRating').value,nota_atendimento:document.getElementById('serviceRating').value,comentario:document.getElementById('ratingComment').value,participante_token:safeStorageGet(PARTICIPANT_KEY,'')})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.erro||'Não foi possível avaliar.');toast('Obrigado pela avaliação!');ratingButton.textContent='Avaliação enviada ✓';}catch(e){toast(e.message);ratingButton.disabled=false;}};
+loadPreferences();
+{% endif %}
+
 renderCart();
 </script>
 </body></html>

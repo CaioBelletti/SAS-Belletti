@@ -133,14 +133,7 @@
         </div>
 
         <div id="modalCamera" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; align-items:center; justify-content:center; flex-direction:column;">
-            <video
-                id="videoCamera"
-                autoplay
-                muted
-                playsinline
-                webkit-playsinline
-                style="width:90%; max-width:420px; border-radius:12px; border:2px solid var(--accent); background:#000;"
-            ></video>
+            <video id="videoCamera" style="width:90%; max-width:420px; border-radius:12px; border:2px solid var(--accent);" playsinline></video>
             <div style="color:var(--text-primary); margin-top:14px; font-size:13px;">Aponte a câmera pro código de barras</div>
             <button type="button" id="btnFecharCamera" style="margin-top:16px; padding:10px 24px; border-radius:8px; border:none; background:var(--red); color:white; font-weight:600; cursor:pointer;">Cancelar</button>
         </div>
@@ -284,147 +277,46 @@ const csrftoken = getCookie('csrftoken');
 
 // --- Leitor de código de barras pela câmera (ZXing) -------------------------
 let leitorCamera = null;
-let controleCamera = null;
-let cameraIniciando = false;
 
-const modalCamera = document.getElementById('modalCamera');
-const videoCamera = document.getElementById('videoCamera');
-const btnAbrirCamera = document.getElementById('btnAbrirCamera');
-const btnFecharCamera = document.getElementById('btnFecharCamera');
+document.getElementById('btnAbrirCamera').addEventListener('click', async () => {
+    const modal = document.getElementById('modalCamera');
+    modal.style.display = 'flex';
 
-function mensagemErroCamera(erro) {
-    const nome = erro && erro.name ? erro.name : '';
-
-    if (nome === 'NotAllowedError' || nome === 'PermissionDeniedError') {
-        return 'O Safari bloqueou o acesso à câmera para este site. No iPhone, abra Ajustes do Site no Safari e defina Câmera como Permitir.';
+    if (typeof ZXingBrowser === 'undefined' && typeof ZXing === 'undefined') {
+        alert('Não consegui carregar o leitor de câmera (sem internet?). Use o campo de busca normal.');
+        modal.style.display = 'none';
+        return;
     }
-    if (nome === 'NotFoundError' || nome === 'DevicesNotFoundError') {
-        return 'Nenhuma câmera foi encontrada no aparelho.';
-    }
-    if (nome === 'NotReadableError' || nome === 'TrackStartError') {
-        return 'A câmera está ocupada por outro aplicativo. Feche Câmera, WhatsApp, Instagram ou FaceTime e tente novamente.';
-    }
-    if (nome === 'OverconstrainedError' || nome === 'ConstraintNotSatisfiedError') {
-        return 'Não foi possível selecionar a câmera traseira. Tente novamente ou atualize a página.';
-    }
-    if (nome === 'AbortError') {
-        return 'O acesso à câmera foi interrompido. Feche outros aplicativos que possam estar usando a câmera e tente novamente.';
-    }
-    if (nome === 'SecurityError') {
-        return 'O navegador recusou a câmera por segurança. Abra o sistema diretamente no Safari usando HTTPS.';
-    }
-
-    return (erro && erro.message)
-        ? `Não foi possível abrir a câmera: ${erro.message}`
-        : 'Não foi possível abrir a câmera.';
-}
-
-async function abrirCamera() {
-    if (cameraIniciando) return;
-    cameraIniciando = true;
-    btnAbrirCamera.disabled = true;
-    modalCamera.style.display = 'flex';
 
     try {
-        if (!window.isSecureContext) {
-            throw new Error('A câmera exige uma conexão HTTPS.');
-        }
+        const BrowserMultiFormatReader = (window.ZXingBrowser || window.ZXing).BrowserMultiFormatReader;
+        leitorCamera = new BrowserMultiFormatReader();
+        const dispositivos = await BrowserMultiFormatReader.listVideoInputDevices();
+        const idCamera = dispositivos.length > 1 ? dispositivos[dispositivos.length - 1].deviceId : undefined; // prefere a traseira, geralmente a última
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error('Este navegador não disponibilizou acesso à câmera. Abra o sistema diretamente no Safari.');
-        }
-
-        if (typeof ZXing === 'undefined' || !ZXing.BrowserMultiFormatReader) {
-            throw new Error('A biblioteca do leitor de código de barras não foi carregada. Verifique a conexão com a internet.');
-        }
-
-        fecharCamera(false);
-        modalCamera.style.display = 'flex';
-
-        leitorCamera = new ZXing.BrowserMultiFormatReader();
-
-        // O facingMode solicita a câmera traseira sem depender da ordem dos deviceIds,
-        // comportamento mais confiável no Safari/iOS.
-        const constraints = {
-            audio: false,
-            video: {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        };
-
-        controleCamera = await leitorCamera.decodeFromConstraints(
-            constraints,
-            videoCamera,
-            (resultado, erro, controles) => {
-                if (!resultado) return;
-
-                const codigo = resultado.getText();
-                const campoBusca = document.getElementById('buscaProduto');
-
-                campoBusca.value = codigo;
+        leitorCamera.decodeFromVideoDevice(idCamera, 'videoCamera', (resultado, erro) => {
+            if (resultado) {
+                document.getElementById('buscaProduto').value = resultado.getText();
                 fecharCamera();
-
-                // Dispara a mesma busca utilizada pelo teclado/leitor físico.
-                campoBusca.dispatchEvent(new KeyboardEvent('keydown', {
-                    key: 'Enter',
-                    code: 'Enter',
-                    bubbles: true
-                }));
+                buscaInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
             }
-        );
-
-        // Garante reprodução inline no Safari do iPhone.
-        await videoCamera.play().catch(() => {});
-
-    } catch (erro) {
-        console.error('Erro completo ao acessar a câmera:', erro);
-        fecharCamera();
-        alert(mensagemErroCamera(erro));
-    } finally {
-        cameraIniciando = false;
-        btnAbrirCamera.disabled = false;
+        });
+    } catch (err) {
+        console.error('Erro ao acessar a câmera:', err);
+        alert('Não consegui acessar a câmera. Verifique se você deu permissão pro navegador.');
+        modal.style.display = 'none';
     }
-}
-
-function fecharCamera(ocultarModal = true) {
-    if (ocultarModal) {
-        modalCamera.style.display = 'none';
-    }
-
-    if (controleCamera && typeof controleCamera.stop === 'function') {
-        try {
-            controleCamera.stop();
-        } catch (erro) {
-            console.warn('Não foi possível parar o controle da câmera:', erro);
-        }
-    }
-    controleCamera = null;
-
-    if (leitorCamera) {
-        try {
-            leitorCamera.reset();
-        } catch (erro) {
-            console.warn('Não foi possível resetar o leitor:', erro);
-        }
-    }
-    leitorCamera = null;
-
-    if (videoCamera.srcObject) {
-        videoCamera.srcObject.getTracks().forEach((track) => track.stop());
-        videoCamera.srcObject = null;
-    }
-}
-
-btnAbrirCamera.addEventListener('click', abrirCamera);
-btnFecharCamera.addEventListener('click', () => fecharCamera());
-
-// Libera a câmera ao trocar de aplicativo, bloquear a tela ou sair da aba.
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) fecharCamera();
 });
-window.addEventListener('pagehide', () => fecharCamera());
+
+function fecharCamera() {
+    document.getElementById('modalCamera').style.display = 'none';
+    if (leitorCamera) {
+        leitorCamera.reset();
+        leitorCamera = null;
+    }
+}
+document.getElementById('btnFecharCamera').addEventListener('click', fecharCamera);
+
 
 let carrinho = [];
 let pagamentos = [];

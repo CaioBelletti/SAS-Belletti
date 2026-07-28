@@ -8,9 +8,16 @@
     .comanda-mesa { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
     .comanda-total { font-family: var(--font-mono); color: var(--gold); font-size: 18px; font-weight: 700; }
     .item-linha { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--border-soft); }
-    .form-fechar { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
-    .form-fechar select { padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 13px; }
+    .modo-fechamento { display: flex; gap: 14px; margin: 12px 0 8px; font-size: 12.5px; }
+    .modo-fechamento label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-muted); }
+    .modo-fechamento input { accent-color: var(--accent); }
+    .form-fechar { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+    .form-fechar select, .form-fechar input[type="number"] { padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 13px; }
+    .form-fechar input[type="number"] { width: 60px; }
     .btn-fechar { padding: 9px 18px; border-radius: 7px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .participantes-preview { font-size: 12px; color: var(--text-faint); margin-top: 6px; }
+    .campo-partes, .campo-pessoa { display: none; align-items: center; gap: 8px; }
+    .campo-partes.ativo, .campo-pessoa.ativo { display: flex; }
 </style>
 {% endblock %}
 
@@ -33,9 +40,24 @@
         <span>R$ {{ item.subtotal|floatformat:2 }}</span>
     </div>
     {% endfor %}
-    <form method="post" class="form-fechar">
+
+    {% if comanda.participantes.all %}
+    <div class="participantes-preview">
+        {% for p in comanda.participantes.all %}{{ p.nome }}: R$ {{ p.total_consumido|floatformat:2 }}{% if not forloop.last %} · {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="form-fechar" data-comanda="{{ comanda.id }}">
         {% csrf_token %}
         <input type="hidden" name="comanda_id" value="{{ comanda.id }}">
+        <div class="modo-fechamento">
+            <label><input type="radio" name="acao" value="fechar_junto" checked onchange="atualizarModo(this)"> Fechar tudo junto</label>
+            <label><input type="radio" name="acao" value="dividir_igual" onchange="atualizarModo(this)"> Dividir em partes iguais</label>
+            {% if comanda.participantes.all|length > 1 %}
+            <label><input type="radio" name="acao" value="dividir_pessoa" onchange="atualizarModo(this)"> Dividir por pessoa</label>
+            {% endif %}
+        </div>
+        <span class="campo-partes"><input type="number" name="partes" min="2" max="20" value="2"> partes</span>
         <select name="forma_pagamento">
             <option value="dinheiro">Dinheiro</option>
             <option value="pix">Pix</option>
@@ -48,4 +70,14 @@
 {% empty %}
 <div class="card"><div class="empty-row">Nenhuma mesa com comanda aberta agora.</div></div>
 {% endfor %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function atualizarModo(radio) {
+    const form = radio.closest('form');
+    const campoPartes = form.querySelector('.campo-partes');
+    campoPartes.classList.toggle('ativo', radio.value === 'dividir_igual');
+}
+</script>
 {% endblock %}

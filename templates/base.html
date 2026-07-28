@@ -41,6 +41,12 @@
                 </svg>
                 <div class="brand-text">BELLETTI<span class="sub">CARDS UNIVERSE</span></div>
             </div>
+            {% if request.user.is_staff %}
+            <a href="/admin/" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:6px; margin:0 0 14px; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-muted); font-size:11.5px; font-weight:600; text-decoration:none;">
+                <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Abrir Admin ↗
+            </a>
+            {% endif %}
 
             {% if request.user.is_staff %}
             <a href="{% url 'relatorios:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -85,7 +91,7 @@
             </a>
 
             {% if request.user.is_staff %}
-            <details class="nav-group" open>
+            <details class="nav-group" data-group="cadastros">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Cadastros</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
                     <a href="/admin/vendas/cliente/">Clientes</a>
@@ -101,7 +107,7 @@
                 </div>
             </details>
 
-            <details class="nav-group">
+            <details class="nav-group" data-group="suprimentos">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 8.3L12 13l8.7-4.7"/><path d="M12 22V13"/></svg> Suprimentos</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
                     <a href="/admin/catalogo/movimentacaoestoque/">Movimentações de estoque</a>
@@ -113,14 +119,14 @@
                 </div>
             </details>
 
-            <details class="nav-group">
+            <details class="nav-group" data-group="vendas">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg> Vendas</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
                     <a href="/admin/vendas/venda/">Vendas</a>
                 </div>
             </details>
 
-            <details class="nav-group">
+            <details class="nav-group" data-group="crm">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> CRM</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
                     <a href="{% url 'crm:funil' %}">Funil de vendas</a>
@@ -131,7 +137,7 @@
                 </div>
             </details>
 
-            <details class="nav-group">
+            <details class="nav-group" data-group="financas">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg> Finanças</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
                     <a href="/admin/financeiro/movimentocaixa/">Caixa</a>
@@ -160,7 +166,7 @@
                     <a href="{% url 'seguranca:sessoes' %}"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Sessões ativas</a>
                     <a href="#" onclick="ativarNotificacoesPush(); return false;"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Ativar notificações</a>
                     <a href="{% url 'backup' %}"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar backup agora</a>
-                    <a href="/admin/"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Painel administrativo completo</a>
+                    <a href="/admin/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Painel administrativo completo ↗</a>
                     {% endif %}
                     {% if request.user.is_authenticated %}
                     <a href="{% url 'logout' %}"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sair ({{ request.user.username }})</a>
@@ -255,6 +261,20 @@
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
+
+        // Lembra se cada grupo do menu (Cadastros, Vendas, etc) estava
+        // aberto ou fechado, pra não reabrir sozinho a cada atualização
+        // de página.
+        document.querySelectorAll('details.nav-group[data-group]').forEach((grupo) => {
+            const chave = `belletti_menu_aberto_${grupo.dataset.group}`;
+            const estadoSalvo = localStorage.getItem(chave);
+            if (estadoSalvo !== null) {
+                grupo.open = estadoSalvo === '1';
+            }
+            grupo.addEventListener('toggle', () => {
+                localStorage.setItem(chave, grupo.open ? '1' : '0');
+            });
+        });
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>
