@@ -20,6 +20,22 @@ class CategoriaPrato(models.Model):
         return self.nome
 
 
+class EstacaoProducao(models.Model):
+    nome = models.CharField(max_length=60, unique=True)
+    icone = models.CharField(max_length=12, blank=True, default="🍳")
+    cor = models.CharField(max_length=7, default="#7c3aed", help_text="Cor hexadecimal, ex.: #7c3aed")
+    ativa = models.BooleanField(default=True)
+    ordem = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Estação de produção"
+        verbose_name_plural = "Estações de produção"
+        ordering = ["ordem", "nome"]
+
+    def __str__(self):
+        return f"{self.icone} {self.nome}".strip()
+
+
 class Prato(models.Model):
     nome = models.CharField(max_length=120)
     descricao = models.TextField(blank=True)
@@ -27,6 +43,19 @@ class Prato(models.Model):
     foto = models.ImageField(upload_to="pratos/%Y/%m/", blank=True)
     categoria = models.ForeignKey(
         CategoriaPrato, on_delete=models.SET_NULL, null=True, blank=True, related_name="pratos"
+    )
+    estacao = models.ForeignKey(
+        EstacaoProducao,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pratos",
+        help_text="Estação responsável por preparar este item.",
+    )
+    instrucoes_preparo = models.TextField(
+        "Instruções rápidas de preparo",
+        blank=True,
+        help_text="Ex.: grelhar hambúrguer, aquecer pão, montar e embalar.",
     )
     disponivel = models.BooleanField("Disponível no cardápio agora", default=True)
     tempo_preparo_min = models.PositiveIntegerField(
@@ -43,13 +72,22 @@ class Prato(models.Model):
         return f"{self.nome} — R$ {self.preco}"
 
 
+class EtapaPreparo(models.Model):
+    prato = models.ForeignKey(Prato, on_delete=models.CASCADE, related_name="etapas_preparo")
+    descricao = models.CharField(max_length=180)
+    ordem = models.PositiveIntegerField(default=0)
+    obrigatoria = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Etapa de preparo"
+        verbose_name_plural = "Etapas de preparo"
+        ordering = ["ordem", "id"]
+
+    def __str__(self):
+        return f"{self.prato.nome}: {self.descricao}"
+
+
 class Mesa(models.Model):
-    """
-    Uma mesa física da loja. O token é o que vai no QR code — não o
-    número da mesa em si — pra não dar pra adivinhar/manipular a URL
-    só trocando um número (ex: /cardapio/mesa/7/ seria fácil de
-    forjar; um UUID não).
-    """
     numero = models.PositiveIntegerField(unique=True)
     nome = models.CharField(max_length=50, blank=True, help_text="Ex: 'Mesa da janela' (opcional, só número já basta)")
     token_publico = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -69,7 +107,6 @@ class Mesa(models.Model):
 
 
 class Comanda(models.Model):
-    """A 'conta corrente' de uma mesa — acumula os pedidos até fechar no PDV."""
     STATUS_CHOICES = [
         ("aberta", "Aberta"),
         ("fechada", "Fechada"),
@@ -97,13 +134,10 @@ class Comanda(models.Model):
 
     @property
     def valor_total(self):
-        return sum(
-            (p.valor_total for p in self.pedidos.exclude(status="cancelado")), Decimal("0")
-        )
+        return sum((p.valor_total for p in self.pedidos.exclude(status="cancelado")), Decimal("0"))
 
     @property
     def itens_agrupados(self):
-        """Junta os itens de todos os pedidos da comanda, somando quantidades do mesmo prato."""
         agrupado = {}
         for pedido in self.pedidos.exclude(status="cancelado"):
             for item in pedido.itens.all():
@@ -146,27 +180,19 @@ class PedidoCozinha(models.Model):
         ("entregue", "Entregue"),
         ("cancelado", "Cancelado"),
     ]
-    PRIORIDADE_CHOICES = [
-        (1, "Normal"),
-        (2, "Alta"),
-        (3, "Urgente"),
-    ]
+    PRIORIDADE_CHOICES = [(1, "Normal"), (2, "Alta"), (3, "Urgente")]
 
     codigo_acompanhamento = models.CharField(max_length=40, unique=True, default=uuid.uuid4, editable=False)
     cliente = models.ForeignKey(
         "vendas.Cliente", on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos_cozinha"
     )
-    nome_para_chamar = models.CharField(
-        "Nome (pra chamar quando ficar pronto)", max_length=80, blank=True
-    )
+    nome_para_chamar = models.CharField("Nome (pra chamar quando ficar pronto)", max_length=80, blank=True)
     mesa_ou_local = models.CharField(max_length=40, blank=True, help_text="Ex: Mesa 3, Balcão, Retirada")
     mesa = models.ForeignKey(
         Mesa, on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos_diretos",
         help_text="Preenchido sozinho quando o pedido vem do QR code de uma mesa específica.",
     )
-    comanda = models.ForeignKey(
-        Comanda, on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos"
-    )
+    comanda = models.ForeignKey(Comanda, on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos")
     ip = models.CharField(max_length=45, blank=True, editable=False)
     dispositivo = models.CharField(max_length=255, blank=True, editable=False)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="recebido")
@@ -176,9 +202,7 @@ class PedidoCozinha(models.Model):
     em_preparo_em = models.DateTimeField(null=True, blank=True)
     pronto_em = models.DateTimeField(null=True, blank=True)
     entregue_em = models.DateTimeField(null=True, blank=True)
-    atendido_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    atendido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         verbose_name = "Pedido da cozinha"
@@ -196,17 +220,49 @@ class PedidoCozinha(models.Model):
     @property
     def tempo_espera_minutos(self):
         referencia = self.entregue_em or timezone.now()
-        return int((referencia - self.criado_em).total_seconds() // 60)
+        return max(int((referencia - self.criado_em).total_seconds() // 60), 0)
+
+    @property
+    def tempo_estimado_minutos(self):
+        tempos = [item.prato.tempo_preparo_min for item in self.itens.all()]
+        return max(tempos, default=10)
+
+    @property
+    def nivel_atraso(self):
+        espera = self.tempo_espera_minutos
+        estimado = self.tempo_estimado_minutos
+        if espera > estimado + 5:
+            return "critico"
+        if espera > estimado:
+            return "atrasado"
+        if espera >= max(estimado - 3, 1):
+            return "atencao"
+        return "normal"
+
+    @property
+    def progresso_percentual(self):
+        itens = list(self.itens.all())
+        if not itens:
+            return 0
+        total = sum(max(item.checklist.count(), 1) for item in itens)
+        concluidas = 0
+        for item in itens:
+            if item.checklist.exists():
+                concluidas += item.checklist.filter(concluido=True).count()
+            elif item.preparo_concluido:
+                concluidas += 1
+        return int((concluidas / total) * 100) if total else 0
 
     def avancar_status(self):
-        """Move pro próximo status da esteira (recebido -> em_preparo -> pronto -> entregue)."""
         agora = timezone.now()
         if self.status == "recebido":
             self.status = "em_preparo"
             self.em_preparo_em = agora
+            self.itens.filter(iniciado_em__isnull=True).update(iniciado_em=agora)
         elif self.status == "em_preparo":
             self.status = "pronto"
             self.pronto_em = agora
+            self.itens.filter(concluido_em__isnull=True).update(preparo_concluido=True, concluido_em=agora)
         elif self.status == "pronto":
             self.status = "entregue"
             self.entregue_em = agora
@@ -219,6 +275,9 @@ class ItemPedidoCozinha(models.Model):
     quantidade = models.PositiveIntegerField(default=1)
     preco_unitario = models.DecimalField(max_digits=8, decimal_places=2)
     observacao = models.CharField("Observação (ex: sem cebola)", max_length=200, blank=True)
+    preparo_concluido = models.BooleanField(default=False)
+    iniciado_em = models.DateTimeField(null=True, blank=True)
+    concluido_em = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Item do pedido"
@@ -230,3 +289,41 @@ class ItemPedidoCozinha(models.Model):
     @property
     def subtotal(self):
         return self.quantidade * self.preco_unitario
+
+    @property
+    def estacao(self):
+        return self.prato.estacao
+
+
+class ChecklistItemProducao(models.Model):
+    item_pedido = models.ForeignKey(ItemPedidoCozinha, on_delete=models.CASCADE, related_name="checklist")
+    descricao = models.CharField(max_length=180)
+    ordem = models.PositiveIntegerField(default=0)
+    obrigatoria = models.BooleanField(default=True)
+    concluido = models.BooleanField(default=False)
+    concluido_em = models.DateTimeField(null=True, blank=True)
+    concluido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Item do checklist de produção"
+        verbose_name_plural = "Checklist de produção"
+        ordering = ["ordem", "id"]
+
+    def __str__(self):
+        return self.descricao
+
+
+class HistoricoStatusPedido(models.Model):
+    pedido = models.ForeignKey(PedidoCozinha, on_delete=models.CASCADE, related_name="historico_status")
+    status_anterior = models.CharField(max_length=12, blank=True)
+    status_novo = models.CharField(max_length=12)
+    alterado_em = models.DateTimeField(auto_now_add=True)
+    alterado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Histórico de status do pedido"
+        verbose_name_plural = "Históricos de status dos pedidos"
+        ordering = ["-alterado_em"]
+
+    def __str__(self):
+        return f"Pedido #{self.pedido_id}: {self.status_anterior} → {self.status_novo}"

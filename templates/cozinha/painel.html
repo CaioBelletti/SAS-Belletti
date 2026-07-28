@@ -1,131 +1,155 @@
 {% extends "base.html" %}
-{% block title %}Painel da cozinha — Belletti Cards Universe{% endblock %}
+{% block title %}Cozinha 2.0 — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
 <style>
-    .colunas-pedidos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-    .pedido-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-    .pedido-card.prioridade-2 { border-left: 4px solid var(--gold); }
-    .pedido-card.prioridade-3 { border-left: 4px solid var(--red); }
-    .pedido-topo { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
-    .pedido-nome { font-weight: 700; font-size: 15px; }
-    .pedido-meta { font-size: 11.5px; color: var(--text-faint); }
-    .badge-status { font-size: 10.5px; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; font-weight: 700; }
-    .badge-recebido { background: #60a5fa22; color: #60a5fa; }
-    .badge-em_preparo { background: #e8b34d22; color: #e8b34d; }
-    .badge-pronto { background: #4ade8022; color: #4ade80; }
-    .item-pedido { font-size: 12.5px; padding: 3px 0; }
-    .obs-pedido { font-size: 11.5px; color: var(--gold); margin-top: 6px; font-style: italic; }
-    .acoes-pedido { display: flex; gap: 6px; margin-top: 10px; }
-    .btn-avancar { flex: 1; padding: 8px; border-radius: 6px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 12px; cursor: pointer; }
-    .btn-prioridade { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-2); color: var(--text-primary); font-size: 12px; cursor: pointer; }
-    .btn-cancelar { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--red); background: transparent; color: var(--red); font-size: 12px; cursor: pointer; }
+:root { --kds-gap: 14px; }
+.kds-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.kds-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.kds-link { text-decoration:none; padding:9px 14px; border-radius:9px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:12px; }
+.metricas { display:grid; grid-template-columns:repeat(6,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
+.metrica { background:var(--bg-1); border:1px solid var(--border); border-radius:12px; padding:12px; }
+.metrica strong { display:block; font-size:22px; line-height:1.1; }
+.metrica span { color:var(--text-faint); font-size:11px; }
+.filtros { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.filtro { text-decoration:none; color:var(--text-primary); background:var(--bg-2); border:1px solid var(--border); border-radius:999px; padding:7px 12px; font-size:12px; }
+.filtro.ativo { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.resumo-producao { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:9px; margin-bottom:16px; }
+.resumo-item { background:linear-gradient(135deg,var(--bg-1),var(--bg-2)); border:1px solid var(--border); border-radius:11px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
+.resumo-qtd { font-size:24px; font-weight:800; color:var(--gold); }
+.kanban { display:grid; grid-template-columns:repeat(3,minmax(290px,1fr)); gap:var(--kds-gap); align-items:start; }
+.kanban-col { background:color-mix(in srgb, var(--bg-1) 86%, transparent); border:1px solid var(--border); border-radius:14px; min-height:240px; overflow:hidden; }
+.kanban-head { padding:12px 14px; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+.kanban-body { padding:10px; display:flex; flex-direction:column; gap:10px; }
+.pedido-card { background:var(--bg-1); border:1px solid var(--border); border-radius:12px; padding:12px; box-shadow:0 8px 18px #0002; }
+.pedido-card.nivel-atencao { border-left:5px solid #eab308; }
+.pedido-card.nivel-atrasado { border-left:5px solid #f97316; }
+.pedido-card.nivel-critico { border-left:5px solid #ef4444; animation:pulseBorder 1.8s infinite; }
+@keyframes pulseBorder { 50% { box-shadow:0 0 0 2px #ef444455; } }
+.pedido-topo { display:flex; justify-content:space-between; gap:10px; }
+.pedido-nome { font-size:16px; font-weight:800; }
+.pedido-meta { font-size:11px; color:var(--text-faint); margin-top:2px; }
+.timer { font-variant-numeric:tabular-nums; font-size:18px; font-weight:900; }
+.progresso { height:6px; background:var(--bg-3); border-radius:99px; overflow:hidden; margin:9px 0; }
+.progresso > span { display:block; height:100%; background:var(--accent); }
+.item-pedido { border-top:1px solid var(--border-soft); padding:9px 0; }
+.item-titulo { display:flex; justify-content:space-between; gap:8px; font-size:14px; font-weight:800; }
+.estacao { font-size:10px; border:1px solid var(--border); border-radius:999px; padding:2px 7px; white-space:nowrap; }
+.observacao { margin-top:5px; color:#fbbf24; font-size:12px; font-weight:700; background:#f59e0b14; border-radius:7px; padding:5px 7px; }
+.instrucoes { color:var(--text-muted); font-size:11.5px; margin-top:5px; white-space:pre-line; }
+.checklist { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+.check-item { display:flex; align-items:flex-start; gap:7px; font-size:11.5px; padding:5px 6px; border-radius:6px; background:var(--bg-2); cursor:pointer; }
+.check-item.concluido { opacity:.55; text-decoration:line-through; }
+.check-item input { margin-top:2px; }
+.obs-pedido { margin-top:8px; padding:7px; border-radius:8px; color:var(--gold); background:#eab30812; font-size:12px; }
+.acoes { display:flex; gap:6px; margin-top:10px; }
+.btn-kds { flex:1; border:none; border-radius:8px; padding:9px 10px; cursor:pointer; font-weight:800; font-size:12px; background:var(--accent); color:white; }
+.btn-sec { flex:0; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); border-radius:8px; padding:8px; }
+.btn-cancel { border-color:#ef4444; color:#ef4444; }
+.empty-kanban { color:var(--text-faint); text-align:center; padding:25px 10px; font-size:12px; }
+.chamados { margin-bottom:14px; border-color:var(--gold)!important; }
+.painel-footer { margin-top:20px; }
+@media (max-width:1200px) { .metricas{grid-template-columns:repeat(3,1fr)} .kanban{grid-template-columns:1fr} }
+@media (max-width:640px) { .metricas{grid-template-columns:repeat(2,1fr)} .kds-actions{width:100%}.kds-link{flex:1;text-align:center} }
+body.modo-tv .sidebar, body.modo-tv .top-nav, body.modo-tv header { display:none!important; }
+body.modo-tv main, body.modo-tv .main-content { margin:0!important; width:100%!important; max-width:none!important; padding:12px!important; }
 </style>
 {% endblock %}
 
 {% block content %}
 {% csrf_token %}
-<div class="topbar">
-    <div><h1>Painel da cozinha</h1><div class="subtitle">Pedidos ordenados por prioridade e horário</div></div>
-    <div style="display:flex; gap:10px;">
-        <a href="{% url 'cozinha:mesas_abertas' %}" style="text-decoration:none; padding:9px 16px; border-radius:8px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:13px;">🍽️ Mesas abertas</a>
-        <a href="{% url 'cozinha:qrcode' %}" target="_blank" class="btn-export" style="text-decoration:none; padding:9px 16px; border-radius:8px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:13px;">📱 QR do cardápio geral</a>
-    </div>
+<div class="kds-top">
+  <div><h1 style="margin:0">Cozinha 2.0</h1><div class="subtitle">Kanban de produção e painel inteligente</div></div>
+  <div class="kds-actions">
+    <button class="kds-link" onclick="alternarModoTV()">📺 Modo TV</button>
+    <a class="kds-link" href="{% url 'cozinha:mesas_abertas' %}">🍽️ Mesas abertas</a>
+    <a class="kds-link" href="/admin/cozinha/prato/">⚙️ Receitas e estações</a>
+  </div>
+</div>
+
+<div class="metricas">
+  <div class="metrica"><strong>{{ metricas.novos }}</strong><span>Novos pedidos</span></div>
+  <div class="metrica"><strong>{{ metricas.em_preparo }}</strong><span>Em preparo</span></div>
+  <div class="metrica"><strong>{{ metricas.prontos }}</strong><span>Prontos</span></div>
+  <div class="metrica"><strong>{{ metricas.entregues_hoje }}</strong><span>Entregues hoje</span></div>
+  <div class="metrica"><strong>{{ metricas.tempo_medio }} min</strong><span>Tempo médio</span></div>
+  <div class="metrica"><strong>{{ metricas.atrasados }}</strong><span>Pedidos atrasados</span></div>
+</div>
+
+<div class="filtros">
+  <a class="filtro {% if not estacao_selecionada %}ativo{% endif %}" href="?">Todas as estações</a>
+  {% for estacao in estacoes %}
+  <a class="filtro {% if estacao_selecionada == estacao.id %}ativo{% endif %}" href="?estacao={{ estacao.id }}">{{ estacao.icone }} {{ estacao.nome }}</a>
+  {% endfor %}
 </div>
 
 {% if chamados_pendentes %}
-<div class="card" style="margin-bottom: 16px; border-color: var(--gold);">
-    <div class="card-title">🔔 Chamados pendentes</div>
-    {% for chamado in chamados_pendentes %}
-    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-soft); font-size:13px;">
-        <span><strong>{{ chamado.mesa }}</strong> — {{ chamado.get_tipo_display }} ({{ chamado.criado_em|timesince }} atrás)</span>
-        <button class="btn-avancar" style="flex:none; padding:6px 12px;" onclick="atenderChamado({{ chamado.id }})">Atendido</button>
-    </div>
-    {% endfor %}
+<div class="card chamados">
+  <div class="card-title">🔔 Chamados pendentes</div>
+  {% for chamado in chamados_pendentes %}
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:13px">
+    <span><strong>{{ chamado.mesa }}</strong> — {{ chamado.get_tipo_display }} ({{ chamado.criado_em|timesince }} atrás)</span>
+    <button class="btn-kds" style="flex:none;padding:6px 12px" onclick="atenderChamado({{ chamado.id }})">Atendido</button>
+  </div>
+  {% endfor %}
 </div>
 {% endif %}
 
-<div class="colunas-pedidos">
-    {% for pedido in pedidos_ativos %}
-    <div class="pedido-card prioridade-{{ pedido.prioridade }}" data-pedido-id="{{ pedido.id }}">
-        <div class="pedido-topo">
-            <div>
-                <div class="pedido-nome">{{ pedido.nome_para_chamar|default:"Cliente" }}</div>
-                <div class="pedido-meta">{{ pedido.mesa_ou_local|default:"—" }} · {{ pedido.criado_em|date:"H:i" }} · {{ pedido.tempo_espera_minutos }} min</div>
-            </div>
-            <span class="badge-status badge-{{ pedido.status }}">{{ pedido.get_status_display }}</span>
-        </div>
-        {% for item in pedido.itens.all %}
-        <div class="item-pedido">{{ item.quantidade }}x {{ item.prato.nome }}{% if item.observacao %} <span style="color:var(--text-faint);">({{ item.observacao }})</span>{% endif %}</div>
-        {% endfor %}
-        {% if pedido.observacoes %}<div class="obs-pedido">💬 {{ pedido.observacoes }}</div>{% endif %}
-        <div class="acoes-pedido">
-            <button class="btn-avancar" onclick="avancarPedido({{ pedido.id }})">
-                {% if pedido.status == 'recebido' %}Iniciar preparo{% elif pedido.status == 'em_preparo' %}Marcar pronto{% else %}Marcar entregue{% endif %}
-            </button>
-            <select class="btn-prioridade" onchange="mudarPrioridade({{ pedido.id }}, this.value)">
-                <option value="1" {% if pedido.prioridade == 1 %}selected{% endif %}>Normal</option>
-                <option value="2" {% if pedido.prioridade == 2 %}selected{% endif %}>Alta</option>
-                <option value="3" {% if pedido.prioridade == 3 %}selected{% endif %}>Urgente</option>
-            </select>
-            <button class="btn-cancelar" onclick="cancelarPedido({{ pedido.id }})">✕</button>
-        </div>
+{% if resumo_producao %}
+<div class="card-title" style="margin-bottom:8px">🔥 Produzir agora</div>
+<div class="resumo-producao">
+  {% for item in resumo_producao %}
+  <div class="resumo-item">
+    <div><strong>{{ item.prato.nome }}</strong><div class="pedido-meta">{% if item.estacao %}{{ item.estacao.icone }} {{ item.estacao.nome }}{% else %}Sem estação{% endif %}</div></div>
+    <div class="resumo-qtd">{{ item.quantidade }}x</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="kanban">
+  <section class="kanban-col">
+    <div class="kanban-head"><span>🆕 Novos</span><span>{{ pedidos_recebidos|length }}</span></div>
+    <div class="kanban-body">
+      {% for pedido in pedidos_recebidos %}{% include "cozinha/_pedido_card.html" with pedido=pedido %}{% empty %}<div class="empty-kanban">Nenhum pedido novo.</div>{% endfor %}
     </div>
-    {% empty %}
-    <div class="card"><div class="empty-row">Nenhum pedido ativo agora. 👍</div></div>
-    {% endfor %}
+  </section>
+  <section class="kanban-col">
+    <div class="kanban-head"><span>👨‍🍳 Em preparo</span><span>{{ pedidos_preparo|length }}</span></div>
+    <div class="kanban-body">
+      {% for pedido in pedidos_preparo %}{% include "cozinha/_pedido_card.html" with pedido=pedido %}{% empty %}<div class="empty-kanban">Nada em preparo.</div>{% endfor %}
+    </div>
+  </section>
+  <section class="kanban-col">
+    <div class="kanban-head"><span>✅ Prontos</span><span>{{ pedidos_prontos|length }}</span></div>
+    <div class="kanban-body">
+      {% for pedido in pedidos_prontos %}{% include "cozinha/_pedido_card.html" with pedido=pedido %}{% empty %}<div class="empty-kanban">Nenhum pedido aguardando entrega.</div>{% endfor %}
+    </div>
+  </section>
 </div>
 
-<h3 style="margin-top:28px; font-size:14px; color:var(--text-muted);">Entregues recentemente</h3>
-<div class="card">
-    <table>
-        <thead><tr><th>Cliente</th><th>Itens</th><th>Total</th><th>Entregue às</th></tr></thead>
-        <tbody>
-            {% for p in entregues_hoje %}
-            <tr>
-                <td>{{ p.nome_para_chamar }}</td>
-                <td>{% for item in p.itens.all %}{{ item.quantidade }}x {{ item.prato.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-                <td class="num">R$ {{ p.valor_total|floatformat:2 }}</td>
-                <td class="num">{{ p.entregue_em|date:"H:i" }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="4" class="empty-row">Nenhum pedido entregue ainda hoje.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="painel-footer">
+<h3 style="font-size:14px;color:var(--text-muted)">Entregues recentemente</h3>
+<div class="card"><table><thead><tr><th>Cliente</th><th>Itens</th><th>Total</th><th>Entregue às</th></tr></thead><tbody>
+{% for p in entregues_hoje %}<tr><td>{{ p.nome_para_chamar }}</td><td>{% for item in p.itens.all %}{{ item.quantidade }}x {{ item.prato.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}</td><td class="num">R$ {{ p.valor_total|floatformat:2 }}</td><td class="num">{{ p.entregue_em|date:"H:i" }}</td></tr>{% empty %}<tr><td colspan="4" class="empty-row">Nenhum pedido entregue ainda hoje.</td></tr>{% endfor %}
+</tbody></table></div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-function getCookie(nome) {
-    const valor = `; ${document.cookie}`;
-    const partes = valor.split(`; ${nome}=`);
-    if (partes.length === 2) return partes.pop().split(';').shift();
-}
-const csrftoken = getCookie('csrftoken');
-
-async function avancarPedido(id) {
-    await fetch(`/cozinha/painel/${id}/avancar/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
-    window.location.reload();
-}
-async function mudarPrioridade(id, prioridade) {
-    const form = new FormData();
-    form.append('prioridade', prioridade);
-    await fetch(`/cozinha/painel/${id}/prioridade/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: form });
-    window.location.reload();
-}
-async function cancelarPedido(id) {
-    if (!confirm('Cancelar esse pedido?')) return;
-    await fetch(`/cozinha/painel/${id}/cancelar/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
-    window.location.reload();
-}
-
-async function atenderChamado(id) {
-    await fetch(`/cozinha/painel/chamado/${id}/atender/`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
-    window.location.reload();
-}
-
-setTimeout(() => window.location.reload(), 20000);
+function getCookie(nome){const valor=`; ${document.cookie}`;const partes=valor.split(`; ${nome}=`);if(partes.length===2)return partes.pop().split(';').shift();}
+const csrftoken=getCookie('csrftoken');
+async function post(url,body=null){const resposta=await fetch(url,{method:'POST',headers:{'X-CSRFToken':csrftoken},body});if(!resposta.ok)throw new Error('Falha na operação');return resposta.json();}
+async function avancarPedido(id){try{await post(`/cozinha/painel/${id}/avancar/`);location.reload();}catch(e){alert(e.message)}}
+async function mudarPrioridade(id,prioridade){const f=new FormData();f.append('prioridade',prioridade);await post(`/cozinha/painel/${id}/prioridade/`,f);location.reload();}
+async function cancelarPedido(id){if(!confirm('Cancelar esse pedido?'))return;await post(`/cozinha/painel/${id}/cancelar/`);location.reload();}
+async function atenderChamado(id){await post(`/cozinha/painel/chamado/${id}/atender/`);location.reload();}
+async function alternarChecklist(id,el){el.closest('.check-item').classList.toggle('concluido',el.checked);await post(`/cozinha/painel/checklist/${id}/alternar/`);}
+function alternarModoTV(){document.body.classList.toggle('modo-tv');localStorage.setItem('cozinhaModoTV',document.body.classList.contains('modo-tv')?'1':'0');}
+if(localStorage.getItem('cozinhaModoTV')==='1')document.body.classList.add('modo-tv');
+let estadoAtual=null;
+async function verificarAtualizacoes(){try{const r=await fetch('{% url "cozinha:dados_painel" %}');const d=await r.json();const chave=`${d.recebidos}-${d.em_preparo}-${d.prontos}-${d.chamados}`;if(estadoAtual && chave!==estadoAtual){try{new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj').play()}catch(e){}location.reload();}estadoAtual=chave;}catch(e){}setTimeout(verificarAtualizacoes,5000)}
+verificarAtualizacoes();
 </script>
 {% endblock %}

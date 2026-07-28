@@ -5,12 +5,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
+from django.db.models import Avg, Count, Max, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import (
-    CategoriaPrato, ChamadoAtendente, Comanda, ItemPedidoCozinha, Mesa, PedidoCozinha, Prato,
+    CategoriaPrato, ChamadoAtendente, ChecklistItemProducao, Comanda, EstacaoProducao,
+    HistoricoStatusPedido, ItemPedidoCozinha, Mesa, PedidoCozinha, Prato,
 )
 
 
@@ -99,12 +101,24 @@ def fazer_pedido(request):
         prato = Prato.objects.filter(pk=item.get("prato_id"), disponivel=True).first()
         if not prato:
             continue
-        ItemPedidoCozinha.objects.create(
+        item_pedido = ItemPedidoCozinha.objects.create(
             pedido=pedido, prato=prato,
             quantidade=max(int(item.get("quantidade") or 1), 1),
             preco_unitario=prato.preco,
             observacao=(item.get("observacao") or "").strip(),
         )
+        etapas = list(prato.etapas_preparo.all())
+        if etapas:
+            ChecklistItemProducao.objects.bulk_create([
+                ChecklistItemProducao(
+                    item_pedido=item_pedido, descricao=etapa.descricao,
+                    ordem=etapa.ordem, obrigatoria=etapa.obrigatoria,
+                ) for etapa in etapas
+            ])
+        elif prato.instrucoes_preparo.strip():
+            ChecklistItemProducao.objects.create(
+                item_pedido=item_pedido, descricao=prato.instrucoes_preparo.strip(), ordem=0
+            )
 
     if not pedido.itens.exists():
         pedido.delete()
@@ -131,32 +145,119 @@ def acompanhar_pedido(request, codigo):
 
 @login_required
 def painel_cozinha(request):
-    """Painel da equipe — pedidos ordenados por prioridade e depois por horário."""
-    pedidos_ativos = (
+    """KDS/Kanban da cozinha, com filtros por estação, métricas e produção consolidada."""
+    estacao_id = request.GET.get("estacao")
+    base = (
         PedidoCozinha.objects.exclude(status__in=["entregue", "cancelado"])
-        .prefetch_related("itens__prato")
+        .select_related("mesa")
+        .prefetch_related("itens__prato__estacao", "itens__checklist")
         .order_by("-prioridade", "criado_em")
     )
-    entregues_hoje = (
-        PedidoCozinha.objects.filter(status="entregue")
+    if estacao_id and estacao_id.isdigit():
+        base = base.filter(itens__prato__estacao_id=int(estacao_id)).distinct()
+
+    pedidos_recebidos = [p for p in base if p.status == "recebido"]
+    pedidos_preparo = [p for p in base if p.status == "em_preparo"]
+    pedidos_prontos = [p for p in base if p.status == "pronto"]
+
+    hoje = timezone.localdate()
+    entregues_hoje_qs = (
+        PedidoCozinha.objects.filter(status="entregue", entregue_em__date=hoje)
         .prefetch_related("itens__prato")
-        .order_by("-entregue_em")[:15]
+        .order_by("-entregue_em")
     )
+    entregues_recentes = entregues_hoje_qs[:15]
+
+    itens_ativos = ItemPedidoCozinha.objects.filter(
+        pedido__status__in=["recebido", "em_preparo"]
+    ).select_related("prato__estacao")
+    if estacao_id and estacao_id.isdigit():
+        itens_ativos = itens_ativos.filter(prato__estacao_id=int(estacao_id))
+
+    resumo_map = {}
+    for item in itens_ativos:
+        chave = item.prato_id
+        if chave not in resumo_map:
+            resumo_map[chave] = {
+                "prato": item.prato, "quantidade": 0,
+                "estacao": item.prato.estacao,
+            }
+        resumo_map[chave]["quantidade"] += item.quantidade
+    resumo_producao = sorted(
+        resumo_map.values(), key=lambda x: (x["estacao"].ordem if x["estacao"] else 999, x["prato"].nome)
+    )
+
+    tempos = []
+    for p in entregues_hoje_qs:
+        if p.entregue_em:
+            tempos.append((p.entregue_em - p.criado_em).total_seconds() / 60)
+    tempo_medio = round(sum(tempos) / len(tempos), 1) if tempos else 0
+
     chamados_pendentes = ChamadoAtendente.objects.filter(atendido=False).select_related("mesa")
-    return render(request, "cozinha/painel.html", {
-        "pedidos_ativos": pedidos_ativos,
-        "entregues_hoje": entregues_hoje,
+    estacoes = EstacaoProducao.objects.filter(ativa=True)
+    contexto = {
+        "pedidos_recebidos": pedidos_recebidos,
+        "pedidos_preparo": pedidos_preparo,
+        "pedidos_prontos": pedidos_prontos,
+        "entregues_hoje": entregues_recentes,
         "chamados_pendentes": chamados_pendentes,
-    })
+        "estacoes": estacoes,
+        "estacao_selecionada": int(estacao_id) if estacao_id and estacao_id.isdigit() else None,
+        "resumo_producao": resumo_producao,
+        "metricas": {
+            "novos": len(pedidos_recebidos),
+            "em_preparo": len(pedidos_preparo),
+            "prontos": len(pedidos_prontos),
+            "entregues_hoje": entregues_hoje_qs.count(),
+            "tempo_medio": tempo_medio,
+            "atrasados": sum(1 for p in list(pedidos_recebidos) + list(pedidos_preparo) if p.nivel_atraso in ["atrasado", "critico"]),
+        },
+    }
+    return render(request, "cozinha/painel.html", contexto)
 
 
 @login_required
 @require_POST
 def avancar_pedido(request, pedido_id):
     pedido = get_object_or_404(PedidoCozinha, pk=pedido_id)
+    anterior = pedido.status
     pedido.atendido_por = request.user
     pedido.avancar_status()
+    HistoricoStatusPedido.objects.create(
+        pedido=pedido, status_anterior=anterior, status_novo=pedido.status, alterado_por=request.user
+    )
     return JsonResponse({"ok": True, "novo_status": pedido.status})
+
+
+@login_required
+@require_POST
+def alternar_checklist(request, checklist_id):
+    checklist = get_object_or_404(ChecklistItemProducao, pk=checklist_id)
+    checklist.concluido = not checklist.concluido
+    checklist.concluido_em = timezone.now() if checklist.concluido else None
+    checklist.concluido_por = request.user if checklist.concluido else None
+    checklist.save(update_fields=["concluido", "concluido_em", "concluido_por"])
+
+    item = checklist.item_pedido
+    pendentes = item.checklist.filter(obrigatoria=True, concluido=False).exists()
+    item.preparo_concluido = not pendentes
+    item.concluido_em = timezone.now() if item.preparo_concluido else None
+    if not item.iniciado_em:
+        item.iniciado_em = timezone.now()
+    item.save(update_fields=["preparo_concluido", "concluido_em", "iniciado_em"])
+    return JsonResponse({"ok": True, "concluido": checklist.concluido, "item_concluido": item.preparo_concluido})
+
+
+@login_required
+def dados_painel(request):
+    ativos = PedidoCozinha.objects.exclude(status__in=["entregue", "cancelado"])
+    return JsonResponse({
+        "recebidos": ativos.filter(status="recebido").count(),
+        "em_preparo": ativos.filter(status="em_preparo").count(),
+        "prontos": ativos.filter(status="pronto").count(),
+        "chamados": ChamadoAtendente.objects.filter(atendido=False).count(),
+        "atualizado_em": timezone.localtime().strftime("%H:%M:%S"),
+    })
 
 
 @login_required

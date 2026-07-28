@@ -1,0 +1,23 @@
+<div class="pedido-card nivel-{{ pedido.nivel_atraso }}" data-pedido-id="{{ pedido.id }}">
+  <div class="pedido-topo">
+    <div><div class="pedido-nome">#{{ pedido.id }} · {{ pedido.nome_para_chamar|default:"Cliente" }}</div><div class="pedido-meta">{{ pedido.mesa_ou_local|default:"—" }} · recebido {{ pedido.criado_em|date:"H:i" }} · estimado {{ pedido.tempo_estimado_minutos }} min</div></div>
+    <div class="timer">{{ pedido.tempo_espera_minutos }} min</div>
+  </div>
+  <div class="progresso" title="Progresso do checklist"><span style="width:{{ pedido.progresso_percentual }}%"></span></div>
+  {% for item in pedido.itens.all %}
+  {% if not estacao_selecionada or item.prato.estacao_id == estacao_selecionada %}
+  <div class="item-pedido">
+    <div class="item-titulo"><span>{{ item.quantidade }}x {{ item.prato.nome }}</span><span class="estacao">{% if item.prato.estacao %}{{ item.prato.estacao.icone }} {{ item.prato.estacao.nome }}{% else %}Sem estação{% endif %}</span></div>
+    {% if item.observacao %}<div class="observacao">⚠ {{ item.observacao }}</div>{% endif %}
+    {% if item.prato.instrucoes_preparo %}<div class="instrucoes">📋 {{ item.prato.instrucoes_preparo }}</div>{% endif %}
+    {% if item.checklist.all %}<div class="checklist">{% for check in item.checklist.all %}<label class="check-item {% if check.concluido %}concluido{% endif %}"><input type="checkbox" {% if check.concluido %}checked{% endif %} onchange="alternarChecklist({{ check.id }},this)"><span>{{ check.descricao }}</span></label>{% endfor %}</div>{% endif %}
+  </div>
+  {% endif %}
+  {% endfor %}
+  {% if pedido.observacoes %}<div class="obs-pedido">💬 {{ pedido.observacoes }}</div>{% endif %}
+  <div class="acoes">
+    <button class="btn-kds" onclick="avancarPedido({{ pedido.id }})">{% if pedido.status == 'recebido' %}Iniciar preparo{% elif pedido.status == 'em_preparo' %}Marcar pronto{% else %}Marcar entregue{% endif %}</button>
+    <select class="btn-sec" onchange="mudarPrioridade({{ pedido.id }},this.value)"><option value="1" {% if pedido.prioridade == 1 %}selected{% endif %}>Normal</option><option value="2" {% if pedido.prioridade == 2 %}selected{% endif %}>Alta</option><option value="3" {% if pedido.prioridade == 3 %}selected{% endif %}>Urgente</option></select>
+    <button class="btn-sec btn-cancel" onclick="cancelarPedido({{ pedido.id }})">✕</button>
+  </div>
+</div>
