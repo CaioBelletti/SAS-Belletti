@@ -294,6 +294,71 @@ def atender_chamado(request, chamado_id):
     return JsonResponse({"ok": True})
 
 
+
+@login_required
+def painel_garcom(request):
+    """Painel operacional do salão: chamados, pedidos prontos e entregas."""
+    chamados = ChamadoAtendente.objects.filter(atendido=False).select_related("mesa").order_by("criado_em")
+    pedidos_prontos = (
+        PedidoCozinha.objects.filter(status="pronto")
+        .select_related("mesa")
+        .prefetch_related("itens__prato")
+        .order_by("pronto_em", "criado_em")
+    )
+    pedidos_em_entrega = (
+        PedidoCozinha.objects.filter(status="em_entrega")
+        .select_related("mesa")
+        .prefetch_related("itens__prato")
+        .order_by("em_entrega_em", "criado_em")
+    )
+    return render(request, "cozinha/painel_garcom.html", {
+        "chamados": chamados,
+        "pedidos_prontos": pedidos_prontos,
+        "pedidos_em_entrega": pedidos_em_entrega,
+    })
+
+
+@login_required
+def dados_garcom(request):
+    """JSON para atualização e alertas sonoros do painel do garçom."""
+    chamados = ChamadoAtendente.objects.filter(atendido=False).select_related("mesa").order_by("criado_em")
+    prontos = PedidoCozinha.objects.filter(status="pronto").select_related("mesa").prefetch_related("itens__prato").order_by("pronto_em", "criado_em")
+    entregas = PedidoCozinha.objects.filter(status="em_entrega").select_related("mesa").prefetch_related("itens__prato").order_by("em_entrega_em", "criado_em")
+
+    def local_pedido(pedido):
+        return str(pedido.mesa) if pedido.mesa else (pedido.mesa_ou_local or "Balcão")
+
+    return JsonResponse({
+        "chamados": [
+            {
+                "id": chamado.id,
+                "tipo": chamado.tipo,
+                "tipo_label": chamado.get_tipo_display(),
+                "mesa": str(chamado.mesa),
+                "criado_em": timezone.localtime(chamado.criado_em).strftime("%H:%M"),
+            } for chamado in chamados
+        ],
+        "pedidos_prontos": [
+            {
+                "id": pedido.id,
+                "local": local_pedido(pedido),
+                "cliente": pedido.nome_para_chamar or "Cliente",
+                "pronto_em": timezone.localtime(pedido.pronto_em or pedido.criado_em).strftime("%H:%M"),
+                "itens": [f"{item.quantidade}x {item.prato.nome}" for item in pedido.itens.all()],
+            } for pedido in prontos
+        ],
+        "pedidos_em_entrega": [
+            {
+                "id": pedido.id,
+                "local": local_pedido(pedido),
+                "cliente": pedido.nome_para_chamar or "Cliente",
+                "em_entrega_em": timezone.localtime(pedido.em_entrega_em or pedido.criado_em).strftime("%H:%M"),
+                "itens": [f"{item.quantidade}x {item.prato.nome}" for item in pedido.itens.all()],
+            } for pedido in entregas
+        ],
+        "atualizado_em": timezone.localtime().strftime("%H:%M:%S"),
+    })
+
 @login_required
 def mesas_abertas(request):
     """Tela pro PDV/equipe fechar a conta de uma mesa — vira uma Venda de verdade."""

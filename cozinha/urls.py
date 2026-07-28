@@ -6,6 +6,8 @@ app_name = "cozinha"
 
 urlpatterns = [
     path("painel/", views.painel_cozinha, name="painel"),
+    path("garcom/", views.painel_garcom, name="painel_garcom"),
+    path("garcom/dados/", views.dados_garcom, name="dados_garcom"),
     path("painel/<int:pedido_id>/avancar/", views.avancar_pedido, name="avancar"),
     path("painel/checklist/<int:checklist_id>/alternar/", views.alternar_checklist, name="alternar_checklist"),
     path("painel/dados/", views.dados_painel, name="dados_painel"),

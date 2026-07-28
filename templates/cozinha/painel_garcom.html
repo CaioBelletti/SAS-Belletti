@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Painel do Garçom — Belletti Cards Universe{% endblock %}
+{% block content %}
+<style>
+    .garcom-wrap { max-width: 1500px; }
+    .garcom-top { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+    .garcom-top h1 { margin:0; font-size:26px; }
+    .garcom-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .sound-btn { border:1px solid var(--border); background:var(--bg-2); color:var(--text); border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700; }
+    .sound-btn.active { background:#133c25; border-color:#22c55e; color:#86efac; }
+    .sound-btn.muted { background:#3a171b; border-color:#ef4444; color:#fca5a5; }
+    .updated { color:var(--text-faint); font-size:12px; }
+    .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+    .summary-card { background:var(--bg-2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .summary-card strong { display:block; font-size:26px; margin-top:4px; }
+    .summary-card span { color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:.07em; }
+    .garcom-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:start; }
+    .column { background:var(--bg-1); border:1px solid var(--border); border-radius:14px; min-height:320px; overflow:hidden; }
+    .column-head { display:flex; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); font-weight:800; }
+    .count { min-width:26px; height:26px; border-radius:999px; display:grid; place-items:center; background:var(--accent); color:white; font-size:12px; }
+    .items { padding:12px; display:grid; gap:10px; }
+    .alert-card { border:1px solid var(--border); background:var(--bg-2); border-radius:12px; padding:14px; box-shadow:0 10px 30px #0003; }
+    .alert-card.urgent { border-color:#f59e0b; box-shadow:0 0 0 1px #f59e0b33; }
+    .card-line { display:flex; justify-content:space-between; gap:10px; align-items:start; }
+    .card-title { font-size:16px; font-weight:800; }
+    .card-sub { color:var(--text-muted); font-size:12px; margin-top:3px; }
+    .card-time { font-family:var(--font-mono); color:var(--text-faint); font-size:12px; }
+    .item-list { margin:11px 0; padding:10px; background:#0b0d12; border-radius:8px; font-size:13px; line-height:1.7; }
+    .btn-action { width:100%; border:0; border-radius:9px; padding:11px 12px; font-weight:800; cursor:pointer; color:white; background:var(--accent); }
+    .btn-action.green { background:#15803d; }
+    .empty { padding:36px 16px; text-align:center; color:var(--text-faint); }
+    .toast { position:fixed; right:18px; bottom:18px; max-width:360px; padding:14px 16px; border-radius:12px; background:#191c25; border:1px solid var(--accent); color:white; z-index:1000; display:none; box-shadow:0 20px 50px #0008; }
+    .pulse { animation:pulseBorder 1.1s ease 2; }
+    @keyframes pulseBorder { 50% { box-shadow:0 0 0 5px #8b5cf633; transform:translateY(-2px); } }
+    @media(max-width:1000px){ .garcom-grid,.summary{grid-template-columns:1fr;} }
+</style>
+<div class="garcom-wrap">
+    <div class="garcom-top">
+        <div><h1>🔔 Painel do Garçom</h1><div class="updated">Atualização automática a cada 5 segundos • <span id="updatedAt">agora</span></div></div>
+        <div class="garcom-actions">
+            <button id="btnSom" class="sound-btn">🔊 Ativar alertas sonoros</button>
+            <button id="btnTeste" class="sound-btn" type="button">Testar som</button>
+        </div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-card"><span>Chamados pendentes</span><strong id="totalChamados">{{ chamados|length }}</strong></div>
+        <div class="summary-card"><span>Pedidos prontos</span><strong id="totalProntos">{{ pedidos_prontos|length }}</strong></div>
+        <div class="summary-card"><span>Em entrega</span><strong id="totalEntregas">{{ pedidos_em_entrega|length }}</strong></div>
+    </div>
+
+    <div class="garcom-grid">
+        <section class="column"><div class="column-head"><span>🔔 Chamadas das mesas</span><span id="countChamados" class="count">{{ chamados|length }}</span></div><div id="listaChamados" class="items"></div></section>
+        <section class="column"><div class="column-head"><span>🍽️ Pedidos prontos</span><span id="countProntos" class="count">{{ pedidos_prontos|length }}</span></div><div id="listaProntos" class="items"></div></section>
+        <section class="column"><div class="column-head"><span>🚶 Em entrega</span><span id="countEntregas" class="count">{{ pedidos_em_entrega|length }}</span></div><div id="listaEntregas" class="items"></div></section>
+    </div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+const urls = {
+  dados: "{% url 'cozinha:dados_garcom' %}",
+  atenderBase: "{% url 'cozinha:atender_chamado' 999999 %}",
+  avancarBase: "{% url 'cozinha:avancar' 999999 %}"
+};
+const csrf = (() => { const m=document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; })();
+let audioCtx = null;
+let somAtivo = false; // o navegador exige um clique a cada abertura da página
+let primeiraCarga = true;
+const vistosChamados = new Set(JSON.parse(localStorage.getItem('bellettiChamadosVistos') || '[]'));
+const vistosProntos = new Set(JSON.parse(localStorage.getItem('bellettiProntosVistos') || '[]'));
+
+function atualizarBotaoSom(){
+  const btn=document.getElementById('btnSom');
+  btn.textContent = somAtivo ? '🔊 Alertas sonoros ativos' : '🔇 Ativar alertas sonoros';
+  btn.className='sound-btn '+(somAtivo?'active':'muted');
+}
+async function ativarAudio(){
+  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') await audioCtx.resume();
+  somAtivo=true; atualizarBotaoSom();
+  tocarSom('teste');
+}
+function beep(freq, inicio, duracao, volume=.13){
+  if(!audioCtx || !somAtivo) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type='sine'; o.frequency.value=freq; g.gain.setValueAtTime(volume,audioCtx.currentTime+inicio); g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+inicio+duracao);
+  o.connect(g); g.connect(audioCtx.destination); o.start(audioCtx.currentTime+inicio); o.stop(audioCtx.currentTime+inicio+duracao);
+}
+function tocarSom(tipo){
+  if(!somAtivo || !audioCtx) return;
+  if(tipo==='chamada'){ beep(880,0,.18); beep(660,.22,.25); }
+  else if(tipo==='pronto'){ beep(660,0,.16); beep(880,.18,.16); beep(1100,.36,.32); }
+  else { beep(740,0,.18); beep(980,.2,.22); }
+  if(navigator.vibrate) navigator.vibrate(tipo==='pronto'?[220,100,220]:[180]);
+}
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',5000); }
+function escapeHtml(v){ const d=document.createElement('div'); d.textContent=v??''; return d.innerHTML; }
+function vazio(texto){ return `<div class="empty">${texto}</div>`; }
+function post(url){ return fetch(url,{method:'POST',headers:{'X-CSRFToken':csrf,'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.json()); }
+async function atenderChamado(id){ await post(urls.atenderBase.replace('999999',id)); await carregar(); }
+async function avancarPedido(id){ await post(urls.avancarBase.replace('999999',id)); await carregar(); }
+window.atenderChamado=atenderChamado; window.avancarPedido=avancarPedido;
+
+function renderChamados(lista){
+  const el=document.getElementById('listaChamados');
+  el.innerHTML=lista.length?lista.map(c=>`<article class="alert-card urgent" data-alerta="chamado-${c.id}"><div class="card-line"><div><div class="card-title">${escapeHtml(c.mesa)}</div><div class="card-sub">${escapeHtml(c.tipo_label)}</div></div><span class="card-time">${c.criado_em}</span></div><button class="btn-action" onclick="atenderChamado(${c.id})">Assumir atendimento</button></article>`).join(''):vazio('Nenhuma mesa chamando.');
+}
+function renderProntos(lista){
+  const el=document.getElementById('listaProntos');
+  el.innerHTML=lista.length?lista.map(p=>`<article class="alert-card" data-alerta="pronto-${p.id}"><div class="card-line"><div><div class="card-title">Pedido #${p.id} • ${escapeHtml(p.local)}</div><div class="card-sub">${escapeHtml(p.cliente)} • pronto às ${p.pronto_em}</div></div><span>🍽️</span></div><div class="item-list">${p.itens.map(escapeHtml).join('<br>')}</div><button class="btn-action green" onclick="avancarPedido(${p.id})">Levar à mesa</button></article>`).join(''):vazio('Nenhum pedido aguardando retirada.');
+}
+function renderEntregas(lista){
+  const el=document.getElementById('listaEntregas');
+  el.innerHTML=lista.length?lista.map(p=>`<article class="alert-card"><div class="card-line"><div><div class="card-title">Pedido #${p.id} • ${escapeHtml(p.local)}</div><div class="card-sub">${escapeHtml(p.cliente)} • saiu às ${p.em_entrega_em}</div></div><span>🚶</span></div><div class="item-list">${p.itens.map(escapeHtml).join('<br>')}</div><button class="btn-action" onclick="avancarPedido(${p.id})">Confirmar entrega</button></article>`).join(''):vazio('Nenhum pedido em deslocamento.');
+}
+function persistirVistos(){
+  localStorage.setItem('bellettiChamadosVistos',JSON.stringify([...vistosChamados].slice(-200)));
+  localStorage.setItem('bellettiProntosVistos',JSON.stringify([...vistosProntos].slice(-200)));
+}
+async function carregar(){
+  try{
+    const r=await fetch(urls.dados,{cache:'no-store'}); if(!r.ok) return; const data=await r.json();
+    renderChamados(data.chamados); renderProntos(data.pedidos_prontos); renderEntregas(data.pedidos_em_entrega);
+    document.getElementById('totalChamados').textContent=data.chamados.length; document.getElementById('countChamados').textContent=data.chamados.length;
+    document.getElementById('totalProntos').textContent=data.pedidos_prontos.length; document.getElementById('countProntos').textContent=data.pedidos_prontos.length;
+    document.getElementById('totalEntregas').textContent=data.pedidos_em_entrega.length; document.getElementById('countEntregas').textContent=data.pedidos_em_entrega.length;
+    document.getElementById('updatedAt').textContent=data.atualizado_em;
+    for(const c of data.chamados){ const id=String(c.id); if(!vistosChamados.has(id)){ vistosChamados.add(id); if(!primeiraCarga){ tocarSom('chamada'); toast(`🔔 ${c.mesa}: ${c.tipo_label}`); } } }
+    for(const p of data.pedidos_prontos){ const id=String(p.id); if(!vistosProntos.has(id)){ vistosProntos.add(id); if(!primeiraCarga){ tocarSom('pronto'); toast(`🍽️ Pedido #${p.id} de ${p.local} está pronto`); } } }
+    persistirVistos(); primeiraCarga=false;
+  }catch(e){ console.warn('Falha ao atualizar painel do garçom',e); }
+}
+document.getElementById('btnSom').addEventListener('click',async()=>{ if(!somAtivo) await ativarAudio(); else { somAtivo=false; atualizarBotaoSom(); } });
+document.getElementById('btnTeste').addEventListener('click',async()=>{ if(!audioCtx || !somAtivo) await ativarAudio(); else tocarSom('pronto'); });
+atualizarBotaoSom(); carregar(); setInterval(carregar,5000);
+</script>
+{% endblock %}
