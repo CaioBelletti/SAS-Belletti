@@ -159,6 +159,7 @@ def painel_cozinha(request):
     pedidos_recebidos = [p for p in base if p.status == "recebido"]
     pedidos_preparo = [p for p in base if p.status == "em_preparo"]
     pedidos_prontos = [p for p in base if p.status == "pronto"]
+    pedidos_em_entrega = [p for p in base if p.status == "em_entrega"]
 
     hoje = timezone.localdate()
     entregues_hoje_qs = (
@@ -199,6 +200,7 @@ def painel_cozinha(request):
         "pedidos_recebidos": pedidos_recebidos,
         "pedidos_preparo": pedidos_preparo,
         "pedidos_prontos": pedidos_prontos,
+        "pedidos_em_entrega": pedidos_em_entrega,
         "entregues_hoje": entregues_recentes,
         "chamados_pendentes": chamados_pendentes,
         "estacoes": estacoes,
@@ -208,6 +210,7 @@ def painel_cozinha(request):
             "novos": len(pedidos_recebidos),
             "em_preparo": len(pedidos_preparo),
             "prontos": len(pedidos_prontos),
+            "em_entrega": len(pedidos_em_entrega),
             "entregues_hoje": entregues_hoje_qs.count(),
             "tempo_medio": tempo_medio,
             "atrasados": sum(1 for p in list(pedidos_recebidos) + list(pedidos_preparo) if p.nivel_atraso in ["atrasado", "critico"]),
@@ -255,6 +258,7 @@ def dados_painel(request):
         "recebidos": ativos.filter(status="recebido").count(),
         "em_preparo": ativos.filter(status="em_preparo").count(),
         "prontos": ativos.filter(status="pronto").count(),
+        "em_entrega": ativos.filter(status="em_entrega").count(),
         "chamados": ChamadoAtendente.objects.filter(atendido=False).count(),
         "atualizado_em": timezone.localtime().strftime("%H:%M:%S"),
     })

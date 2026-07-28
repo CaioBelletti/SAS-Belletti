@@ -16,7 +16,7 @@
   {% endfor %}
   {% if pedido.observacoes %}<div class="obs-pedido">💬 {{ pedido.observacoes }}</div>{% endif %}
   <div class="acoes">
-    <button class="btn-kds" onclick="avancarPedido({{ pedido.id }})">{% if pedido.status == 'recebido' %}Iniciar preparo{% elif pedido.status == 'em_preparo' %}Marcar pronto{% else %}Marcar entregue{% endif %}</button>
+    <button class="btn-kds" onclick="avancarPedido({{ pedido.id }})">{% if pedido.status == 'recebido' %}Iniciar preparo{% elif pedido.status == 'em_preparo' %}Marcar pronto{% elif pedido.status == 'pronto' %}Levar à mesa{% else %}Confirmar entrega{% endif %}</button>
     <select class="btn-sec" onchange="mudarPrioridade({{ pedido.id }},this.value)"><option value="1" {% if pedido.prioridade == 1 %}selected{% endif %}>Normal</option><option value="2" {% if pedido.prioridade == 2 %}selected{% endif %}>Alta</option><option value="3" {% if pedido.prioridade == 3 %}selected{% endif %}>Urgente</option></select>
     <button class="btn-sec btn-cancel" onclick="cancelarPedido({{ pedido.id }})">✕</button>
   </div>

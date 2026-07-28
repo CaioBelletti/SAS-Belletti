@@ -34,6 +34,10 @@
             border-radius: 12px; padding: 18px; text-align: center; color: var(--green); font-weight: 700; font-size: 14.5px;
             margin-bottom: 16px;
         }
+        .card-status-pronto small { display:block; color:#d1fae5; font-weight:500; margin-top:7px; line-height:1.45; }
+        .acoes-cliente { display:grid; gap:10px; margin-top:16px; }
+        .btn-novo-pedido { display:block; text-align:center; padding:13px 16px; border-radius:10px; background:var(--accent); color:white; font-weight:700; text-decoration:none; }
+        .btn-novo-pedido:hover { filter:brightness(1.08); }
         .card-status-cancelado {
             background: #2a1418; border: 1px solid var(--red); border-radius: 12px; padding: 18px;
             text-align: center; color: var(--red); font-weight: 700; font-size: 14.5px; margin-bottom: 16px;
@@ -62,13 +66,18 @@
 
     <div class="etapas">
         <div class="etapa {% if pedido.status == 'recebido' %}ativa{% else %}concluida{% endif %}"><div class="bola"></div>Recebido</div>
-        <div class="etapa {% if pedido.status == 'em_preparo' %}ativa{% elif pedido.status == 'pronto' or pedido.status == 'entregue' %}concluida{% endif %}"><div class="bola"></div>Em preparo</div>
-        <div class="etapa {% if pedido.status == 'pronto' %}ativa{% elif pedido.status == 'entregue' %}concluida{% endif %}"><div class="bola"></div>Pronto</div>
+        <div class="etapa {% if pedido.status == 'em_preparo' %}ativa{% elif pedido.status == 'pronto' or pedido.status == 'em_entrega' or pedido.status == 'entregue' %}concluida{% endif %}"><div class="bola"></div>Em preparo</div>
+        <div class="etapa {% if pedido.status == 'pronto' %}ativa{% elif pedido.status == 'em_entrega' or pedido.status == 'entregue' %}concluida{% endif %}"><div class="bola"></div>Pronto</div>
+        <div class="etapa {% if pedido.status == 'em_entrega' %}ativa{% elif pedido.status == 'entregue' %}concluida{% endif %}"><div class="bola"></div>Em entrega</div>
         <div class="etapa {% if pedido.status == 'entregue' %}ativa{% endif %}"><div class="bola"></div>Entregue</div>
     </div>
 
     {% if pedido.status == 'pronto' %}
-    <div class="card-status-pronto">🔔 Seu pedido está pronto! Pode retirar no balcão.</div>
+    <div class="card-status-pronto">🍽️ Seu pedido está pronto!<small>Nossa equipe está organizando a entrega até a sua mesa.</small></div>
+    {% elif pedido.status == 'em_entrega' %}
+    <div class="card-status-pronto">🚶 Seu pedido está a caminho!<small>Nossa equipe já está levando o pedido até você. Aguarde só mais um instante. 😊</small></div>
+    {% elif pedido.status == 'entregue' %}
+    <div class="card-status-pronto">✅ Pedido entregue!<small>Esperamos que você aproveite. Bom apetite! 🍽️</small></div>
     {% elif pedido.status == 'cancelado' %}
     <div class="card-status-cancelado">Esse pedido foi cancelado. Qualquer dúvida, fale com a equipe.</div>
     {% endif %}
@@ -85,6 +94,14 @@
             <span>Total</span>
             <span class="valor">R$ {{ pedido.valor_total|floatformat:2 }}</span>
         </div>
+    </div>
+
+    <div class="acoes-cliente">
+        {% if pedido.mesa %}
+        <a class="btn-novo-pedido" href="{% url 'cardapio_mesa' pedido.mesa.token_publico %}">＋ Fazer outro pedido nesta mesa</a>
+        {% else %}
+        <a class="btn-novo-pedido" href="{% url 'cardapio_publico' %}">＋ Fazer outro pedido</a>
+        {% endif %}
     </div>
 
     <div class="aviso-atualiza">Essa página atualiza sozinha a cada 15 segundos.</div>

@@ -223,6 +223,8 @@
                 return;
             }
 
+            localStorage.setItem('bellettiNomeCliente', nome);
+
             const itens = Object.entries(carrinho)
                 .filter(([_, v]) => v.quantidade > 0)
                 .map(([prato_id, v]) => ({ prato_id: parseInt(prato_id), quantidade: v.quantidade }));

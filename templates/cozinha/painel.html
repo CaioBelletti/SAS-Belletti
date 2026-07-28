@@ -71,6 +71,7 @@ body.modo-tv main, body.modo-tv .main-content { margin:0!important; width:100%!i
   <div class="metrica"><strong>{{ metricas.novos }}</strong><span>Novos pedidos</span></div>
   <div class="metrica"><strong>{{ metricas.em_preparo }}</strong><span>Em preparo</span></div>
   <div class="metrica"><strong>{{ metricas.prontos }}</strong><span>Prontos</span></div>
+  <div class="metrica"><strong>{{ metricas.em_entrega }}</strong><span>Em entrega</span></div>
   <div class="metrica"><strong>{{ metricas.entregues_hoje }}</strong><span>Entregues hoje</span></div>
   <div class="metrica"><strong>{{ metricas.tempo_medio }} min</strong><span>Tempo médio</span></div>
   <div class="metrica"><strong>{{ metricas.atrasados }}</strong><span>Pedidos atrasados</span></div>
@@ -121,9 +122,15 @@ body.modo-tv main, body.modo-tv .main-content { margin:0!important; width:100%!i
     </div>
   </section>
   <section class="kanban-col">
-    <div class="kanban-head"><span>✅ Prontos</span><span>{{ pedidos_prontos|length }}</span></div>
+    <div class="kanban-head"><span>🍽️ Prontos</span><span>{{ pedidos_prontos|length }}</span></div>
     <div class="kanban-body">
-      {% for pedido in pedidos_prontos %}{% include "cozinha/_pedido_card.html" with pedido=pedido %}{% empty %}<div class="empty-kanban">Nenhum pedido aguardando entrega.</div>{% endfor %}
+      {% for pedido in pedidos_prontos %}{% include "cozinha/_pedido_card.html" with pedido=pedido %}{% empty %}<div class="empty-kanban">Nenhum pedido pronto.</div>{% endfor %}
+    </div>
+  </section>
+  <section class="kanban-col">
+    <div class="kanban-head"><span>🚶 Em entrega</span><span>{{ pedidos_em_entrega|length }}</span></div>
+    <div class="kanban-body">
+      {% for pedido in pedidos_em_entrega %}{% include "cozinha/_pedido_card.html" with pedido=pedido %}{% empty %}<div class="empty-kanban">Nenhum pedido sendo levado.</div>{% endfor %}
     </div>
   </section>
 </div>
@@ -149,7 +156,7 @@ async function alternarChecklist(id,el){el.closest('.check-item').classList.togg
 function alternarModoTV(){document.body.classList.toggle('modo-tv');localStorage.setItem('cozinhaModoTV',document.body.classList.contains('modo-tv')?'1':'0');}
 if(localStorage.getItem('cozinhaModoTV')==='1')document.body.classList.add('modo-tv');
 let estadoAtual=null;
-async function verificarAtualizacoes(){try{const r=await fetch('{% url "cozinha:dados_painel" %}');const d=await r.json();const chave=`${d.recebidos}-${d.em_preparo}-${d.prontos}-${d.chamados}`;if(estadoAtual && chave!==estadoAtual){try{new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj').play()}catch(e){}location.reload();}estadoAtual=chave;}catch(e){}setTimeout(verificarAtualizacoes,5000)}
+async function verificarAtualizacoes(){try{const r=await fetch('{% url "cozinha:dados_painel" %}');const d=await r.json();const chave=`${d.recebidos}-${d.em_preparo}-${d.prontos}-${d.em_entrega}-${d.chamados}`;if(estadoAtual && chave!==estadoAtual){try{new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj').play()}catch(e){}location.reload();}estadoAtual=chave;}catch(e){}setTimeout(verificarAtualizacoes,5000)}
 verificarAtualizacoes();
 </script>
 {% endblock %}

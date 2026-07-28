@@ -177,6 +177,7 @@ class PedidoCozinha(models.Model):
         ("recebido", "Recebido"),
         ("em_preparo", "Em preparo"),
         ("pronto", "Pronto"),
+        ("em_entrega", "Em entrega"),
         ("entregue", "Entregue"),
         ("cancelado", "Cancelado"),
     ]
@@ -201,6 +202,7 @@ class PedidoCozinha(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     em_preparo_em = models.DateTimeField(null=True, blank=True)
     pronto_em = models.DateTimeField(null=True, blank=True)
+    em_entrega_em = models.DateTimeField(null=True, blank=True)
     entregue_em = models.DateTimeField(null=True, blank=True)
     atendido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -264,6 +266,9 @@ class PedidoCozinha(models.Model):
             self.pronto_em = agora
             self.itens.filter(concluido_em__isnull=True).update(preparo_concluido=True, concluido_em=agora)
         elif self.status == "pronto":
+            self.status = "em_entrega"
+            self.em_entrega_em = agora
+        elif self.status == "em_entrega":
             self.status = "entregue"
             self.entregue_em = agora
         self.save()
