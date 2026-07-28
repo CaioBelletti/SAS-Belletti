@@ -1,9 +1,9 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.generic import RedirectView
+from django.views.static import serve
 
 from core.backup_views import baixar_backup
 from core.pwa_views import sw_view
@@ -40,4 +40,12 @@ urlpatterns = [
     path('sw.js', sw_view, name='sw'),
     # Ao acessar a raiz do site, manda direto pro dashboard.
     path('', RedirectView.as_view(url='relatorios/', permanent=False)),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # As fotos de produto/prato precisam ser servidas pelo próprio Django
+    # mesmo em produção (DEBUG=False) — o helper static() do Django SEMPRE
+    # vira um no-op quando DEBUG=False (não existe mais um jeito de
+    # contornar isso com "insecure=True" nessa versão do Django), então
+    # conectamos a view de servir arquivo diretamente, sem passar pelo
+    # static(). Pra um sistema desse porte (sem CDN/S3 dedicado), isso é
+    # uma solução aceitável.
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+]
