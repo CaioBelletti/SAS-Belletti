@@ -55,8 +55,8 @@ class InteracaoContatoAdmin(admin.ModelAdmin):
 
 @admin.register(Tarefa)
 class TarefaAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "categoria", "prioridade", "responsavel", "data_vencimento", "data_fim", "concluida", "gerada_automaticamente")
-    list_filter = ("concluida", "categoria", "prioridade", "dia_inteiro", "gerada_automaticamente", "responsavel")
+    list_display = ("titulo", "categoria", "prioridade", "origem", "visibilidade", "recorrencia", "responsavel", "data_vencimento", "concluida", "gerada_automaticamente")
+    list_filter = ("concluida", "categoria", "prioridade", "origem", "visibilidade", "recorrencia", "dia_inteiro", "gerada_automaticamente", "responsavel")
     search_fields = ("titulo", "descricao")
     autocomplete_fields = ["lead", "cliente"]
 

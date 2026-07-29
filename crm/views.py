@@ -1,11 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
 from vendas.models import Cliente
 
+from .agenda_services import criar_checklist_operacional, proxima_data_recorrente, sincronizar_agenda
 from .models import CategoriaTarefa, InteracaoContato, Lead, Proposta, Tarefa
 
 
@@ -134,6 +136,9 @@ def agenda_calendario(request):
                 tarefa.dia_inteiro = request.POST.get("dia_inteiro") == "on"
                 tarefa.prioridade = request.POST.get("prioridade", "normal")
                 tarefa.local = request.POST.get("local", "").strip()
+                tarefa.recorrencia = request.POST.get("recorrencia", "nenhuma")
+                tarefa.lembrete_minutos = request.POST.get("lembrete_minutos") or 30
+                tarefa.visibilidade = request.POST.get("visibilidade", "gestores")
                 tarefa.save()
                 messages.success(request, "Compromisso salvo na agenda.")
 
@@ -142,6 +147,17 @@ def agenda_calendario(request):
             tarefa.concluida = not tarefa.concluida
             tarefa.concluida_em = timezone.now() if tarefa.concluida else None
             tarefa.save(update_fields=["concluida", "concluida_em"])
+            if tarefa.concluida and tarefa.recorrencia != "nenhuma":
+                proxima = proxima_data_recorrente(tarefa)
+                if proxima:
+                    Tarefa.objects.create(
+                        titulo=tarefa.titulo, descricao=tarefa.descricao, categoria=tarefa.categoria,
+                        responsavel=tarefa.responsavel, data_vencimento=proxima,
+                        data_fim=(tarefa.data_fim + (proxima - tarefa.data_vencimento)) if tarefa.data_fim else None,
+                        dia_inteiro=tarefa.dia_inteiro, prioridade=tarefa.prioridade, local=tarefa.local,
+                        recorrencia=tarefa.recorrencia, lembrete_minutos=tarefa.lembrete_minutos,
+                        visibilidade=tarefa.visibilidade,
+                    )
             messages.success(request, "Status do compromisso atualizado.")
 
         elif acao == "excluir":
@@ -174,6 +190,14 @@ def agenda_calendario(request):
             categoria.delete()
             messages.success(request, "Categoria excluída. Os compromissos foram mantidos sem categoria.")
 
+        elif acao == "sincronizar_agenda":
+            criadas = sincronizar_agenda(request.user)
+            messages.success(request, f"Agenda sincronizada. {criadas} novo(s) compromisso(s) incluído(s).")
+
+        elif acao == "criar_checklist":
+            criadas = criar_checklist_operacional(request.user)
+            messages.success(request, f"Checklist operacional preparado. {criadas} item(ns) novo(s).")
+
         return redirect(f"{reverse('crm:agenda_calendario')}?ano={ano}&mes={mes}")
 
     cal = calendar_mod.Calendar(firstweekday=6)
@@ -183,6 +207,7 @@ def agenda_calendario(request):
     categoria_filtro = request.GET.get("categoria")
     tarefas_qs = (
         Tarefa.objects.filter(data_vencimento__date__range=(inicio_grade, fim_grade))
+        .filter(models.Q(visibilidade__in=["gestores", "equipe"]) | models.Q(responsavel=request.user))
         .select_related("categoria", "responsavel")
         .order_by("data_vencimento")
     )
@@ -212,6 +237,15 @@ def agenda_calendario(request):
     proximo_mes = mes + 1 if mes < 12 else 1
     ano_proximo_mes = ano if mes < 12 else ano + 1
     categorias = CategoriaTarefa.objects.all()
+    agora = timezone.now()
+    fim_semana = agora + timezone.timedelta(days=7)
+    tarefas_visiveis = Tarefa.objects.filter(
+        models.Q(visibilidade__in=["gestores", "equipe"]) | models.Q(responsavel=request.user)
+    )
+    tarefas_hoje = tarefas_visiveis.filter(data_vencimento__date=hoje, concluida=False).select_related("categoria").order_by("data_vencimento")
+    tarefas_atrasadas = tarefas_visiveis.filter(data_vencimento__lt=agora, concluida=False).count()
+    proximos_sete = tarefas_visiveis.filter(data_vencimento__range=(agora, fim_semana), concluida=False).count()
+    automaticas_mes = tarefas_visiveis.filter(gerada_automaticamente=True, data_vencimento__year=ano, data_vencimento__month=mes).count()
 
     return render(request, "crm/agenda_calendario.html", {
         "semanas": semanas,
@@ -227,6 +261,12 @@ def agenda_calendario(request):
         "ano_mes_anterior": ano_mes_anterior,
         "proximo_mes": proximo_mes,
         "ano_proximo_mes": ano_proximo_mes,
+        "tarefas_hoje": tarefas_hoje,
+        "tarefas_atrasadas": tarefas_atrasadas,
+        "proximos_sete": proximos_sete,
+        "automaticas_mes": automaticas_mes,
+        "recorrencia_choices": Tarefa.RECORRENCIA_CHOICES,
+        "visibilidade_choices": Tarefa.VISIBILIDADE_CHOICES,
     })
 
 

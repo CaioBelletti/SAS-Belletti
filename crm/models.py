@@ -144,6 +144,26 @@ class Tarefa(models.Model):
         ("alta", "Alta"),
         ("urgente", "Urgente"),
     ]
+    RECORRENCIA_CHOICES = [
+        ("nenhuma", "Não repetir"),
+        ("diaria", "Diariamente"),
+        ("semanal", "Semanalmente"),
+        ("mensal", "Mensalmente"),
+        ("anual", "Anualmente"),
+    ]
+    VISIBILIDADE_CHOICES = [
+        ("privada", "Somente eu"),
+        ("gestores", "Sócios e gestores"),
+        ("equipe", "Equipe autorizada"),
+    ]
+    ORIGEM_CHOICES = [
+        ("manual", "Criado manualmente"),
+        ("financeiro_pagar", "Conta a pagar"),
+        ("financeiro_receber", "Conta a receber"),
+        ("compra", "Ordem de compra"),
+        ("aniversario", "Aniversário de cliente"),
+        ("checklist", "Checklist operacional"),
+    ]
 
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True)
@@ -162,6 +182,12 @@ class Tarefa(models.Model):
     dia_inteiro = models.BooleanField(default=False)
     prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default="normal")
     local = models.CharField(max_length=180, blank=True)
+    recorrencia = models.CharField(max_length=12, choices=RECORRENCIA_CHOICES, default="nenhuma")
+    lembrete_minutos = models.PositiveIntegerField(default=30, help_text="Minutos antes para destacar o compromisso.")
+    visibilidade = models.CharField(max_length=12, choices=VISIBILIDADE_CHOICES, default="gestores")
+    origem = models.CharField(max_length=24, choices=ORIGEM_CHOICES, default="manual", editable=False)
+    referencia_modelo = models.CharField(max_length=80, blank=True, editable=False)
+    referencia_id = models.PositiveIntegerField(null=True, blank=True, editable=False)
     concluida = models.BooleanField(default=False)
     concluida_em = models.DateTimeField(null=True, blank=True)
     gerada_automaticamente = models.BooleanField(default=False, editable=False)
