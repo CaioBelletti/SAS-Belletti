@@ -102,44 +102,105 @@ def agenda_calendario(request):
     from datetime import date, datetime
 
     hoje = timezone.localdate()
-    ano = int(request.GET.get("ano", hoje.year))
-    mes = int(request.GET.get("mes", hoje.month))
+    try:
+        ano = int(request.GET.get("ano", hoje.year))
+        mes = int(request.GET.get("mes", hoje.month))
+        if not 1 <= mes <= 12:
+            raise ValueError
+    except (TypeError, ValueError):
+        ano, mes = hoje.year, hoje.month
+
+    def ler_data(valor, padrao=None):
+        if not valor:
+            return padrao or timezone.now()
+        data = datetime.fromisoformat(valor)
+        return timezone.make_aware(data) if timezone.is_naive(data) else data
 
     if request.method == "POST":
         acao = request.POST.get("acao")
-        if acao == "criar":
-            data_str = request.POST.get("data_vencimento")
-            data_vencimento = timezone.make_aware(datetime.fromisoformat(data_str)) if data_str else timezone.now()
-            Tarefa.objects.create(
-                titulo=request.POST.get("titulo", "").strip(),
-                descricao=request.POST.get("descricao", "").strip(),
-                categoria_id=request.POST.get("categoria_id") or None,
-                responsavel=request.user,
-                data_vencimento=data_vencimento,
-            )
-            messages.success(request, "Tarefa adicionada à agenda.")
-        elif acao == "concluir":
+
+        if acao in {"criar", "editar"}:
+            titulo = request.POST.get("titulo", "").strip()
+            if not titulo:
+                messages.error(request, "Informe o título do compromisso.")
+            else:
+                tarefa = Tarefa() if acao == "criar" else get_object_or_404(Tarefa, pk=request.POST.get("tarefa_id"))
+                tarefa.titulo = titulo
+                tarefa.descricao = request.POST.get("descricao", "").strip()
+                tarefa.categoria_id = request.POST.get("categoria_id") or None
+                tarefa.responsavel = tarefa.responsavel or request.user
+                tarefa.data_vencimento = ler_data(request.POST.get("data_vencimento"))
+                tarefa.data_fim = ler_data(request.POST.get("data_fim"), None) if request.POST.get("data_fim") else None
+                tarefa.dia_inteiro = request.POST.get("dia_inteiro") == "on"
+                tarefa.prioridade = request.POST.get("prioridade", "normal")
+                tarefa.local = request.POST.get("local", "").strip()
+                tarefa.save()
+                messages.success(request, "Compromisso salvo na agenda.")
+
+        elif acao == "alternar_conclusao":
             tarefa = get_object_or_404(Tarefa, pk=request.POST.get("tarefa_id"))
-            tarefa.concluida = True
-            tarefa.concluida_em = timezone.now()
+            tarefa.concluida = not tarefa.concluida
+            tarefa.concluida_em = timezone.now() if tarefa.concluida else None
             tarefa.save(update_fields=["concluida", "concluida_em"])
+            messages.success(request, "Status do compromisso atualizado.")
+
+        elif acao == "excluir":
+            get_object_or_404(Tarefa, pk=request.POST.get("tarefa_id")).delete()
+            messages.success(request, "Compromisso excluído.")
+
+        elif acao in {"criar_categoria", "editar_categoria"}:
+            nome = request.POST.get("nome_categoria", "").strip()
+            cor = request.POST.get("cor_categoria", "#8b6cf2").strip()
+            if not nome:
+                messages.error(request, "Informe o nome da categoria.")
+            else:
+                categoria = CategoriaTarefa() if acao == "criar_categoria" else get_object_or_404(
+                    CategoriaTarefa, pk=request.POST.get("categoria_id_edicao")
+                )
+                categoria.nome = nome
+                categoria.cor = cor
+                categoria.icone = request.POST.get("icone_categoria", "calendar")
+                categoria.ordem = request.POST.get("ordem_categoria") or 0
+                categoria.ativa = request.POST.get("ativa_categoria") == "on"
+                try:
+                    categoria.full_clean()
+                    categoria.save()
+                    messages.success(request, "Categoria salva.")
+                except Exception as exc:
+                    messages.error(request, f"Não foi possível salvar a categoria: {exc}")
+
+        elif acao == "excluir_categoria":
+            categoria = get_object_or_404(CategoriaTarefa, pk=request.POST.get("categoria_id_edicao"))
+            categoria.delete()
+            messages.success(request, "Categoria excluída. Os compromissos foram mantidos sem categoria.")
+
         return redirect(f"{reverse('crm:agenda_calendario')}?ano={ano}&mes={mes}")
 
-    cal = calendar_mod.Calendar(firstweekday=6)  # semana começa no domingo
+    cal = calendar_mod.Calendar(firstweekday=6)
     dias_do_mes = list(cal.itermonthdates(ano, mes))
+    inicio_grade, fim_grade = dias_do_mes[0], dias_do_mes[-1]
 
+    categoria_filtro = request.GET.get("categoria")
     tarefas_qs = (
-        Tarefa.objects.filter(data_vencimento__year=ano, data_vencimento__month=mes)
-        .select_related("categoria")
+        Tarefa.objects.filter(data_vencimento__date__range=(inicio_grade, fim_grade))
+        .select_related("categoria", "responsavel")
         .order_by("data_vencimento")
     )
+    if categoria_filtro:
+        tarefas_qs = tarefas_qs.filter(categoria_id=categoria_filtro)
+
     tarefas_por_dia = {}
-    for t in tarefas_qs:
-        tarefas_por_dia.setdefault(t.data_vencimento.date(), []).append(t)
+    for tarefa in tarefas_qs:
+        dia_local = timezone.localtime(tarefa.data_vencimento).date()
+        tarefas_por_dia.setdefault(dia_local, []).append(tarefa)
 
     celulas = [
         {
-            "data": dia, "numero": dia.day, "no_mes": dia.month == mes, "hoje": dia == hoje,
+            "data": dia,
+            "data_iso": dia.isoformat(),
+            "numero": dia.day,
+            "no_mes": dia.month == mes,
+            "hoje": dia == hoje,
             "tarefas": tarefas_por_dia.get(dia, []),
         }
         for dia in dias_do_mes
@@ -150,15 +211,22 @@ def agenda_calendario(request):
     ano_mes_anterior = ano if mes > 1 else ano - 1
     proximo_mes = mes + 1 if mes < 12 else 1
     ano_proximo_mes = ano if mes < 12 else ano + 1
+    categorias = CategoriaTarefa.objects.all()
 
     return render(request, "crm/agenda_calendario.html", {
         "semanas": semanas,
         "mes_atual": date(ano, mes, 1),
         "hoje": hoje,
-        "categorias": CategoriaTarefa.objects.all(),
-        "ano": ano, "mes": mes,
-        "mes_anterior": mes_anterior, "ano_mes_anterior": ano_mes_anterior,
-        "proximo_mes": proximo_mes, "ano_proximo_mes": ano_proximo_mes,
+        "categorias": categorias,
+        "categorias_ativas": categorias.filter(ativa=True),
+        "categoria_filtro": categoria_filtro or "",
+        "icone_choices": CategoriaTarefa.ICONE_CHOICES,
+        "ano": ano,
+        "mes": mes,
+        "mes_anterior": mes_anterior,
+        "ano_mes_anterior": ano_mes_anterior,
+        "proximo_mes": proximo_mes,
+        "ano_proximo_mes": ano_proximo_mes,
     })
 
 

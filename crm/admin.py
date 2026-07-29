@@ -5,8 +5,10 @@ from .models import CategoriaTarefa, ConfiguracaoCRM, InteracaoContato, Lead, Pr
 
 @admin.register(CategoriaTarefa)
 class CategoriaTarefaAdmin(admin.ModelAdmin):
-    list_display = ("nome", "cor_preview", "ordem")
-    list_editable = ("ordem",)
+    list_display = ("nome", "cor_preview", "icone", "ativa", "ordem")
+    list_editable = ("ativa", "ordem")
+    list_filter = ("ativa", "icone")
+    search_fields = ("nome",)
 
     def cor_preview(self, obj):
         from django.utils.html import format_html
@@ -53,8 +55,8 @@ class InteracaoContatoAdmin(admin.ModelAdmin):
 
 @admin.register(Tarefa)
 class TarefaAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "categoria", "responsavel", "data_vencimento", "concluida", "gerada_automaticamente")
-    list_filter = ("concluida", "categoria", "gerada_automaticamente", "responsavel")
+    list_display = ("titulo", "categoria", "prioridade", "responsavel", "data_vencimento", "data_fim", "concluida", "gerada_automaticamente")
+    list_filter = ("concluida", "categoria", "prioridade", "dia_inteiro", "gerada_automaticamente", "responsavel")
     search_fields = ("titulo", "descricao")
     autocomplete_fields = ["lead", "cliente"]
 

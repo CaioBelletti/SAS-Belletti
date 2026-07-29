@@ -3,120 +3,86 @@
 
 {% block extra_head %}
 <style>
-    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .cal-mes-nome { font-family: var(--font-display); font-size: 24px; font-weight: 700; text-transform: capitalize; }
-    .cal-nav { display: flex; gap: 8px; align-items: center; }
-    .cal-nav a, .cal-nav button {
-        padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-2);
-        color: var(--text-primary); text-decoration: none; font-size: 13px; cursor: pointer;
-    }
-    .cal-legenda { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-    .cal-legenda-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
-    .cal-legenda-cor { width: 11px; height: 11px; border-radius: 3px; }
-    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-    .cal-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; padding-bottom: 6px; }
-    .cal-dia {
-        background: var(--bg-1); border: 1px solid var(--border); border-radius: 10px; padding: 8px;
-        min-height: 90px; position: relative;
-    }
-    .cal-dia.fora-do-mes { opacity: 0.35; }
-    .cal-dia.hoje { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-    .cal-dia-numero { font-size: 12.5px; font-weight: 600; margin-bottom: 5px; }
-    .cal-tarefa {
-        display: block; font-size: 10.5px; padding: 2px 6px; border-radius: 5px; margin-bottom: 3px;
-        color: #0c0d11; font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        border: none; width: 100%; text-align: left;
-    }
-    .cal-tarefa.concluida { opacity: 0.45; text-decoration: line-through; }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 90; display: none; align-items: center; justify-content: center; }
-    .modal-overlay.aberto { display: flex; }
-    .modal-caixa { background: var(--bg-1); border: 1px solid var(--border); border-radius: 14px; padding: 20px; max-width: 380px; width: 90%; }
-    .modal-caixa label { font-size: 11.5px; color: var(--text-muted); display: block; margin: 10px 0 5px; }
-    .modal-caixa input, .modal-caixa select, .modal-caixa textarea {
-        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
-        background: var(--bg-2); color: var(--text-primary); font-size: 13px; box-sizing: border-box;
-    }
+.agenda-shell{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}.agenda-main{min-width:0}.agenda-side{position:sticky;top:16px}.agenda-toolbar,.agenda-nav,.agenda-actions,.agenda-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.agenda-toolbar{justify-content:space-between;margin-bottom:16px}.agenda-month{font-family:var(--font-display);font-size:24px;font-weight:800;text-transform:capitalize}.agenda-btn{padding:9px 13px;border-radius:9px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-primary);text-decoration:none;font-size:13px;cursor:pointer}.agenda-btn.primary{background:var(--accent);border-color:var(--accent);color:white;font-weight:700}.agenda-btn.danger{color:#ff8585;border-color:rgba(255,95,95,.35)}.agenda-filter{min-width:160px;padding:9px 10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-primary)}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.calendar-dow{text-align:center;font-size:11px;font-weight:800;color:var(--text-faint);text-transform:uppercase;padding:0 0 7px}.calendar-day{background:var(--bg-1);border:1px solid var(--border);border-radius:11px;padding:8px;min-height:112px;position:relative;transition:.15s}.calendar-day:hover{border-color:var(--accent);transform:translateY(-1px)}.calendar-day.out{opacity:.38}.calendar-day.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.day-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.day-number{font-size:13px;font-weight:800}.day-add{width:24px;height:24px;border:0;border-radius:7px;background:transparent;color:var(--text-faint);cursor:pointer}.day-add:hover{background:var(--bg-2);color:var(--accent)}
+.calendar-event{display:block;width:100%;border:0;border-left:4px solid var(--event-color);background:color-mix(in srgb,var(--event-color) 23%,var(--bg-2));color:var(--event-text);border-radius:7px;padding:5px 6px;margin-bottom:4px;text-align:left;cursor:pointer;overflow:hidden}.calendar-event:hover{filter:brightness(1.08)}.calendar-event.done{opacity:.48;text-decoration:line-through}.event-time{font-size:9.5px;font-weight:800;opacity:.82}.event-title{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.priority-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}.priority-alta{background:#ffb020}.priority-urgente{background:#ff5f5f}
+.side-card{background:var(--bg-1);border:1px solid var(--border);border-radius:13px;padding:15px;margin-bottom:12px}.side-title{font-size:13px;font-weight:800;margin-bottom:12px}.legend-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px;border-radius:8px}.legend-item:hover{background:var(--bg-2)}.legend-main{display:flex;align-items:center;gap:8px;min-width:0}.legend-color{width:13px;height:13px;border-radius:4px;flex:none}.legend-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.legend-actions button{border:0;background:none;color:var(--text-faint);cursor:pointer;padding:3px}.empty-hint{font-size:12px;color:var(--text-muted);line-height:1.5}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}.modal-overlay.open{display:flex}.modal-box{background:var(--bg-1);border:1px solid var(--border);border-radius:15px;padding:20px;width:min(520px,100%);max-height:92vh;overflow:auto}.modal-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}.modal-head h3{margin:0;font-family:var(--font-display)}.modal-close{border:0;background:var(--bg-2);color:var(--text-primary);width:32px;height:32px;border-radius:8px;cursor:pointer}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field.full{grid-column:1/-1}.field label{font-size:11.5px;color:var(--text-muted);display:block;margin:3px 0 5px}.field input,.field select,.field textarea{width:100%;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-primary);font-size:13px;box-sizing:border-box}.color-row{display:grid;grid-template-columns:70px 1fr;gap:10px}.color-row input[type=color]{height:42px;padding:3px}.color-presets{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.preset{width:26px;height:26px;border-radius:7px;border:2px solid transparent;cursor:pointer}.preset:hover{border-color:white}.check-row{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:8px}.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.event-details{font-size:13px;color:var(--text-muted);line-height:1.6}.event-details strong{color:var(--text-primary)}
+@media(max-width:1000px){.agenda-shell{grid-template-columns:1fr}.agenda-side{position:static;display:grid;grid-template-columns:1fr 1fr;gap:12px}.side-card{margin:0}}@media(max-width:720px){.calendar-grid{gap:3px}.calendar-day{min-height:86px;padding:5px;border-radius:8px}.event-time{display:none}.event-title{font-size:9.5px}.agenda-side{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.agenda-toolbar{align-items:flex-start}.agenda-month{font-size:20px}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="topbar">
-    <div><h1>Calendário</h1><div class="subtitle">Sua agenda em visão mensal, colorida por categoria</div></div>
-    <a href="{% url 'crm:agenda' %}" style="color: var(--text-muted); font-size: 13px;">← Ver como lista</a>
-</div>
-
+<div class="topbar"><div><h1>Calendário</h1><div class="subtitle">Compromissos organizados por categoria, prioridade e cor</div></div><a href="{% url 'crm:agenda' %}" style="color:var(--text-muted);font-size:13px">← Ver como lista</a></div>
 {% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
 
-<div class="cal-header">
-    <div class="cal-mes-nome">{{ mes_atual|date:"F Y" }}</div>
-    <div class="cal-nav">
-        <a href="?ano={{ ano_mes_anterior }}&mes={{ mes_anterior }}">‹ Anterior</a>
-        <a href="?ano={{ hoje.year }}&mes={{ hoje.month }}">Hoje</a>
-        <a href="?ano={{ ano_proximo_mes }}&mes={{ proximo_mes }}">Próximo ›</a>
-        <button onclick="abrirModalNovaTarefa()">+ Nova tarefa</button>
+<div class="agenda-shell">
+<section class="agenda-main">
+  <div class="agenda-toolbar">
+    <div class="agenda-month">{{ mes_atual|date:"F Y" }}</div>
+    <div class="agenda-nav">
+      <a class="agenda-btn" href="?ano={{ ano_mes_anterior }}&mes={{ mes_anterior }}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">‹ Anterior</a>
+      <a class="agenda-btn" href="?ano={{ hoje.year }}&mes={{ hoje.month }}">Hoje</a>
+      <a class="agenda-btn" href="?ano={{ ano_proximo_mes }}&mes={{ proximo_mes }}{% if categoria_filtro %}&categoria={{ categoria_filtro }}{% endif %}">Próximo ›</a>
+      <button class="agenda-btn primary" type="button" data-open-task>+ Novo compromisso</button>
     </div>
+  </div>
+  <form class="agenda-filters" method="get" style="margin-bottom:12px">
+    <input type="hidden" name="ano" value="{{ ano }}"><input type="hidden" name="mes" value="{{ mes }}">
+    <select class="agenda-filter" name="categoria" onchange="this.form.submit()"><option value="">Todas as categorias</option>{% for c in categorias %}<option value="{{ c.id }}" {% if categoria_filtro == c.id|stringformat:'s' %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}</select>
+    {% if categoria_filtro %}<a class="agenda-btn" href="?ano={{ ano }}&mes={{ mes }}">Limpar filtro</a>{% endif %}
+  </form>
+  <div class="calendar-grid">
+    {% for nome in "Dom,Seg,Ter,Qua,Qui,Sex,Sáb"|cut:" "|make_list %}{% endfor %}
+    <div class="calendar-dow">Dom</div><div class="calendar-dow">Seg</div><div class="calendar-dow">Ter</div><div class="calendar-dow">Qua</div><div class="calendar-dow">Qui</div><div class="calendar-dow">Sex</div><div class="calendar-dow">Sáb</div>
+    {% for semana in semanas %}{% for dia in semana %}
+      <div class="calendar-day {% if not dia.no_mes %}out{% endif %} {% if dia.hoje %}today{% endif %}" data-date="{{ dia.data_iso }}">
+        <div class="day-head"><span class="day-number">{{ dia.numero }}</span><button class="day-add" type="button" title="Adicionar compromisso" data-add-date="{{ dia.data_iso }}">+</button></div>
+        {% for t in dia.tarefas %}
+        <button type="button" class="calendar-event {% if t.concluida %}done{% endif %}" style="--event-color:{{ t.categoria.cor|default:'#8b6cf2' }};--event-text:{{ t.categoria.cor_texto|default:'#ffffff' }}" data-event
+          data-id="{{ t.id }}" data-title="{{ t.titulo|escape }}" data-description="{{ t.descricao|escape }}" data-category="{{ t.categoria_id|default:'' }}" data-start="{{ t.data_vencimento|date:'Y-m-d\\TH:i' }}" data-end="{% if t.data_fim %}{{ t.data_fim|date:'Y-m-d\\TH:i' }}{% endif %}" data-all-day="{{ t.dia_inteiro|yesno:'1,0' }}" data-priority="{{ t.prioridade }}" data-location="{{ t.local|escape }}" data-done="{{ t.concluida|yesno:'1,0' }}">
+          <div class="event-time">{% if t.dia_inteiro %}Dia inteiro{% else %}{{ t.data_vencimento|date:"H:i" }}{% endif %}</div>
+          <div class="event-title">{% if t.prioridade == 'alta' or t.prioridade == 'urgente' %}<span class="priority-dot priority-{{ t.prioridade }}"></span>{% endif %}{{ t.titulo }}</div>
+        </button>
+        {% empty %}{% endfor %}
+      </div>
+    {% endfor %}{% endfor %}
+  </div>
+</section>
+
+<aside class="agenda-side">
+  <div class="side-card"><div class="side-title">Categorias</div>
+    {% for c in categorias %}<div class="legend-item"><div class="legend-main"><span class="legend-color" style="background:{{ c.cor }}"></span><span class="legend-name">{{ c.nome }}{% if not c.ativa %} (inativa){% endif %}</span></div><div class="legend-actions"><button type="button" data-edit-category data-id="{{ c.id }}" data-name="{{ c.nome|escape }}" data-color="{{ c.cor }}" data-icon="{{ c.icone }}" data-order="{{ c.ordem }}" data-active="{{ c.ativa|yesno:'1,0' }}" title="Editar">✎</button></div></div>{% empty %}<div class="empty-hint">Crie categorias como Financeiro, Eventos, Fornecedores, Pessoal e Marketing.</div>{% endfor %}
+    <button class="agenda-btn" type="button" data-open-category style="width:100%;margin-top:10px">+ Nova categoria</button>
+  </div>
+  <div class="side-card"><div class="side-title">Como usar</div><div class="empty-hint">Clique no <strong>+</strong> de qualquer dia para criar um compromisso já naquela data. Clique em um item colorido para editar, concluir ou excluir.</div></div>
+</aside>
 </div>
 
-{% if categorias %}
-<div class="cal-legenda">
-    {% for c in categorias %}
-    <div class="cal-legenda-item"><span class="cal-legenda-cor" style="background:{{ c.cor }};"></span>{{ c.nome }}</div>
-    {% endfor %}
-</div>
-{% endif %}
+<div class="modal-overlay" id="taskModal"><div class="modal-box"><div class="modal-head"><h3 id="taskModalTitle">Novo compromisso</h3><button class="modal-close" type="button" data-close>×</button></div>
+<form method="post" id="taskForm">{% csrf_token %}<input type="hidden" name="acao" id="taskAction" value="criar"><input type="hidden" name="tarefa_id" id="taskId">
+<div class="form-grid"><div class="field full"><label>Título</label><input name="titulo" id="taskTitle" required placeholder="Ex: Feira Geek em São Carlos"></div><div class="field"><label>Categoria</label><select name="categoria_id" id="taskCategory"><option value="">Sem categoria</option>{% for c in categorias_ativas %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}</select></div><div class="field"><label>Prioridade</label><select name="prioridade" id="taskPriority"><option value="baixa">Baixa</option><option value="normal" selected>Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div><div class="field"><label>Início</label><input type="datetime-local" name="data_vencimento" id="taskStart" required></div><div class="field"><label>Fim (opcional)</label><input type="datetime-local" name="data_fim" id="taskEnd"></div><div class="field full"><label>Local ou link</label><input name="local" id="taskLocation" placeholder="Endereço, Google Meet ou observação de local"></div><div class="field full"><label>Detalhes</label><textarea name="descricao" id="taskDescription" rows="3"></textarea></div><label class="check-row field full"><input type="checkbox" name="dia_inteiro" id="taskAllDay"> Compromisso de dia inteiro</label></div>
+<div class="modal-footer"><button class="agenda-btn" type="button" data-close>Cancelar</button><button class="agenda-btn primary" type="submit">Salvar</button></div></form>
+<div id="taskExistingActions" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px"><form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="acao" value="alternar_conclusao"><input type="hidden" name="tarefa_id" id="toggleTaskId"><button class="agenda-btn" type="submit" id="toggleLabel">Concluir</button></form> <form method="post" style="display:inline" onsubmit="return confirm('Excluir este compromisso?')">{% csrf_token %}<input type="hidden" name="acao" value="excluir"><input type="hidden" name="tarefa_id" id="deleteTaskId"><button class="agenda-btn danger" type="submit">Excluir</button></form></div>
+</div></div>
 
-<div class="cal-grid">
-    <div class="cal-dow">Dom</div><div class="cal-dow">Seg</div><div class="cal-dow">Ter</div>
-    <div class="cal-dow">Qua</div><div class="cal-dow">Qui</div><div class="cal-dow">Sex</div><div class="cal-dow">Sáb</div>
-
-    {% for semana in semanas %}
-        {% for dia in semana %}
-        <div class="cal-dia {% if not dia.no_mes %}fora-do-mes{% endif %} {% if dia.hoje %}hoje{% endif %}">
-            <div class="cal-dia-numero">{{ dia.numero }}</div>
-            {% for t in dia.tarefas %}
-            <form method="post" style="margin:0;">
-                {% csrf_token %}
-                <input type="hidden" name="acao" value="concluir">
-                <input type="hidden" name="tarefa_id" value="{{ t.id }}">
-                <button type="submit" class="cal-tarefa {% if t.concluida %}concluida{% endif %}"
-                        style="background:{{ t.categoria.cor|default:'#8b6cf2' }};"
-                        title="{{ t.data_vencimento|date:'H:i' }} — {{ t.titulo }}{% if not t.concluida %} (clique pra concluir){% endif %}">
-                    {{ t.data_vencimento|date:"H:i" }} {{ t.titulo }}
-                </button>
-            </form>
-            {% endfor %}
-        </div>
-        {% endfor %}
-    {% endfor %}
-</div>
-
-<div class="modal-overlay" id="modalNovaTarefa">
-    <div class="modal-caixa">
-        <h3 style="margin:0; font-family: var(--font-display);">Nova tarefa</h3>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="acao" value="criar">
-            <label>Título</label>
-            <input type="text" name="titulo" required placeholder="Ex: Pagar boleto Copag">
-            <label>Categoria</label>
-            <select name="categoria_id">
-                <option value="">Sem categoria</option>
-                {% for c in categorias %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
-            </select>
-            <label>Data e horário</label>
-            <input type="datetime-local" name="data_vencimento" required>
-            <label>Detalhes (opcional)</label>
-            <textarea name="descricao" rows="2"></textarea>
-            <button type="submit" class="btn-acao" style="width:100%; margin-top:14px;">Adicionar</button>
-        </form>
-        <button onclick="fecharModalNovaTarefa()" style="width:100%; margin-top:8px; background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:12px;">Cancelar</button>
-    </div>
-</div>
+<div class="modal-overlay" id="categoryModal"><div class="modal-box"><div class="modal-head"><h3 id="categoryModalTitle">Nova categoria</h3><button class="modal-close" type="button" data-close>×</button></div>
+<form method="post" id="categoryForm">{% csrf_token %}<input type="hidden" name="acao" id="categoryAction" value="criar_categoria"><input type="hidden" name="categoria_id_edicao" id="categoryId">
+<div class="form-grid"><div class="field full"><label>Nome</label><input name="nome_categoria" id="categoryName" required placeholder="Ex: Feiras"></div><div class="field full"><label>Cor da categoria</label><div class="color-row"><input type="color" name="cor_categoria" id="categoryColor" value="#8b6cf2"><input type="text" id="categoryColorText" value="#8b6cf2" maxlength="7"></div><div class="color-presets">{% for cor in '#8b6cf2,#ffb020,#3ecf8e,#4d9fff,#ff6b8a,#e76f51,#2ec4b6,#9b5de5'|cut:' '|make_list %}{% endfor %}<button class="preset" type="button" style="background:#8b6cf2" data-color="#8b6cf2"></button><button class="preset" type="button" style="background:#ffb020" data-color="#ffb020"></button><button class="preset" type="button" style="background:#3ecf8e" data-color="#3ecf8e"></button><button class="preset" type="button" style="background:#4d9fff" data-color="#4d9fff"></button><button class="preset" type="button" style="background:#ff6b8a" data-color="#ff6b8a"></button><button class="preset" type="button" style="background:#e76f51" data-color="#e76f51"></button><button class="preset" type="button" style="background:#2ec4b6" data-color="#2ec4b6"></button><button class="preset" type="button" style="background:#9b5de5" data-color="#9b5de5"></button></div></div><div class="field"><label>Ícone</label><select name="icone_categoria" id="categoryIcon">{% for value,label in icone_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div><div class="field"><label>Ordem</label><input type="number" name="ordem_categoria" id="categoryOrder" min="0" value="0"></div><label class="check-row field full"><input type="checkbox" name="ativa_categoria" id="categoryActive" checked> Categoria ativa</label></div><div class="modal-footer"><button class="agenda-btn" type="button" data-close>Cancelar</button><button class="agenda-btn primary" type="submit">Salvar categoria</button></div></form>
+<form method="post" id="deleteCategoryForm" style="display:none;margin-top:12px" onsubmit="return confirm('Excluir esta categoria? Os compromissos serão mantidos sem categoria.')">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="categoria_id_edicao" id="deleteCategoryId"><button class="agenda-btn danger" type="submit">Excluir categoria</button></form>
+</div></div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-function abrirModalNovaTarefa() { document.getElementById('modalNovaTarefa').classList.add('aberto'); }
-function fecharModalNovaTarefa() { document.getElementById('modalNovaTarefa').classList.remove('aberto'); }
-</script>
-{% endblock %}
+{% block extra_scripts %}<script>
+const taskModal=document.getElementById('taskModal'),categoryModal=document.getElementById('categoryModal');
+function localDateTime(date){const p=n=>String(n).padStart(2,'0');return `${date.getFullYear()}-${p(date.getMonth()+1)}-${p(date.getDate())}T${p(date.getHours())}:${p(date.getMinutes())}`}
+function openModal(m){m.classList.add('open')}function closeModals(){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'))}
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeModals));document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModals()}));
+function newTask(dateValue){document.getElementById('taskForm').reset();document.getElementById('taskAction').value='criar';document.getElementById('taskId').value='';document.getElementById('taskModalTitle').textContent='Novo compromisso';document.getElementById('taskExistingActions').style.display='none';const d=dateValue?new Date(`${dateValue}T09:00`):new Date();document.getElementById('taskStart').value=localDateTime(d);openModal(taskModal)}
+document.querySelector('[data-open-task]').addEventListener('click',()=>newTask());document.querySelectorAll('[data-add-date]').forEach(b=>b.addEventListener('click',()=>newTask(b.dataset.addDate)));
+document.querySelectorAll('[data-event]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('taskModalTitle').textContent='Editar compromisso';document.getElementById('taskAction').value='editar';document.getElementById('taskId').value=b.dataset.id;document.getElementById('taskTitle').value=b.dataset.title;document.getElementById('taskDescription').value=b.dataset.description;document.getElementById('taskCategory').value=b.dataset.category;document.getElementById('taskStart').value=b.dataset.start;document.getElementById('taskEnd').value=b.dataset.end;document.getElementById('taskAllDay').checked=b.dataset.allDay==='1';document.getElementById('taskPriority').value=b.dataset.priority;document.getElementById('taskLocation').value=b.dataset.location;document.getElementById('toggleTaskId').value=b.dataset.id;document.getElementById('deleteTaskId').value=b.dataset.id;document.getElementById('toggleLabel').textContent=b.dataset.done==='1'?'Reabrir':'Concluir';document.getElementById('taskExistingActions').style.display='block';openModal(taskModal)}));
+function newCategory(){document.getElementById('categoryForm').reset();document.getElementById('categoryAction').value='criar_categoria';document.getElementById('categoryId').value='';document.getElementById('categoryModalTitle').textContent='Nova categoria';document.getElementById('categoryColor').value='#8b6cf2';document.getElementById('categoryColorText').value='#8b6cf2';document.getElementById('categoryActive').checked=true;document.getElementById('deleteCategoryForm').style.display='none';openModal(categoryModal)}
+document.querySelector('[data-open-category]').addEventListener('click',newCategory);document.querySelectorAll('[data-edit-category]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('categoryAction').value='editar_categoria';document.getElementById('categoryId').value=b.dataset.id;document.getElementById('categoryModalTitle').textContent='Editar categoria';document.getElementById('categoryName').value=b.dataset.name;document.getElementById('categoryColor').value=b.dataset.color;document.getElementById('categoryColorText').value=b.dataset.color;document.getElementById('categoryIcon').value=b.dataset.icon;document.getElementById('categoryOrder').value=b.dataset.order;document.getElementById('categoryActive').checked=b.dataset.active==='1';document.getElementById('deleteCategoryId').value=b.dataset.id;document.getElementById('deleteCategoryForm').style.display='block';openModal(categoryModal)}));
+const color=document.getElementById('categoryColor'),colorText=document.getElementById('categoryColorText');color.addEventListener('input',()=>colorText.value=color.value);colorText.addEventListener('input',()=>{if(/^#[0-9a-fA-F]{6}$/.test(colorText.value))color.value=colorText.value});document.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click',()=>{color.value=b.dataset.color;colorText.value=b.dataset.color}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModals()});
+</script>{% endblock %}

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 
@@ -94,13 +94,29 @@ class InteracaoContato(models.Model):
 
 
 class CategoriaTarefa(models.Model):
-    """Uma categoria colorida pra organizar a agenda visualmente (ex: Pagamentos, Eventos, Fornecedores)."""
-    nome = models.CharField(max_length=60)
+    """Categoria visual usada para organizar os compromissos da agenda."""
+
+    ICONE_CHOICES = [
+        ("calendar", "Calendário"),
+        ("briefcase", "Trabalho"),
+        ("money", "Financeiro"),
+        ("truck", "Fornecedor/viagem"),
+        ("star", "Evento"),
+        ("user", "Pessoal"),
+        ("megaphone", "Marketing"),
+        ("tools", "Manutenção"),
+    ]
+
+    nome = models.CharField(max_length=60, unique=True)
     cor = models.CharField(
-        max_length=7, default="#8b6cf2",
-        help_text="Código da cor em hexadecimal, ex: #8b6cf2 (pode copiar de um seletor de cor online)",
+        max_length=7,
+        default="#8b6cf2",
+        validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Informe uma cor hexadecimal válida, como #8b6cf2.")],
+        help_text="Cor exibida no calendário.",
     )
+    icone = models.CharField(max_length=20, choices=ICONE_CHOICES, default="calendar")
     ordem = models.PositiveIntegerField(default=0)
+    ativa = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Categoria da agenda"
@@ -110,8 +126,25 @@ class CategoriaTarefa(models.Model):
     def __str__(self):
         return self.nome
 
+    @property
+    def cor_texto(self):
+        """Escolhe preto ou branco para manter contraste com a cor da categoria."""
+        try:
+            r, g, b = (int(self.cor[i:i + 2], 16) for i in (1, 3, 5))
+            luminancia = (0.299 * r + 0.587 * g + 0.114 * b)
+            return "#111318" if luminancia > 155 else "#ffffff"
+        except (TypeError, ValueError):
+            return "#ffffff"
+
 
 class Tarefa(models.Model):
+    PRIORIDADE_CHOICES = [
+        ("baixa", "Baixa"),
+        ("normal", "Normal"),
+        ("alta", "Alta"),
+        ("urgente", "Urgente"),
+    ]
+
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True)
     categoria = models.ForeignKey(
@@ -124,7 +157,11 @@ class Tarefa(models.Model):
     cliente = models.ForeignKey(
         "vendas.Cliente", on_delete=models.CASCADE, null=True, blank=True, related_name="tarefas"
     )
-    data_vencimento = models.DateTimeField()
+    data_vencimento = models.DateTimeField("Início")
+    data_fim = models.DateTimeField(null=True, blank=True)
+    dia_inteiro = models.BooleanField(default=False)
+    prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default="normal")
+    local = models.CharField(max_length=180, blank=True)
     concluida = models.BooleanField(default=False)
     concluida_em = models.DateTimeField(null=True, blank=True)
     gerada_automaticamente = models.BooleanField(default=False, editable=False)
