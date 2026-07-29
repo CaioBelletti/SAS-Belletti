@@ -1,10 +1,47 @@
 {% extends "base.html" %}
 {% block title %}Agenda — Belletti Cards Universe{% endblock %}
 
+{% block extra_head %}
+<style>
+    .form-nova-tarefa { display: grid; grid-template-columns: 1.5fr 2fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 20px; }
+    .form-nova-tarefa label { font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+    .form-nova-tarefa input {
+        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--bg-2); color: var(--text-primary); font-size: 13px; box-sizing: border-box;
+    }
+    .btn-concluir-tarefa {
+        padding: 5px 11px; border-radius: 6px; border: 1px solid var(--green); background: transparent;
+        color: var(--green); font-size: 11.5px; font-weight: 600; cursor: pointer;
+    }
+    .btn-concluir-tarefa:hover { background: #4ade8018; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="topbar">
-    <div><h1>Agenda</h1><div class="subtitle">Suas tarefas agrupadas por dia</div></div>
+    <div><h1>Minha Agenda</h1><div class="subtitle">Suas tarefas do dia a dia, agrupadas por dia</div></div>
+    <a href="{% url 'crm:agenda_calendario' %}" style="color: var(--text-muted); font-size: 13px;">📅 Ver como calendário</a>
 </div>
+
+{% if messages %}{% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<form method="post" class="form-nova-tarefa">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="criar">
+    <div>
+        <label>Nova tarefa</label>
+        <input type="text" name="titulo" placeholder="Ex: Ligar pro contador" required>
+    </div>
+    <div>
+        <label>Detalhes (opcional)</label>
+        <input type="text" name="descricao" placeholder="Alguma observação...">
+    </div>
+    <div>
+        <label>Quando</label>
+        <input type="datetime-local" name="data_vencimento" required>
+    </div>
+    <button type="submit" class="btn-acao">+ Adicionar</button>
+</form>
 
 {% for grupo in dias %}
 <div class="card" style="margin-bottom: 12px;">
@@ -12,13 +49,21 @@
         {{ grupo.data|date:"d/m/Y — l" }}{% if grupo.data == hoje %} (hoje){% endif %}
     </div>
     <table>
-        <thead><tr><th>Hora</th><th>Tarefa</th><th>Relacionado a</th></tr></thead>
+        <thead><tr><th>Hora</th><th>Tarefa</th><th>Relacionado a</th><th></th></tr></thead>
         <tbody>
             {% for t in grupo.tarefas %}
             <tr>
                 <td class="num">{{ t.data_vencimento|date:"H:i" }}</td>
-                <td>{{ t.titulo }}</td>
+                <td>{{ t.titulo }}{% if t.descricao %}<br><small style="color:var(--text-faint);">{{ t.descricao }}</small>{% endif %}</td>
                 <td>{% if t.lead %}{{ t.lead.nome }}{% elif t.cliente %}{{ t.cliente.nome }}{% else %}—{% endif %}</td>
+                <td>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="concluir">
+                        <input type="hidden" name="tarefa_id" value="{{ t.id }}">
+                        <button type="submit" class="btn-concluir-tarefa">✓ Concluir</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

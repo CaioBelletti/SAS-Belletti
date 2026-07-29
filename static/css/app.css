@@ -337,6 +337,8 @@ select:focus-visible, summary:focus-visible {
 .metric-icon.c-purple { background: #8b6cf24d; color: #d8cdfb; }
 .metric-icon.c-blue { background: #4f8ef74d; color: #bfdbfe; }
 .metric-icon.c-gold { background: #e8b34d4d; color: #fde4b0; }
+.metric-icon.c-green { background: #4ade804d; color: #bbf7d0; }
+.metric-icon.c-red { background: #f26d6d4d; color: #fecaca; }
 
 .metric .label {
     font-size: 11.5px;

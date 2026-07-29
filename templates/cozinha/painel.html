@@ -7,10 +7,7 @@
 .kds-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
 .kds-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .kds-link { text-decoration:none; padding:9px 14px; border-radius:9px; background:var(--bg-2); border:1px solid var(--border); color:var(--text-primary); font-size:12px; }
-.metricas { display:grid; grid-template-columns:repeat(6,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
-.metrica { background:var(--bg-1); border:1px solid var(--border); border-radius:12px; padding:12px; }
-.metrica strong { display:block; font-size:22px; line-height:1.1; }
-.metrica span { color:var(--text-faint); font-size:11px; }
+.grid-metrics-cozinha { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
 .filtros { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
 .filtro { text-decoration:none; color:var(--text-primary); background:var(--bg-2); border:1px solid var(--border); border-radius:999px; padding:7px 12px; font-size:12px; }
 .filtro.ativo { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
@@ -68,14 +65,49 @@ body.modo-tv main, body.modo-tv .main-content { margin:0!important; width:100%!i
   </div>
 </div>
 
-<div class="metricas">
-  <div class="metrica"><strong>{{ metricas.novos }}</strong><span>Novos pedidos</span></div>
-  <div class="metrica"><strong>{{ metricas.em_preparo }}</strong><span>Em preparo</span></div>
-  <div class="metrica"><strong>{{ metricas.prontos }}</strong><span>Prontos</span></div>
-  <div class="metrica"><strong>{{ metricas.em_entrega }}</strong><span>Em entrega</span></div>
-  <div class="metrica"><strong>{{ metricas.entregues_hoje }}</strong><span>Entregues hoje</span></div>
-  <div class="metrica"><strong>{{ metricas.tempo_medio }} min</strong><span>Tempo médio</span></div>
-  <div class="metrica"><strong>{{ metricas.atrasados }}</strong><span>Pedidos atrasados</span></div>
+<div class="grid grid-metrics-cozinha">
+  <div class="card metric">
+    <div class="metric-top">
+      <div class="metric-icon c-blue"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div>
+      <div><div class="label">Novos pedidos</div><div class="value">{{ metricas.novos }}</div></div>
+    </div>
+  </div>
+  <div class="card metric">
+    <div class="metric-top">
+      <div class="metric-icon c-gold"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/><circle cx="12" cy="8" r="7"/></svg></div>
+      <div><div class="label">Em preparo</div><div class="value gold">{{ metricas.em_preparo }}</div></div>
+    </div>
+  </div>
+  <div class="card metric">
+    <div class="metric-top">
+      <div class="metric-icon c-green"><svg viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div><div class="label">Prontos</div><div class="value" style="color: var(--green);">{{ metricas.prontos }}</div></div>
+    </div>
+  </div>
+  <div class="card metric">
+    <div class="metric-top">
+      <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="5" r="1"/><path d="M9 20l3-6 3 6"/><path d="M6 8l4 2 2-2 2 2 4-2"/><path d="M12 7v6"/></svg></div>
+      <div><div class="label">Em entrega</div><div class="value accent">{{ metricas.em_entrega }}</div></div>
+    </div>
+  </div>
+  <div class="card metric">
+    <div class="metric-top">
+      <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M20 7h-9M14 17H5M17 3l3 4-3 4M7 21l-3-4 3-4"/></svg></div>
+      <div><div class="label">Entregues hoje</div><div class="value accent">{{ metricas.entregues_hoje }}</div></div>
+    </div>
+  </div>
+  <div class="card metric">
+    <div class="metric-top">
+      <div class="metric-icon c-blue"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div><div class="label">Tempo médio</div><div class="value">{{ metricas.tempo_medio }} min</div></div>
+    </div>
+  </div>
+  <div class="card metric">
+    <div class="metric-top">
+      <div class="metric-icon c-red"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div><div class="label">Pedidos atrasados</div><div class="value" style="color: {% if metricas.atrasados %}var(--red){% else %}inherit{% endif %};">{{ metricas.atrasados }}</div></div>
+    </div>
+  </div>
 </div>
 
 <div class="filtros">

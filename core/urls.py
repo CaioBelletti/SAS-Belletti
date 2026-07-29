@@ -15,37 +15,75 @@ admin.site.site_title = "Belletti Cards Universe"
 admin.site.index_title = "Painel administrativo"
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('login/', seguranca_views.login_view, name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
-    path('seguranca/', include('seguranca.urls')),
-    path('backup/', baixar_backup, name='backup'),
-    path('relatorios/', include('relatorios.urls')),
-    path('pdv/', include('vendas.urls')),
-    path('suprimentos/', include('suprimentos.urls')),
-    path('financeiro/', include('financeiro.urls')),
-    path('catalogo/', include('catalogo.urls')),
-    path('crm/', include('crm.urls')),
-    path('notificacoes/', include('notificacoes.urls')),
-    path('aprovacoes/', include('aprovacoes.urls')),
-    path('cozinha/', include('cozinha.urls')),
-    path('cardapio/', cozinha_views.cardapio_publico, name='cardapio_publico'),
-    path('cardapio/pedido/', cozinha_views.fazer_pedido, name='fazer_pedido'),
-    path('cardapio/acompanhar/<str:codigo>/', cozinha_views.acompanhar_pedido, name='acompanhar_pedido'),
-    path('cardapio/m/<uuid:token>/', cozinha_views.confirmar_mesa, name='confirmar_mesa'),
-    path('cardapio/m/<uuid:token>/cardapio/', cozinha_views.cardapio_mesa, name='cardapio_mesa'),
-    path('cardapio/m/<uuid:token>/chamar/', cozinha_views.chamar_atendente, name='chamar_atendente'),
-    path('cardapio/m/<uuid:token>/preferencias/', cozinha_views.preferencias_mesa, name='preferencias_mesa'),
-    path('cardapio/m/<uuid:token>/avaliar/', cozinha_views.avaliar_experiencia, name='avaliar_experiencia'),
-    path('sw.js', sw_view, name='sw'),
-    # Ao acessar a raiz do site, manda direto pro dashboard.
-    path('', RedirectView.as_view(url='relatorios/', permanent=False)),
-    # As fotos de produto/prato precisam ser servidas pelo próprio Django
-    # mesmo em produção (DEBUG=False) — o helper static() do Django SEMPRE
-    # vira um no-op quando DEBUG=False (não existe mais um jeito de
-    # contornar isso com "insecure=True" nessa versão do Django), então
-    # conectamos a view de servir arquivo diretamente, sem passar pelo
-    # static(). Pra um sistema desse porte (sem CDN/S3 dedicado), isso é
-    # uma solução aceitável.
-    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+    path("admin/", admin.site.urls),
+    path("login/", seguranca_views.login_view, name="login"),
+    path(
+        "logout/",
+        auth_views.LogoutView.as_view(next_page="login"),
+        name="logout",
+    ),
+    path("seguranca/", include("seguranca.urls")),
+    path("backup/", baixar_backup, name="backup"),
+    path("relatorios/", include("relatorios.urls")),
+    path("pdv/", include("vendas.urls")),
+    path("suprimentos/", include("suprimentos.urls")),
+    path("financeiro/", include("financeiro.urls")),
+    path("catalogo/", include("catalogo.urls")),
+    path("crm/", include("crm.urls")),
+    path("notificacoes/", include("notificacoes.urls")),
+    path("aprovacoes/", include("aprovacoes.urls")),
+    path("cozinha/", include("cozinha.urls")),
+    path(
+        "cardapio/",
+        cozinha_views.cardapio_publico,
+        name="cardapio_publico",
+    ),
+    path(
+        "cardapio/pedido/",
+        cozinha_views.fazer_pedido,
+        name="fazer_pedido",
+    ),
+    path(
+        "cardapio/acompanhar/<str:codigo>/",
+        cozinha_views.acompanhar_pedido,
+        name="acompanhar_pedido",
+    ),
+    path(
+        "cardapio/m/<uuid:token>/",
+        cozinha_views.confirmar_mesa,
+        name="confirmar_mesa",
+    ),
+    path(
+        "cardapio/m/<uuid:token>/cardapio/",
+        cozinha_views.cardapio_mesa,
+        name="cardapio_mesa",
+    ),
+    path(
+        "cardapio/m/<uuid:token>/chamar/",
+        cozinha_views.chamar_atendente,
+        name="chamar_atendente",
+    ),
+    path(
+        "cardapio/m/<uuid:token>/preferencias/",
+        cozinha_views.preferencias_mesa,
+        name="preferencias_mesa",
+    ),
+    path(
+        "cardapio/m/<uuid:token>/avaliar/",
+        cozinha_views.avaliar_experiencia,
+        name="avaliar_experiencia",
+    ),
+    path("sw.js", sw_view, name="sw"),
+    path(
+        "",
+        RedirectView.as_view(
+            url="relatorios/",
+            permanent=False,
+        ),
+    ),
+    re_path(
+        r"^media/(?!backups_privados/)(?P<path>.*)$",
+        serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
 ]

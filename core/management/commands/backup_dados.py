@@ -23,8 +23,8 @@ class Command(BaseCommand):
     help = "Gera um backup dos dados em backups/ e mantém só os mais recentes."
 
     def handle(self, *args, **options):
-        pasta = settings.BASE_DIR / "backups"
-        pasta.mkdir(exist_ok=True)
+        pasta = settings.MEDIA_ROOT / "backups_privados"
+        pasta.mkdir(parents=True, exist_ok=True)
 
         nome_arquivo = pasta / f"backup_{datetime.now():%Y%m%d_%H%M%S}.json"
         with open(nome_arquivo, "w", encoding="utf-8") as f:
@@ -33,6 +33,9 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS(f"Backup salvo em {nome_arquivo}"))
+
+        from core.models import RegistroBackup
+        RegistroBackup.objects.create(origem="agendado_local")
 
         backups = sorted(pasta.glob("backup_*.json"), key=os.path.getmtime, reverse=True)
         for antigo in backups[MANTER_ULTIMOS:]:

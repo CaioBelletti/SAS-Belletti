@@ -14,10 +14,14 @@ MANTER_ULTIMOS = 10
 
 
 def _salvar_copia_local(conteudo):
-    """Salva uma cópia em backups/, igual o comando agendado faz — assim
-    tanto o backup manual quanto o automático contam pro 'último backup'."""
-    pasta = settings.BASE_DIR / "backups"
-    pasta.mkdir(exist_ok=True)
+    """Salva uma cópia em MEDIA_ROOT/backups_privados/, igual o comando
+    agendado faz — assim tanto o backup manual quanto o automático contam
+    pro 'último backup'. Fica dentro do Volume persistente (sobrevive a
+    deploys), mas numa subpasta que o sistema bloqueia de servir
+    publicamente por URL (ver core/urls.py) — os dados sensíveis do
+    backup nunca ficam acessíveis por link direto."""
+    pasta = settings.MEDIA_ROOT / "backups_privados"
+    pasta.mkdir(parents=True, exist_ok=True)
     nome_arquivo = pasta / f"backup_{datetime.now():%Y%m%d_%H%M%S}.json"
     with open(nome_arquivo, "w", encoding="utf-8") as f:
         f.write(conteudo)
@@ -40,6 +44,9 @@ def baixar_backup(request):
     except OSError:
         pass  # não deixa a falha de salvar local impedir o download
 
+    from core.models import RegistroBackup
+    RegistroBackup.objects.create(origem="manual")
+
     nome_arquivo = f"backup_belletti_{datetime.now():%Y%m%d_%H%M%S}.json"
     response = HttpResponse(conteudo, content_type="application/json")
     response["Content-Disposition"] = f'attachment; filename="{nome_arquivo}"'
@@ -47,12 +54,14 @@ def baixar_backup(request):
 
 
 def dias_desde_ultimo_backup():
-    """Devolve quantos dias faz desde o backup mais recente, ou None se nunca teve nenhum."""
-    pasta = settings.BASE_DIR / "backups"
-    if not pasta.exists():
+    """Devolve quantos dias faz desde o backup mais recente, ou None se nunca teve nenhum.
+    Lê do banco de dados (não do disco local) — assim funciona certinho mesmo que o
+    backup agendado rode num serviço separado do Railway (Cron Job), que não
+    compartilha o mesmo disco/Volume do serviço principal."""
+    from core.models import RegistroBackup
+
+    ultimo = RegistroBackup.objects.order_by("-criado_em").first()
+    if not ultimo:
         return None
-    backups = sorted(pasta.glob("backup_*.json"), key=os.path.getmtime, reverse=True)
-    if not backups:
-        return None
-    mtime = datetime.fromtimestamp(os.path.getmtime(backups[0]))
-    return (datetime.now() - mtime).days
+    from django.utils import timezone
+    return (timezone.now() - ultimo.criado_em).days

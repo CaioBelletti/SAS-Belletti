@@ -1,6 +1,20 @@
 from django.contrib import admin
 
-from .models import ConfiguracaoCRM, InteracaoContato, Lead, Proposta, Tarefa
+from .models import CategoriaTarefa, ConfiguracaoCRM, InteracaoContato, Lead, Proposta, Tarefa
+
+
+@admin.register(CategoriaTarefa)
+class CategoriaTarefaAdmin(admin.ModelAdmin):
+    list_display = ("nome", "cor_preview", "ordem")
+    list_editable = ("ordem",)
+
+    def cor_preview(self, obj):
+        from django.utils.html import format_html
+        return format_html(
+            '<span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:{};margin-right:6px;vertical-align:middle;"></span>{}',
+            obj.cor, obj.cor,
+        )
+    cor_preview.short_description = "Cor"
 
 
 class InteracaoContatoInline(admin.TabularInline):
@@ -39,8 +53,8 @@ class InteracaoContatoAdmin(admin.ModelAdmin):
 
 @admin.register(Tarefa)
 class TarefaAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "responsavel", "data_vencimento", "concluida", "gerada_automaticamente")
-    list_filter = ("concluida", "gerada_automaticamente", "responsavel")
+    list_display = ("titulo", "categoria", "responsavel", "data_vencimento", "concluida", "gerada_automaticamente")
+    list_filter = ("concluida", "categoria", "gerada_automaticamente", "responsavel")
     search_fields = ("titulo", "descricao")
     autocomplete_fields = ["lead", "cliente"]
 

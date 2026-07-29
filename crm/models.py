@@ -93,9 +93,30 @@ class InteracaoContato(models.Model):
         return f"{self.get_tipo_display()} — {alvo}"
 
 
+class CategoriaTarefa(models.Model):
+    """Uma categoria colorida pra organizar a agenda visualmente (ex: Pagamentos, Eventos, Fornecedores)."""
+    nome = models.CharField(max_length=60)
+    cor = models.CharField(
+        max_length=7, default="#8b6cf2",
+        help_text="Código da cor em hexadecimal, ex: #8b6cf2 (pode copiar de um seletor de cor online)",
+    )
+    ordem = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Categoria da agenda"
+        verbose_name_plural = "Categorias da agenda"
+        ordering = ["ordem", "nome"]
+
+    def __str__(self):
+        return self.nome
+
+
 class Tarefa(models.Model):
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True)
+    categoria = models.ForeignKey(
+        CategoriaTarefa, on_delete=models.SET_NULL, null=True, blank=True, related_name="tarefas"
+    )
     responsavel = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="tarefas"
     )
