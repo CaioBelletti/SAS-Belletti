@@ -3,6 +3,7 @@ import {useState,useEffect} from 'react';
 import {motion, MotionConfig} from 'framer-motion';
 import {Eye,EyeOff,ShieldCheck,ArrowRight,LockKeyhole} from 'lucide-react';
 import './auth.css';
+import {Setup} from './Setup';
 
 const root=document.getElementById('auth-root')!;
 const preview=root.dataset.preview==='true';
@@ -37,4 +38,4 @@ function Auth(){
  </motion.div><footer><LockKeyhole size={13}/>{preview?'Prévia local · não use credenciais reais':'Acesso protegido'}</footer>
  </motion.section></main></MotionConfig>
 }
-createRoot(root).render(<Auth/>);
+createRoot(root).render(root.dataset.step==='setup'?<Setup root={root}/>:<Auth/>);
