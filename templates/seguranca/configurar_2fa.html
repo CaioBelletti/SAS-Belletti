@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Autenticação em duas etapas — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
@@ -20,6 +21,7 @@
 {% endblock %}
 
 {% block content %}
+<div id="auth-fallback">
 <div class="topbar">
     <div>
         <h1>Autenticação em duas etapas</h1>
@@ -36,7 +38,7 @@
 {% if codigos %}
 <div class="card" style="max-width:480px">
 <h2>Códigos de recuperação</h2><p>Guarde agora em local seguro. Cada código funciona uma única vez.</p>
-{% for codigo in codigos %}<p><code>{{ codigo }}</code></p>{% endfor %}
+{% for codigo in codigos %}<p><code data-recovery-code>{{ codigo }}</code></p>{% endfor %}
 </div>
 {% endif %}
 {% if ativado %}
@@ -71,4 +73,8 @@
     </form>
 </div>
 {% endif %}
+</div>
+<div id="auth-root" data-step="setup" data-active="{{ ativado|yesno:'true,false' }}" data-csrf="{{ csrf_token }}" data-qr="{{ qr_data_uri|default_if_none:'' }}"></div>
+<link rel="stylesheet" href="{% static 'auth-v2/auth.css' %}">
+<script type="module" src="{% static 'auth-v2/auth.js' %}"></script>
 {% endblock %}
