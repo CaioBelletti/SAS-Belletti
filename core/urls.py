@@ -15,6 +15,7 @@ admin.site.site_title = "Belletti Cards Universe"
 admin.site.index_title = "Painel administrativo"
 
 urlpatterns = [
+    path("admin/login/", RedirectView.as_view(pattern_name="login", query_string=True)),
     path("admin/", admin.site.urls),
     path("login/", seguranca_views.login_view, name="login"),
     path(
