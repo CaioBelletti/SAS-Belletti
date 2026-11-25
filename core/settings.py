@@ -10,16 +10,27 @@ SECRET_KEY. O sistema detecta e troca para PostgreSQL sozinho.
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+DEBUG = config("DEBUG", default=False, cast=bool)
+
 SECRET_KEY = config(
     "SECRET_KEY",
-    default="django-insecure-troque-esta-chave-em-producao",
+    default="django-insecure-local-development-only" if DEBUG else "",
 )
+if not DEBUG and (
+    len(SECRET_KEY) < 50
+    or len(set(SECRET_KEY)) < 5
+    or SECRET_KEY.startswith("django-insecure-")
+):
+    raise ImproperlyConfigured("Configure uma SECRET_KEY forte e exclusiva para este ambiente.")
 
-DEBUG = config("DEBUG", default=True, cast=bool)
+DATABASE_URL = config("DATABASE_URL", default="").strip()
+if not DEBUG and not DATABASE_URL:
+    raise ImproperlyConfigured("DATABASE_URL PostgreSQL obrigatória com DEBUG=False.")
 
 if not DEBUG:
     # Endurecimentos de segurança que só fazem sentido em produção
@@ -111,12 +122,18 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # Banco de dados: SQLite local por padrão, PostgreSQL se DATABASE_URL existir
 # (é isso que o Railway injeta automaticamente).
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-    )
-}
+try:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+            conn_max_age=600,
+        )
+    }
+except (ValueError, KeyError) as exc:
+    raise ImproperlyConfigured("DATABASE_URL inválida.") from None
+
+if not DEBUG and DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
+    raise ImproperlyConfigured("O banco deve ser PostgreSQL com DEBUG=False.")
 
 
 AUTH_PASSWORD_VALIDATORS = [

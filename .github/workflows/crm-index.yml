@@ -1,0 +1,38 @@
+name: CRM index validation
+on:
+  pull_request:
+    branches: [main]
+    paths: ['crm/**', '.github/workflows/crm-index.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: crm_test
+          POSTGRES_PASSWORD: crm_test
+          POSTGRES_DB: crm_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    env:
+      DEBUG: 'False'
+      SECRET_KEY: ci-only-abcdefghijklmnopqrstuvwxyz-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+      DATABASE_URL: postgresql://crm_test:crm_test@localhost:5432/crm_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -r requirements.txt
+      - run: python manage.py check
+      - run: python manage.py makemigrations crm --check --dry-run
+      - run: python manage.py migrate --noinput
+      - name: Verify PostgreSQL index
+        run: |
+          python manage.py shell -c "from django.db import connection; from crm.models import Tarefa; c=connection.cursor(); indexes=connection.introspection.get_constraints(c,Tarefa._meta.db_table); idx=indexes.get('crm_tarefa_origem_7bdb34_idx',{}); assert idx.get('index') and idx.get('columns') == ['origem','referencia_modelo','referencia_id'], idx"
+      - run: python manage.py test crm --noinput

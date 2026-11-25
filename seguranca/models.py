@@ -78,6 +78,7 @@ class DoisFatores(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="dois_fatores"
     )
     secret = models.CharField(max_length=32)
+    ultimo_totp = models.BigIntegerField(default=-1)
     ativado = models.BooleanField(default=False)
     criado_em = models.DateTimeField(auto_now_add=True)
 
@@ -108,3 +109,9 @@ class TentativaLogin(models.Model):
 
     def __str__(self):
         return f"{self.username} — {'ok' if self.sucesso else 'falhou'} ({self.criado_em:%d/%m %H:%M})"
+
+
+class CodigoRecuperacao(models.Model):
+    config = models.ForeignKey(DoisFatores, on_delete=models.CASCADE, related_name="codigos_recuperacao")
+    digest = models.CharField(max_length=256)
+    usado_em = models.DateTimeField(null=True, blank=True)

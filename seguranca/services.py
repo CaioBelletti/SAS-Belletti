@@ -9,6 +9,8 @@ Duas camadas de segurança de login:
    ~30 segundos, sem depender de SMS ou serviço pago.
 """
 from datetime import timedelta
+from math import ceil
+import re
 
 from django.utils import timezone
 
@@ -19,24 +21,26 @@ JANELA_MINUTOS = 15
 BLOQUEIO_MINUTOS = 15
 
 
-def esta_bloqueado(username):
-    desde = timezone.now() - timedelta(minutes=JANELA_MINUTOS)
-    falhas = TentativaLogin.objects.filter(
+def segundos_restantes_bloqueio(username):
+    agora = timezone.now()
+    desde = agora - timedelta(minutes=JANELA_MINUTOS + BLOQUEIO_MINUTOS)
+    falhas = list(TentativaLogin.objects.filter(
         username__iexact=username, sucesso=False, criado_em__gte=desde
-    ).count()
-    return falhas >= LIMITE_TENTATIVAS
+    ).order_by("-criado_em").values_list("criado_em", flat=True)[:LIMITE_TENTATIVAS])
+    if len(falhas) < LIMITE_TENTATIVAS:
+        return 0
+    if falhas[0] - falhas[-1] > timedelta(minutes=JANELA_MINUTOS):
+        return 0
+    fim = falhas[0] + timedelta(minutes=BLOQUEIO_MINUTOS)
+    return max(0, ceil((fim - agora).total_seconds()))
+
+
+def esta_bloqueado(username):
+    return segundos_restantes_bloqueio(username) > 0
 
 
 def minutos_restantes_bloqueio(username):
-    desde = timezone.now() - timedelta(minutes=JANELA_MINUTOS)
-    ultima_falha = (
-        TentativaLogin.objects.filter(username__iexact=username, sucesso=False, criado_em__gte=desde)
-        .order_by("-criado_em").first()
-    )
-    if not ultima_falha:
-        return 0
-    minutos_passados = (timezone.now() - ultima_falha.criado_em).total_seconds() / 60
-    return max(int(BLOQUEIO_MINUTOS - minutos_passados) + 1, 0)
+    return ceil(segundos_restantes_bloqueio(username) / 60)
 
 
 def registrar_tentativa(username, sucesso, ip=""):
@@ -97,4 +101,10 @@ def gerar_qr_data_uri(usuario_username, secret):
 
 def verificar_codigo_totp(secret, codigo):
     import pyotp
-    return pyotp.TOTP(secret).verify(str(codigo).strip(), valid_window=1)
+    codigo = str(codigo).strip()
+    if not re.fullmatch(r"[0-9]{6}", codigo):
+        return False
+    try:
+        return pyotp.TOTP(secret).verify(codigo, valid_window=1)
+    except (ValueError, TypeError):
+        return False

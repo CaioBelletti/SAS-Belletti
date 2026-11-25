@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Autenticação em duas etapas — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
@@ -20,6 +21,7 @@
 {% endblock %}
 
 {% block content %}
+<div id="auth-fallback">
 <div class="topbar">
     <div>
         <h1>Autenticação em duas etapas</h1>
@@ -33,14 +35,22 @@
 {% endfor %}
 {% endif %}
 
+{% if codigos %}
+<div class="card" style="max-width:480px">
+<h2>Códigos de recuperação</h2><p>Guarde agora em local seguro. Cada código funciona uma única vez.</p>
+{% for codigo in codigos %}<p><code data-recovery-code>{{ codigo }}</code></p>{% endfor %}
+</div>
+{% endif %}
 {% if ativado %}
 <div class="card" style="max-width: 480px;">
     <div class="card-title">Status</div>
     <p style="color: var(--green); font-size: 14px;">✓ Ativado — seu login exige o código do app autenticador.</p>
     <form method="post">
         {% csrf_token %}
-        <input type="hidden" name="acao" value="desativar">
-        <button type="submit" class="btn-acao perigo">Desativar 2FA</button>
+        <label>Senha atual <input type="password" name="password" autocomplete="current-password" required></label><br>
+<label>Código autenticador ou recuperação <input type="text" name="codigo" autocomplete="off" required></label><br>
+<button type="submit" name="acao" value="gerar_codigos" class="btn-acao">Gerar novos códigos</button>
+        <button type="submit" name="acao" value="desativar" class="btn-acao perigo">Desativar 2FA</button>
     </form>
 </div>
 {% else %}
@@ -56,11 +66,15 @@
     {% endif %}
     <form method="post" style="margin-top: 16px;">
         {% csrf_token %}
-        <input type="hidden" name="acao" value="confirmar">
+        <input type="hidden" name="acao" value="confirmar"><label>Senha atual <input type="password" name="password" autocomplete="current-password" required></label><br>
         <input type="text" name="codigo" class="codigo-input" inputmode="numeric" maxlength="6" placeholder="000000" required>
         <br>
         <button type="submit" class="btn-acao">Confirmar e ativar</button>
     </form>
 </div>
 {% endif %}
+</div>
+<div id="auth-root" data-step="setup" data-active="{{ ativado|yesno:'true,false' }}" data-csrf="{{ csrf_token }}" data-qr="{{ qr_data_uri|default_if_none:'' }}"></div>
+<link rel="stylesheet" href="{% static 'auth-v2/auth.css' %}">
+<script type="module" src="{% static 'auth-v2/auth.js' %}"></script>
 {% endblock %}

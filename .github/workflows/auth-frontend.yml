@@ -1,0 +1,26 @@
+name: Auth frontend validation
+on:
+  push:
+    branches: [fix/auth-frontend-ci]
+  pull_request:
+    paths: ['frontend/auth/**', '.github/workflows/auth-frontend.yml']
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/auth
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: auth-package-lock
+          path: frontend/auth/package-lock.json
+          if-no-files-found: error

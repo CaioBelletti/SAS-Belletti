@@ -30,9 +30,11 @@
         .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
         .msg.success { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
     </style>
+    <link rel="stylesheet" href="{% static 'auth-v2/auth.css' %}">
+    <style>body.auth-enhanced{display:block}#auth-fallback[hidden]{display:none!important}#auth-root:empty{display:none}</style>
 </head>
 <body>
-    <div class="login-card">
+    <div class="login-card" id="auth-fallback">
         <div class="brand"><img src="{% static 'images/logo-icone.png' %}" alt="Belletti Cards Universe" style="height:52px;width:auto;"></div>
         <h1>Belletti Cards Universe</h1>
         {% if messages %}
@@ -50,5 +52,7 @@
             <button type="submit">Entrar</button>
         </form>
     </div>
+    <div id="auth-root" data-step="login" data-csrf="{{ csrf_token }}" data-next="{{ next }}" data-lock="{{ bloqueio_segundos|default:0 }}" data-logo="{% static 'images/logo-icone.png' %}"></div>
+    <script type="module" src="{% static 'auth-v2/auth.js' %}"></script>
 </body>
 </html>
