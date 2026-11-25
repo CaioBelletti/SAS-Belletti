@@ -113,7 +113,7 @@ class AuthHTTPTests(TestCase):
 
     
 from django.test import TransactionTestCase
-from django.db import connection, close_old_connections
+from django.db import connection, connections, close_old_connections
 from unittest import skipUnless
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
@@ -135,7 +135,7 @@ class ConcurrentCodeTests(TransactionTestCase):
                 barrier.wait(timeout=10)
                 return consumer(user, code)
             finally:
-                close_old_connections()
+                connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:
             futures = [pool.submit(attempt) for _ in range(2)]
             results = [f.result(timeout=30) for f in futures]
