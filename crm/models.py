@@ -197,6 +197,12 @@ class Tarefa(models.Model):
         verbose_name = "Tarefa"
         verbose_name_plural = "Tarefas"
         ordering = ["data_vencimento"]
+        indexes = [
+            models.Index(
+                fields=["origem", "referencia_modelo", "referencia_id"],
+                name="crm_tarefa_origem_7bdb34_idx",
+            ),
+        ]
 
     def __str__(self):
         return self.titulo
