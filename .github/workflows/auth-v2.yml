@@ -1,7 +1,7 @@
 name: Belletti Auth validation
 on:
   push:
-    branches: [feature/auth-v2]
+    branches: [feature/auth-v2, release/auth-v2-rc2]
   pull_request:
     branches: [main]
 permissions:
@@ -9,9 +9,12 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: ['16', '18']
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: auth_test
           POSTGRES_PASSWORD: auth_test
@@ -32,7 +35,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
         working-directory: frontend/auth
       - run: npm run build
         working-directory: frontend/auth
@@ -42,7 +45,7 @@ jobs:
           python-version: "3.13"
       - run: pip install -r requirements.txt
       - run: python manage.py check
-      - run: python manage.py makemigrations seguranca --check --dry-run
+      - run: python manage.py makemigrations seguranca crm --check --dry-run
       - run: python manage.py migrate --noinput
       - run: python manage.py collectstatic --noinput
-      - run: python manage.py test seguranca.test_auth_v2 --noinput
+      - run: python manage.py test seguranca.test_auth_v2 crm --noinput
