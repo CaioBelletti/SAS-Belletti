@@ -20,7 +20,7 @@ jobs:
           html=open("login.html").read()
           base="https://splendid-dream-production-04ee920a.up.railway.app"
           for ext in ("js","css"):
-              matches=re.findall(r'["\x27]([^"\x27]*auth-v2/auth[^"\x27]*\\.'+ext+r')["\x27]',html)
+              matches=re.findall(r'["\x27]([^"\x27]*auth-v2/auth[^"\x27]*\.'+ext+r')["\x27]',html)
               assert matches, ext
               with urllib.request.urlopen(urllib.parse.urljoin(base,matches[0])) as response:
                   assert response.status==200 and len(response.read())>100
