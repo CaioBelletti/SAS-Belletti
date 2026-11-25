@@ -110,3 +110,39 @@ class AuthHTTPTests(TestCase):
         response = self.client.post("/admin/login/", {"username": self.user.username, "password": "test-password"})
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertEqual(response.status_code, 302)
+
+    
+from django.test import TransactionTestCase
+from django.db import connection, close_old_connections
+from unittest import skipUnless
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+
+@skipUnless(connection.vendor == "postgresql", "Requires PostgreSQL row locks")
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+class ConcurrentCodeTests(TransactionTestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="concurrent-auth")
+        self.config = DoisFatores.objects.create(usuario=self.user, secret=pyotp.random_base32(), ativado=True)
+
+    def race(self, consumer, code):
+        barrier = Barrier(2)
+        pk = self.user.pk
+        def attempt():
+            close_old_connections()
+            try:
+                user = get_user_model().objects.get(pk=pk)
+                barrier.wait(timeout=10)
+                return consumer(user, code)
+            finally:
+                close_old_connections()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(attempt) for _ in range(2)]
+            results = [f.result(timeout=30) for f in futures]
+        self.assertEqual(sorted(results), [False, True])
+
+    def test_concurrent_recovery(self):
+        self.race(consumir_codigo, gerar_codigos(self.user)[0])
+
+    def test_concurrent_totp(self):
+        self.race(consumir_totp, pyotp.TOTP(self.config.secret).now())
