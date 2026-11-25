@@ -1,0 +1,51 @@
+name: Belletti Auth validation
+on:
+  push:
+    branches: [feature/auth-v2, release/auth-v2-rc2]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: ['16', '18']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: auth_test
+          POSTGRES_PASSWORD: auth_test
+          POSTGRES_DB: auth_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://auth_test:auth_test@localhost:5432/auth_test
+      DEBUG: "True"
+      SECRET_KEY: ci-only-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend/auth
+      - run: npm run build
+        working-directory: frontend/auth
+      - run: test -s static/auth-v2/auth.js && test -s static/auth-v2/auth.css
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - run: python manage.py check
+      - run: python manage.py makemigrations seguranca crm --check --dry-run
+      - run: python manage.py migrate --noinput
+      - run: python manage.py collectstatic --noinput
+      - run: python manage.py test seguranca.test_auth_v2 crm --noinput
