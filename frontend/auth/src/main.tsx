@@ -20,7 +20,7 @@ function Auth(){
  useEffect(()=>{document.getElementById('auth-fallback')?.setAttribute('hidden','');document.body.classList.add('auth-enhanced');},[]);
  const messages=Array.from(document.querySelectorAll('#auth-fallback .msg')).map(el=>el.textContent||'');
  return <MotionConfig reducedMotion="user"><main className="auth-stage">
- <div className="aurora" aria-hidden="true"><i/><i/><i/></div>
+ <div className="aurora" aria-hidden="true"><i/><i/><i/><i/></div>
  <motion.section className="auth-panel" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:.35}}>
  <header className="brand">{root.dataset.logo&&<img src={root.dataset.logo} alt="" />}<strong>BELLETTI</strong><small>CARDS UNIVERSE</small></header>
  <div className="eyebrow"><ShieldCheck size={15}/> CENTRAL DE GESTÃO</div>
