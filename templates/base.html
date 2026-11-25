@@ -176,7 +176,7 @@
                     <a href="/admin/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Painel administrativo completo ↗</a>
                     {% endif %}
                     {% if request.user.is_authenticated %}
-                    <a href="{% url 'logout' %}"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sair ({{ request.user.username }})</a>
+                    <form method="post" action="{% url 'logout' %}" style="margin:0;">{% csrf_token %}<button type="submit" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:8px 12px;"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sair ({{ request.user.username }})</button></form>
                     {% endif %}
                 </div>
             </div>
