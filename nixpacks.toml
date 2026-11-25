@@ -1,5 +1,7 @@
-# Pacotes de sistema que o Railway (via Nixpacks) instala antes de rodar
-# o projeto. O Tesseract é o motor de OCR usado pra ler prints de tela
-# na importação de estoque — sem isso, só PDF e .txt funcionariam.
+# Preserve OCR dependencies and add Node for the authentication frontend.
 [phases.setup]
 aptPkgs = ["tesseract-ocr", "tesseract-ocr-por"]
+nixPkgs = ["...", "nodejs_22"]
+
+[phases.build]
+cmds = ["...", "cd frontend/auth && npm install --no-audit --no-fund && npm run build", "test -s static/auth-v2/auth.js && test -s static/auth-v2/auth.css"]
