@@ -230,6 +230,12 @@ body{background:#0d0c14;color:#faf7ff}.hero{background:linear-gradient(180deg,rg
 button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #e9bb6a;outline-offset:3px}
 @media(max-width:600px){input,select,textarea{font-size:16px}.hero{padding-inline:18px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style><style>
+main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+.smart-table{padding:12px 15px;margin:12px 0}.smart-head{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}.smart-head::-webkit-details-marker{display:none}.smart-head::after{content:"＋";margin-left:auto;color:#b99bff}.smart-table[open] .smart-head::after{content:"−"}.smart-head h2{font-size:15px;margin:0}.players{margin-top:12px}
+.quick-actions{gap:7px;margin:10px 0 18px}.quick{padding:10px 8px;min-height:44px;font-size:13px;border-radius:14px}.quick[data-call="atendente"]{border-color:#a88af4;background:rgba(117,75,204,.28)}
+.product{grid-template-columns:76px minmax(0,1fr) 42px;gap:12px;padding:12px;border-radius:18px;align-items:center;background:linear-gradient(135deg,rgba(58,45,76,.72),rgba(28,24,38,.85))}.photo{width:76px;height:76px;border-radius:13px;overflow:hidden}.product h3{font-size:15px}.product .desc{font-size:12px;line-height:1.35}.product .add{width:42px;height:42px;border-radius:13px}.product .price{margin-top:6px}
+@media(max-width:360px){.product{grid-template-columns:60px minmax(0,1fr) 38px;gap:8px}.photo{width:60px;height:60px}.product .add{width:38px;height:38px}}
 </style></head>
 <body>
 {% csrf_token %}
@@ -261,12 +267,12 @@ button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,i
 
   <main>
     {% if mesa %}
-    <section class="smart-table">
-      <div class="smart-head"><div><h2>🎮 Mesa inteligente</h2><div class="mini">{{ mesa }} · pedidos e consumo por jogador</div></div>{% if comanda %}<strong>R$ {{ comanda.valor_total|floatformat:2 }}</strong>{% endif %}</div>
+    <details class="smart-table">
+      <summary class="smart-head"><div><h2>🎮 Mesa inteligente</h2><div class="mini">{{ mesa }} · pedidos e consumo por jogador</div></div>{% if comanda %}<strong>R$ {{ comanda.valor_total|floatformat:2 }}</strong>{% endif %}</summary>
       <div class="players" id="playersList">
         {% for participante in participantes %}<span class="player-chip">👤 {{ participante.nome }} · R$ {{ participante.total_consumido|floatformat:2 }}</span>{% empty %}<span class="mini">O primeiro jogador aparecerá aqui após enviar um pedido.</span>{% endfor %}
       </div>
-    </section>
+    </details>
     {% endif %}
 
     {% if promocoes %}
