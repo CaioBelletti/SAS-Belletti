@@ -24,6 +24,10 @@ class WorkspaceTests(TestCase):
         user = get_user_model().objects.create_user(username="stock_ci", password="test-only-password")
         self.client.force_login(user)
         url = reverse("catalogo:movimentacoes")
+        response = self.client.get(url, secure=True)
+        self.assertRedirects(response, "/", fetch_redirect_response=False)
+        user.is_staff = True
+        user.save(update_fields=["is_staff"])
         self.assertEqual(self.client.get(url, secure=True).status_code, 403)
         user.user_permissions.add(Permission.objects.get(content_type__app_label="catalogo", codename="view_movimentacaoestoque"))
         response = self.client.get(url, {"q": "SKU", "tipo": "entrada"}, secure=True)
