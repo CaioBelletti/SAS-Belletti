@@ -101,14 +101,18 @@ def fazer_pedido(request):
         return JsonResponse({"ok": False, "erro": "Informe seu nome pra chamarmos quando ficar pronto."}, status=400)
 
     # Proteção simples contra pedido duplicado (clique duplo/rede lenta):
-    # a mesma mesa (ou o mesmo IP, se for balcão) não pode mandar dois
-    # pedidos em menos de 5 segundos.
+    # Limite por dispositivo e mesa; clientes antigos usam o limite legado.
     ip = _get_ip(request)
     mesa_token = dados.get("mesa_token")
-    chave_throttle = f"cozinha_pedido_throttle:{mesa_token or ip}"
-    if cache.get(chave_throttle):
+    dispositivo_token = dados.get("dispositivo_token")
+    if dispositivo_token:
+        try:
+            dispositivo_token = str(uuid.UUID(str(dispositivo_token)))
+        except (ValueError, TypeError, AttributeError):
+            return JsonResponse({"ok": False, "erro": "Identificador de dispositivo inválido."}, status=400)
+    chave_throttle = f"cozinha_pedido_throttle:{mesa_token or ip}:{dispositivo_token or 'legado'}"
+    if not cache.add(chave_throttle, True, 5):
         return JsonResponse({"ok": False, "erro": "Pedido já enviado — aguarde um instante antes de mandar outro."}, status=429)
-    cache.set(chave_throttle, True, 5)
 
     mesa = None
     comanda = None
