@@ -302,12 +302,7 @@ main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
 
 
     {% if mesa %}
-    <details class="smart-table">
-      <summary class="smart-head"><div><h2>🎮 Mesa inteligente</h2><div class="mini">{{ mesa }} · pedidos e consumo por jogador</div></div>{% if comanda %}<strong>R$ {{ comanda.valor_total|floatformat:2 }}</strong>{% endif %}</summary>
-      <div class="players" id="playersList">
-        {% for participante in participantes %}<span class="player-chip">👤 {{ participante.nome }} · R$ {{ participante.total_consumido|floatformat:2 }}</span>{% empty %}<span class="mini">O primeiro jogador aparecerá aqui após enviar um pedido.</span>{% endfor %}
-      </div>
-    </details>
+    <details class="smart-table" id="myOrders"><summary class="smart-head"><div><h2>Meus pedidos</h2><div class="mini">{{ mesa }} · somente seus pedidos</div></div></summary><div id="myOrdersList" class="players">Abra para consultar.</div></details>
     {% endif %}
 
     {% if promocoes %}
@@ -638,5 +633,10 @@ renderCart();
  if(motion.addEventListener)motion.addEventListener('change',change);else if(motion.addListener)motion.addListener(change);
  label();show(urls[0],true);
 })();
+
+{% if mesa %}
+const myOrders=document.getElementById('myOrders');
+if(myOrders)myOrders.addEventListener('toggle',async()=>{if(!myOrders.open)return;const list=document.getElementById('myOrdersList');const token=safeStorageGet(PARTICIPANT_KEY,'');if(!token){list.textContent='Você ainda não tem pedidos neste dispositivo.';return;}list.textContent='Consultando...';try{const r=await fetch('{% url "meus_pedidos_mesa" mesa.token_publico %}',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({participante_token:token})});if(!r.ok)throw Error();const d=await r.json();list.replaceChildren();if(!d.pedidos.length)list.textContent='Nenhum pedido nesta comanda.';for(const p of d.pedidos){const el=document.createElement('div');el.className='player-chip';el.textContent='Pedido #'+p.numero+' · '+p.status+' · R$ '+Number(p.total).toFixed(2).replace('.',',');list.appendChild(el);}}catch(e){list.textContent='Não foi possível consultar seus pedidos. Feche e abra para tentar novamente.';}});
+{% endif %}
 </script>
 </body></html>
