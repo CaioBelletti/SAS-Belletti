@@ -13,3 +13,8 @@ class WorkspaceTests(TestCase):
             self.assertContains(response, marker)
         for asset in ('css/workspace.css', 'js/workspace.js'):
             self.assertContains(response, staticfiles_storage.url(asset))
+
+    def test_dashboard_sections_cover_all_widgets(self):
+        from relatorios.widgets_registry import IDS_PADRAO, SECOES_WIDGETS, montar_lista_widgets
+        self.assertEqual(set(IDS_PADRAO), set(SECOES_WIDGETS))
+        self.assertTrue(all(w["secoes"] for w in montar_lista_widgets(None)))
