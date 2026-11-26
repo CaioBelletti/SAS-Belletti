@@ -160,13 +160,7 @@
             </div>
 
             <div class="sidebar-bottom">
-                <div class="crown-card">
-                    <div class="crown-icon">👑</div>
-                    <div class="crown-title">Belletti Cards Universe</div>
-                    <div class="crown-sub">Gestão inteligente para o seu negócio crescer sempre.</div>
-                </div>
-
-                <div class="sidebar-footer">
+                <details class="workspace-account"><summary title="Conta e configurações"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>{{ request.user.username|default:"Conta" }}</span><span class="workspace-account-chevron">⌃</span></summary><div class="sidebar-footer">
                     {% if request.user.is_authenticated %}
                     <a href="{% url 'seguranca:configurar_2fa' %}"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Segurança (2FA)</a>
                     {% endif %}
@@ -184,6 +178,7 @@
                     </form>
                     {% endif %}
                 </div>
+            </details>
             </div>
         </aside>
 
