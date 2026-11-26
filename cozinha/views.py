@@ -133,6 +133,15 @@ def _fazer_pedido(request):
     for campo in ("nome", "mesa_ou_local", "observacoes"):
         if campo in dados and not isinstance(dados[campo], str):
             return JsonResponse({"ok": False, "erro": "Campo de texto inválido."}, status=400)
+    for campo in ("mesa_token", "participante_token"):
+        valor = dados.get(campo)
+        if valor is not None and valor != "":
+            if not isinstance(valor, str):
+                return JsonResponse({"ok": False, "erro": "Token inválido."}, status=400)
+            try:
+                uuid.UUID(valor)
+            except (ValueError, AttributeError):
+                return JsonResponse({"ok": False, "erro": "Token inválido."}, status=400)
     itens = dados.get("itens", [])
     if not isinstance(itens, list) or len(itens) > 200:
         return JsonResponse({"ok": False, "erro": "Lista de itens inválida."}, status=400)
