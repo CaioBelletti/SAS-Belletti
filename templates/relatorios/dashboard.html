@@ -153,6 +153,27 @@ html[data-workspace-theme=light] .bcu-glass-dashboard{--glass-surface:rgba(255,2
 @media(hover:hover){.bcu-glass-dashboard .card:hover{border-color:rgba(139,108,242,.46);box-shadow:var(--glass-shadow),0 0 0 1px rgba(139,108,242,.10)}}
 @media(prefers-reduced-motion:reduce){.bcu-glass-dashboard .card{transition:none}}
 @media(prefers-reduced-transparency:reduce){.bcu-glass-dashboard{--glass-surface:var(--bg-1)}.bcu-glass-dashboard::before{display:none}.bcu-glass-dashboard .card{backdrop-filter:none}}
+
+/* Dark Glass: dashboard-only overrides; light theme remains unchanged. */
+html:not([data-workspace-theme=light]) .bcu-glass-dashboard{
+ --glass-surface:rgba(27,28,38,.94);--glass-edge:rgba(216,212,232,.14);
+ --glass-shadow:0 10px 30px rgba(0,0,0,.18);
+ --text-primary:#f3f1fa;--text-muted:#b9b5c9;--text-faint:#aaa6ba;
+ --border:rgba(216,212,232,.16);--accent-text:#c5afff;--gold:#e9b65c;--green:#76dca5;
+ color:var(--text-primary)
+}
+html:not([data-workspace-theme=light]) .bcu-glass-dashboard .card{
+ box-shadow:var(--glass-shadow),inset 0 1px rgba(255,255,255,.045);
+ backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
+}
+html:not([data-workspace-theme=light]) .bcu-glass-dashboard .metric{
+ background:linear-gradient(145deg,rgba(167,139,250,.065),transparent 70%),var(--glass-surface)
+}
+html:not([data-workspace-theme=light]) .bcu-glass-dashboard .metric .value{color:#f3f1fa}
+html:not([data-workspace-theme=light]) .bcu-glass-dashboard :is(.label,th){color:var(--text-muted)}
+html:not([data-workspace-theme=light]) .bcu-glass-dashboard :is(a,button):focus-visible{outline:2px solid #b69aff;outline-offset:3px}
+@media(hover:hover){html:not([data-workspace-theme=light]) .bcu-glass-dashboard .card:hover{border-color:rgba(182,154,255,.32);box-shadow:var(--glass-shadow)}}
+@media(prefers-reduced-transparency:reduce){html:not([data-workspace-theme=light]) .bcu-glass-dashboard{--glass-surface:#1b1c26}html:not([data-workspace-theme=light]) .bcu-glass-dashboard .card{backdrop-filter:none;-webkit-backdrop-filter:none}}
 </style>
 {% endblock %}
 
