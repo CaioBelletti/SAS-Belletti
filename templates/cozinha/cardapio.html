@@ -536,7 +536,11 @@ async function submitPending(pending) {
     try { data = await response.json(); }
     catch (_) { throw new Error('O servidor respondeu em um formato inesperado. Atualize a página e tente novamente.'); }
     if (!response.ok || !data.ok) {
-      throw new Error(data.erro || 'Não foi possível enviar o pedido.');
+      if (response.status >= 400 && response.status < 500 && data.ok === false && data.pedido_nao_criado === true) {
+        try { localStorage.removeItem(PENDING_KEY); } catch (_) {}
+        throw new Error((data.erro || 'Pedido rejeitado.') + ' Nenhum pedido foi criado. Revise o carrinho e tente novamente.');
+      }
+      throw new Error(data.erro || 'Não foi possível confirmar o pedido. Use a recuperação.');
     }
     if (!data.redirect_url || typeof data.redirect_url !== 'string') throw new Error('Pedido criado, mas o endereço de acompanhamento não foi retornado.');
 
