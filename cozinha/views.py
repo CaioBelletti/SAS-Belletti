@@ -1,3 +1,4 @@
+import hashlib
 import json
 import uuid
 from decimal import Decimal
@@ -86,6 +87,32 @@ def cardapio_mesa(request, token):
 
 @require_POST
 def fazer_pedido(request):
+    from .models import RequisicaoPedido
+    chave = request.headers.get("Idempotency-Key")
+    if not chave:
+        return _fazer_pedido(request)
+    try:
+        chave = uuid.UUID(chave)
+        dados = json.loads(request.body)
+        assinatura = hashlib.sha256(json.dumps(dados, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
+    except (ValueError, TypeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "Requisição inválida."}, status=400)
+    with transaction.atomic():
+        registro, novo = RequisicaoPedido.objects.get_or_create(chave=chave, defaults={"assinatura": assinatura})
+        if not novo:
+            if registro.assinatura != assinatura:
+                return JsonResponse({"ok": False, "erro": "Esta chave pertence a outro pedido."}, status=409)
+            return JsonResponse(registro.resposta)
+        resposta = _fazer_pedido(request)
+        if resposta.status_code != 200:
+            transaction.set_rollback(True)
+            return resposta
+        registro.resposta = json.loads(resposta.content)
+        registro.save(update_fields=["resposta"])
+        return resposta
+
+
+def _fazer_pedido(request):
     """Recebe o pedido montado no cardápio público e cria na fila da cozinha."""
     try:
         dados = json.loads(request.body)
