@@ -1,3 +1,4 @@
+from django.test import override_settings
 import json
 import uuid
 from unittest.mock import patch
@@ -138,6 +139,7 @@ class FluxoIntegradoTests(TestCase):
         self.assertFalse(PedidoCozinha.objects.exists())
         self.assertFalse(Comanda.objects.filter(mesa=b).exists())
 
+    @override_settings(STORAGES={"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"}, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}})
     def test_public_tracking_excludes_table_history(self):
         from django.urls import reverse
         from .models import Mesa, Comanda, PedidoCozinha
