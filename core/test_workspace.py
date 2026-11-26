@@ -93,3 +93,12 @@ class WorkspaceTests(TestCase):
         response = self.client.post(reverse("registration_new",args=["clientes"]),{"nome":"Cliente CI"},secure=True)
         self.assertEqual(response.status_code,302)
         self.assertTrue(Cliente.objects.filter(nome="Cliente CI").exists())
+
+    def test_sales_history_permission(self):
+        user = get_user_model().objects.create_user(username="sales_history",is_staff=True)
+        self.client.force_login(user)
+        url = reverse("vendas:historico")
+        self.assertEqual(self.client.get(url,secure=True).status_code,403)
+        from django.contrib.auth.models import Permission
+        user.user_permissions.add(Permission.objects.get(content_type__app_label="vendas",codename="view_venda"))
+        self.assertEqual(self.client.get(url,secure=True).status_code,200)
