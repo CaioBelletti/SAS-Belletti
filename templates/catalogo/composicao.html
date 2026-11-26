@@ -39,7 +39,7 @@
     {% if not produtos_compostos %}
     <div class="empty-row">
         Nenhum produto com componentes cadastrados ainda. Vá em
-        <a href="/admin/catalogo/produto/" style="color: var(--accent-text);">Produtos</a>,
+        <a href="{% url 'registration_list' 'produtos' %}" style="color: var(--accent-text);">Produtos</a>,
         abra o item que é o kit/combo/booster box, e cadastre os componentes na seção
         "Produto composto" da ficha dele.
     </div>
