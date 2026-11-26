@@ -221,6 +221,9 @@ def _fazer_pedido(request):
             return JsonResponse({"ok": False, "erro": "Quantidade inválida."}, status=400)
         promocao_id = item.get("promocao_id")
         if promocao_id:
+            if item.get("adicionais", []) != []:
+                transaction.set_rollback(True)
+                return JsonResponse({"ok": False, "erro": "Esta promoção não aceita adicionais. Revise o carrinho."}, status=400)
             promocao = PromocaoCardapio.objects.prefetch_related("itens__prato").filter(pk=promocao_id, ativa=True).first()
             if not promocao or not promocao.disponivel_agora:
                 transaction.set_rollback(True)
