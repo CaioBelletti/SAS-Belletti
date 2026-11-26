@@ -29,7 +29,7 @@ WIDGETS_PADRAO = [
 
 SECOES_WIDGETS = {
     "central_alertas": "geral", "pedidos_andamento": "geral", "meta_reestoque": "geral estoque",
-    "produtos_parados": "estoque", "quick_panel": "geral", "comparacoes": "vendas",
+    "produtos_parados": "estoque", "quick_panel": "vendas", "comparacoes": "vendas",
     "indicadores": "financeiro", "fluxo_completo": "financeiro", "aniversariantes": "geral",
     "vendas_mes": "vendas", "lucro_mes": "financeiro", "receita_dia_semana": "vendas",
     "comissao_abc": "vendas estoque", "fluxo_vencimentos": "financeiro", "dre": "financeiro",
