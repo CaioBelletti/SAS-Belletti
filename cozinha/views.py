@@ -37,18 +37,10 @@ def _contexto_cardapio(mesa=None):
         disponivel=True,
     )
 
+    # Public QR pages must not disclose table-wide orders or participants.
     comanda = None
     pedidos_mesa = PedidoCozinha.objects.none()
-    if mesa:
-        comanda = mesa.comanda_aberta
-        if comanda:
-            pedidos_mesa = (
-                comanda.pedidos.exclude(status="cancelado")
-                .prefetch_related("itens__prato")
-                .order_by("-criado_em")
-            )
-
-    participantes = comanda.participantes.filter(ativo=True).order_by("entrou_em") if comanda else ParticipanteMesa.objects.none()
+    participantes = ParticipanteMesa.objects.none()
     promocoes = [p for p in PromocaoCardapio.objects.prefetch_related("itens__prato").filter(ativa=True, destaque=True) if p.disponivel_agora]
     return {
         "categorias": categorias,
