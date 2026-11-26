@@ -137,3 +137,16 @@ class FluxoIntegradoTests(TestCase):
         self.assertTrue(response.json()["pedido_nao_criado"])
         self.assertFalse(PedidoCozinha.objects.exists())
         self.assertFalse(Comanda.objects.filter(mesa=b).exists())
+
+    def test_public_tracking_excludes_table_history(self):
+        from django.urls import reverse
+        from .models import Mesa, Comanda, PedidoCozinha
+        mesa = Mesa.objects.create(numero=904)
+        comanda = Comanda.objects.create(mesa=mesa)
+        first = PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_cliente="Cliente A")
+        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_cliente="SEGREDO_CLIENTE_B")
+        response = self.client.get(reverse("acompanhar_pedido", args=[first.codigo_acompanhamento]), secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "SEGREDO_CLIENTE_B")
+        self.assertNotContains(response, "Histórico da mesa")
+        self.assertNotContains(response, "Consumo acumulado")
