@@ -108,18 +108,18 @@ class FluxoIntegradoTests(TestCase):
         clients = [Client(), Client()]
         payloads = [{"nome": nome, "mesa_token": str(mesa.token_publico), "dispositivo_token": str(uuid.uuid4()), "itens": [{"prato_id": prato.pk, "quantidade": 1}]} for nome in ("A", "B")]
         keys = [str(uuid.uuid4()), str(uuid.uuid4())]
-        results = [c.post(reverse("fazer_pedido"), data=json.dumps(p), content_type="application/json", HTTP_IDEMPOTENCY_KEY=k) for c,p,k in zip(clients,payloads,keys)]
+        results = [c.post(reverse("fazer_pedido"), data=json.dumps(p), content_type="application/json", HTTP_IDEMPOTENCY_KEY=k, secure=True) for c,p,k in zip(clients,payloads,keys)]
         self.assertEqual([r.status_code for r in results], [200,200])
-        replay = clients[0].post(reverse("fazer_pedido"), data=json.dumps(payloads[0]), content_type="application/json", HTTP_IDEMPOTENCY_KEY=keys[0])
+        replay = clients[0].post(reverse("fazer_pedido"), data=json.dumps(payloads[0]), content_type="application/json", HTTP_IDEMPOTENCY_KEY=keys[0], secure=True)
         self.assertEqual(replay.json()["pedido_id"], results[0].json()["pedido_id"])
         self.assertEqual(PedidoCozinha.objects.count(), 2)
-        call = clients[0].post(reverse("chamar_atendente", args=[mesa.token_publico]), {"tipo":"atendente"})
+        call = clients[0].post(reverse("chamar_atendente", args=[mesa.token_publico]), {"tipo":"atendente"}, secure=True)
         self.assertEqual(call.status_code,200)
         staff = Client()
         staff.force_login(get_user_model().objects.create_user(username="staff-test", password="test-only"))
-        self.assertEqual(staff.get(reverse("cozinha:dados_painel")).json()["recebidos"],2)
-        waiter = staff.get(reverse("cozinha:dados_garcom"))
+        self.assertEqual(staff.get(reverse("cozinha:dados_painel"), secure=True).json()["recebidos"],2)
+        waiter = staff.get(reverse("cozinha:dados_garcom"), secure=True)
         self.assertContains(waiter, str(call.json()["chamado_id"]))
-        done = staff.post(reverse("cozinha:atender_chamado", args=[call.json()["chamado_id"]]))
+        done = staff.post(reverse("cozinha:atender_chamado", args=[call.json()["chamado_id"]]), secure=True)
         self.assertEqual(done.status_code,200)
         self.assertTrue(ChamadoAtendente.objects.get(pk=call.json()["chamado_id"]).atendido)
