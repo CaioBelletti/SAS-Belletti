@@ -116,7 +116,7 @@ class FluxoIntegradoTests(TestCase):
         call = clients[0].post(reverse("chamar_atendente", args=[mesa.token_publico]), {"tipo":"atendente"}, secure=True)
         self.assertEqual(call.status_code,200)
         staff = Client()
-        staff.force_login(get_user_model().objects.create_user(username="staff-test", password="test-only"))
+        staff.force_login(get_user_model().objects.create_user(username="staff-test", password="test-only", is_staff=True))
         self.assertEqual(staff.get(reverse("cozinha:dados_painel"), secure=True).json()["recebidos"],2)
         waiter = staff.get(reverse("cozinha:dados_garcom"), secure=True)
         self.assertContains(waiter, str(call.json()["chamado_id"]))
