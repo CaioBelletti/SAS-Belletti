@@ -240,11 +240,13 @@ main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
 @media(max-width:600px){
 .hero{padding:14px 16px 18px}.brand{padding-bottom:9px;font-size:12px}.brand-dot{width:25px;height:25px}.eyebrow{margin-top:12px;font-size:9px}.hero h1{font-size:clamp(28px,8vw,36px);line-height:1.04;margin:7px 0}.hero p{font-size:13px;line-height:1.35;margin:6px 0 10px}.mesa-chip{padding:5px 10px;font-size:12px}.summary{display:none}.toolbar{padding:9px 16px}.search{padding:7px 11px;min-height:38px}.cats{margin-top:7px;gap:6px}.cat{padding:6px 12px;min-height:32px;font-size:12px}main{padding-inline:16px}.menu-section{margin-top:10px}.section-title{margin:10px 0 8px;font-size:12px}.cart-bar button{min-height:48px;padding:9px 14px}
 }
+</style><style>
+.experience-cover{background:linear-gradient(180deg,rgba(20,16,27,.52),rgba(16,12,24,.68) 72%,#0d0c14),url('https://images.unsplash.com/photo-1464305795204-6f5bbfc7fb81?auto=format&fit=crop&w=1600&q=70') center top/cover no-repeat;max-width:1100px;margin:auto}.experience-cover .hero{background:transparent;padding:24px 16px 12px}.experience-cover .menu-scene{display:none}.experience-cover .brand{font-size:15px;padding-bottom:20px}.experience-cover .eyebrow{margin-top:20px;font-size:10px}.experience-cover .hero h1{font-size:clamp(28px,7vw,56px);margin:10px 0;max-width:650px}.experience-cover .hero p{font-size:15px;line-height:1.55;margin:12px 0}.experience-cover .toolbar{position:static;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border:0;padding:12px 16px 24px}.experience-cover .search{background:rgba(37,29,47,.72);border:1px solid #ffffff30;border-radius:16px;padding:12px 16px;min-height:48px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.experience-cover .search input{background:transparent}.experience-cover .cats{margin:12px 0 24px;overflow-x:auto;flex-wrap:nowrap}.experience-cover .cat{padding:10px 18px;white-space:nowrap;background:rgba(40,30,51,.7);border:1px solid #ffffff30}.experience-cover .cat.active{background:#7950d5}.experience-actions{display:flex;gap:10px;flex-wrap:wrap}.experience-action{background:rgba(40,30,51,.65);border:1px solid #ffffff35;color:#fff;border-radius:13px;padding:12px 16px;min-height:44px;font:inherit;cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.explore-title{font-size:24px;margin:8px 0 18px}.product{background:rgba(37,29,47,.72);border:1px solid #ffffff25}.product .photo{border-radius:12px}.product .photo img{object-fit:cover}main{padding-bottom:30px}
 </style></head>
 <body>
 {% csrf_token %}
 <div class="shell">
-  <header class="hero"><div class="menu-scene" aria-hidden="true"></div>
+  <div class="experience-cover"><header class="hero"><div class="menu-scene" aria-hidden="true"></div>
     <div class="brand">
       <img class="brand-dot" src="{% static 'images/logo-icone.png' %}" alt="Belletti Cards Universe">
       BELLETTI CARDS UNIVERSE
@@ -261,15 +263,16 @@ main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
   </header>
 
   <div class="toolbar">
-    <div class="search">🔎<input id="searchInput" placeholder="Buscar por batata, café, refrigerante..."></div>
+    <div class="search">🔎<input id="searchInput" placeholder="Buscar no cardápio..."></div>
     <div class="cats">
       <button class="cat active" data-cat="all">Todos</button>
       {% for categoria in categorias %}<button class="cat" data-cat="cat-{{ categoria.id }}">{{ categoria.nome }}</button>{% endfor %}
       {% if pratos_sem_categoria %}<button class="cat" data-cat="sem-categoria">Outros</button>{% endif %}
     </div>
-  </div>
+    <div class="experience-actions"><button id="openCart" class="experience-action">Meu carrinho <span id="cartCount">0</span> · <span id="cartTotal">R$ 0,00</span></button>{% if mesa %}<button class="quick experience-action" data-call="atendente">Chamar garçom</button>{% endif %}</div>
+  </div></div>
 
-  <main>
+  <main><h2 class="explore-title">Explore o cardápio</h2>
     {% for categoria in categorias %}
     <section class="menu-section" data-section="cat-{{ categoria.id }}">
       <div class="section-title">{{ categoria.nome }}</div>
@@ -315,7 +318,7 @@ main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
 
     {% if mesa %}
     <div class="quick-actions">
-      <button class="quick" data-call="atendente">🔔 Chamar atendente</button>
+
       <button class="quick" data-call="fechamento">💳 Pedir a conta</button>
       <button class="quick" data-call="talheres">🍴 Pedir talheres</button>
       <button class="quick" data-call="guardanapo">🧻 Guardanapos</button>
@@ -339,7 +342,7 @@ main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
   </main>
 </div>
 
-<div class="cart-bar"><button id="openCart"><span><span class="badge" id="cartCount">0</span>Ver carrinho</span><span id="cartTotal">R$ 0,00</span></button></div>
+
 <div class="overlay" id="cartOverlay"><div class="sheet"><div class="sheet-header"><h2>Seu pedido</h2><button class="close" id="closeCart">×</button></div><div id="cartItems"></div><div class="field"><label>Seu nome</label><input id="customerName" maxlength="80" placeholder="Como podemos chamar você?"></div><div class="field"><label>Observação geral</label><textarea id="generalNote" rows="2" placeholder="Ex.: entregar tudo junto"></textarea></div><div class="total"><span>Total</span><span id="sheetTotal">R$ 0,00</span></div><button class="send" id="sendOrder">Enviar pedido para a cozinha</button></div></div>
 <div class="toast" id="toast"></div>
 
