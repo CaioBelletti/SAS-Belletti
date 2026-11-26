@@ -74,3 +74,13 @@ class IdempotenciaPedidoTests(TestCase):
                 self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
                 self.assertFalse(PedidoCozinha.objects.exists())
                 self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_invalid_quantities_are_not_coerced(self):
+        from .models import PedidoCozinha
+        for quantity in (True, False, 1.5, "2", None, 0, -1, 1000):
+            with self.subTest(quantity=quantity):
+                response = self.enviar({"nome": "Teste", "dispositivo_token": str(uuid.uuid4()), "itens": [{"prato_id": 1, "quantidade": quantity}]})
+                self.assertEqual(response.status_code, 400)
+                self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+                self.assertFalse(PedidoCozinha.objects.exists())
+                self.assertFalse(RequisicaoPedido.objects.exists())
