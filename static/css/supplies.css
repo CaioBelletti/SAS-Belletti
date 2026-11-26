@@ -6,3 +6,11 @@
 .supplier-delete-card{max-width:720px}.supplier-delete-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}.supplier-cancel,.supplier-danger{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:10px;font:inherit;font-weight:600;text-decoration:none;box-sizing:border-box}.supplier-cancel{border:1px solid var(--border);color:var(--text-primary);background:var(--bg-card)}.supplier-danger{border:1px solid #b42318;background:#b42318;color:white;cursor:pointer}.supplier-danger:hover{background:#912018}.supplier-delete-actions :focus-visible{outline:3px solid var(--accent,#6744d2);outline-offset:3px}
 
 .supply-workspace .form-inline input[type=checkbox]{width:20px;min-height:20px;align-self:flex-start}.supply-workspace .form-inline select[multiple]{min-height:110px}
+
+/* Workspace list presentation */
+.supply-workspace .form-inline{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.supply-workspace .workspace-action{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 16px;border-radius:10px;background:var(--accent,#6744d2);color:#fff;text-decoration:none;font-weight:600}
+.supply-workspace .workspace-action:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.supply-workspace td.workspace-empty{text-align:center;padding:36px 16px;color:var(--text-muted);border-bottom:0}
+.supply-workspace .card-title{margin-bottom:12px}
+@media(max-width:600px){.supply-workspace .topbar{flex-wrap:wrap;gap:12px}}
