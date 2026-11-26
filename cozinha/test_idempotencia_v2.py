@@ -182,3 +182,24 @@ class FluxoIntegradoTests(TestCase):
         other = Mesa.objects.create(numero=907)
         response = self.client.post(reverse("meus_pedidos_mesa",args=[other.token_publico]),data=json.dumps({"participante_token":str(a.token_dispositivo)}),content_type="application/json",secure=True)
         self.assertEqual(response.status_code,403)
+
+    def test_private_history_rejects_inactive_and_invalid_tokens(self):
+        from django.urls import reverse
+        from .models import Mesa, Comanda, ParticipanteMesa
+        mesa = Mesa.objects.create(numero=908)
+        comanda = Comanda.objects.create(mesa=mesa)
+        p = ParticipanteMesa.objects.create(comanda=comanda, nome="A", ativo=False)
+        url = reverse("meus_pedidos_mesa", args=[mesa.token_publico])
+        for token in ("", "invalid", str(uuid.uuid4()), str(p.token_dispositivo)):
+            with self.subTest(token=token):
+                r = self.client.post(url, data=json.dumps({"participante_token":token}), content_type="application/json", secure=True)
+                self.assertEqual(r.status_code,403)
+        self.assertEqual(self.client.get(url,secure=True).status_code,405)
+
+    def test_private_history_requires_csrf(self):
+        from django.test import Client
+        from django.urls import reverse
+        from .models import Mesa
+        mesa = Mesa.objects.create(numero=909)
+        r = Client(enforce_csrf_checks=True).post(reverse("meus_pedidos_mesa",args=[mesa.token_publico]),data="{}",content_type="application/json",secure=True)
+        self.assertEqual(r.status_code,403)
