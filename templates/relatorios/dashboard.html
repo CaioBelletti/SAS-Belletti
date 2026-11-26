@@ -5,7 +5,7 @@
 {% csrf_token %}
 <div class="topbar">
     <div>
-        <h1>Dashboard de vendas
+        <h1>Dashboard Belletti
             <svg class="star-icon" viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9.5 16.5 14.5 18 22 12 18 6 22 7.5 14.5 2 9.5 9 9"/></svg>
         </h1>
         <div class="subtitle">Visão geral dos últimos 12 meses</div>
@@ -32,7 +32,10 @@
     Arraste os widgets pela alça <strong>⋮⋮</strong> pra reordenar, ou clique em "Ocultar" pra esconder um widget. As mudanças salvam sozinhas.
 </div>
 
-<div class="grid grid-metrics">
+<nav class="dashboard-sections" aria-label="Seções do dashboard">
+{% for id, nome in dashboard_secoes %}<button type="button" class="dashboard-section" data-section="{{ id }}" aria-pressed="{% if id == 'geral' %}true{% else %}false{% endif %}">{{ nome }}</button>{% endfor %}
+</nav>
+<div class="grid grid-metrics" id="dashboardMetrics">
     <div class="card metric">
         <div class="metric-top">
             <div class="metric-icon c-purple"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></div>
@@ -117,7 +120,7 @@
 
 <div id="widgetsContainer">
 {% for w in widgets %}
-<div class="dash-widget {% if w.oculto %}widget-oculto{% endif %}" data-widget-id="{{ w.id }}" id="widget-{{ w.id }}">
+<div class="dash-widget {% if w.oculto %}widget-oculto{% endif %}" data-widget-id="{{ w.id }}" data-sections="{{ w.secoes }}" id="widget-{{ w.id }}">
     <div class="widget-editbar">
         <span class="widget-drag-handle" title="Arrastar pra reordenar">⋮⋮</span>
         <span class="widget-nome">{{ w.label }}</span>
