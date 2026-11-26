@@ -55,3 +55,18 @@ class WorkspaceTests(TestCase):
         self.assertEqual(self.client.post(reverse("registration_edit", args=["fornecedores",obj.pk]), {"nome":"Fornecedor editado","avaliacao":"5"}, secure=True).status_code, 302)
         obj.refresh_from_db()
         self.assertEqual(obj.avaliacao,5)
+
+    def test_supplier_delete_confirmation_and_protection(self):
+        from suprimentos.models import Fornecedor, OrdemCompra
+        admin = get_user_model().objects.create_superuser(username="delete_admin",email="delete@example.invalid",password="test-only-password")
+        self.client.force_login(admin)
+        obj = Fornecedor.objects.create(nome="Descartavel")
+        url = reverse("supplier_delete",args=[obj.pk])
+        self.assertEqual(self.client.get(url,secure=True).status_code,200)
+        self.assertTrue(Fornecedor.objects.filter(pk=obj.pk).exists())
+        self.assertEqual(self.client.post(url,secure=True).status_code,302)
+        self.assertFalse(Fornecedor.objects.filter(pk=obj.pk).exists())
+        linked = Fornecedor.objects.create(nome="Historico")
+        OrdemCompra.objects.create(fornecedor=linked)
+        self.client.post(reverse("supplier_delete",args=[linked.pk]),secure=True)
+        self.assertTrue(Fornecedor.objects.filter(pk=linked.pk).exists())
