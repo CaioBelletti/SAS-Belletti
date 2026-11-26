@@ -33,3 +33,15 @@ class IdempotenciaPedidoTests(TestCase):
         self.assertFalse(RequisicaoPedido.objects.exists())
         criar.return_value = JsonResponse({"ok": True, "pedido_id": 124})
         self.assertEqual(self.enviar({"nome": "Teste"}).status_code, 200)
+
+    def test_unavailable_product_creates_no_order(self):
+        from .models import PedidoCozinha
+        response = self.enviar({
+            "nome": "Teste",
+            "dispositivo_token": str(uuid.uuid4()),
+            "itens": [{"prato_id": 2147483647, "quantidade": 1}],
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+        self.assertFalse(PedidoCozinha.objects.exists())
+        self.assertFalse(RequisicaoPedido.objects.exists())
