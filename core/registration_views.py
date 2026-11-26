@@ -32,7 +32,7 @@ def registration_list(request, kind):
     qs = model.objects.order_by("nome", "pk")
     if q:
         qs = qs.filter(nome__icontains=q)
-    return render(request, "core/registration_list.html", {"kind":kind, "title":title, "singular":singular, "q":q, "page_obj":Paginator(qs,30).get_page(request.GET.get("page")), "can_add":allowed(request.user,model,"add"), "can_change":allowed(request.user,model,"change")})
+    return render(request, "core/registration_list.html", {"kind":kind, "title":title, "singular":singular, "q":q, "page_obj":Paginator(qs,30).get_page(request.GET.get("page")), "can_add":allowed(request.user,model,"add"), "can_change":allowed(request.user,model,"change"), "can_delete":kind == "fornecedores" and allowed(request.user,model,"delete")})
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -48,3 +48,38 @@ def registration_form(request, kind, pk=None):
         messages.success(request,"Cadastro salvo com sucesso.")
         return redirect("registration_list",kind=kind)
     return render(request,"core/registration_form.html",{"kind":kind,"title":title,"singular":singular,"form":form,"editing":obj is not None})
+
+from django.db import transaction, IntegrityError
+from django.db.models.deletion import Collector, ProtectedError, RestrictedError
+
+def supplier_has_links(obj):
+    for rel in obj._meta.related_objects:
+        if rel.related_model._base_manager.filter(**{rel.field.name: obj}).exists():
+            return True
+    collector = Collector(using=obj._state.db)
+    try:
+        collector.collect([obj])
+    except (ProtectedError, RestrictedError):
+        return True
+    return any(model is not type(obj) and objects for model, objects in collector.data.items()) or any(qs.exists() for qs in collector.fast_deletes)
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def supplier_delete(request, pk):
+    if not allowed(request.user,Fornecedor,"view") or not allowed(request.user,Fornecedor,"delete"):
+        raise PermissionDenied
+    if request.method == "POST":
+        try:
+            with transaction.atomic():
+                obj = get_object_or_404(Fornecedor.objects.select_for_update(),pk=pk)
+                if supplier_has_links(obj):
+                    messages.error(request,"Fornecedor possui registros vinculados e não pode ser excluído.")
+                else:
+                    obj.delete()
+                    messages.success(request,"Fornecedor excluído.")
+                    return redirect("registration_list",kind="fornecedores")
+        except (ProtectedError, RestrictedError, IntegrityError):
+            messages.error(request,"Exclusão bloqueada por registros vinculados.")
+        return redirect("supplier_delete",pk=pk)
+    obj = get_object_or_404(Fornecedor,pk=pk)
+    return render(request,"core/supplier_delete.html",{"obj":obj,"blocked":supplier_has_links(obj)})
