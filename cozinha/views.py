@@ -125,10 +125,27 @@ def _fazer_pedido(request):
     """Recebe o pedido montado no cardápio público e cria na fila da cozinha."""
     try:
         dados = json.loads(request.body)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({"ok": False, "erro": "Dados inválidos."}, status=400)
 
+    if not isinstance(dados, dict):
+        return JsonResponse({"ok": False, "erro": "Formato de pedido inválido."}, status=400)
+    for campo in ("nome", "mesa_ou_local", "observacoes"):
+        if campo in dados and not isinstance(dados[campo], str):
+            return JsonResponse({"ok": False, "erro": "Campo de texto inválido."}, status=400)
     itens = dados.get("itens", [])
+    if not isinstance(itens, list) or len(itens) > 200:
+        return JsonResponse({"ok": False, "erro": "Lista de itens inválida."}, status=400)
+    for item in itens:
+        if not isinstance(item, dict) or ("observacao" in item and not isinstance(item["observacao"], str)):
+            return JsonResponse({"ok": False, "erro": "Item inválido."}, status=400)
+        for campo in ("prato_id", "promocao_id"):
+            valor = item.get(campo)
+            if valor is not None and not (
+                (type(valor) is int and 0 < valor <= 2147483647) or
+                (isinstance(valor, str) and valor.isascii() and valor.isdecimal() and len(valor) <= 10 and 0 < int(valor) <= 2147483647)
+            ):
+                return JsonResponse({"ok": False, "erro": "Identificador de produto inválido."}, status=400)
     if not itens:
         return JsonResponse({"ok": False, "erro": "Adicione pelo menos um item ao pedido."}, status=400)
 
