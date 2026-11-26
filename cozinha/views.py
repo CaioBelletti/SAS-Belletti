@@ -229,13 +229,10 @@ def _fazer_pedido(request):
         if not isinstance(item, dict):
             transaction.set_rollback(True)
             return JsonResponse({"ok": False, "erro": "Item inválido no carrinho."}, status=400)
-        try:
-            quantidade_carrinho = int(item.get("quantidade"))
-            if quantidade_carrinho < 1 or quantidade_carrinho > 999:
-                raise ValueError
-        except (ValueError, TypeError, OverflowError):
+        quantidade_carrinho = item.get("quantidade")
+        if type(quantidade_carrinho) is not int or not 1 <= quantidade_carrinho <= 999:
             transaction.set_rollback(True)
-            return JsonResponse({"ok": False, "erro": "Quantidade inválida."}, status=400)
+            return JsonResponse({"ok": False, "erro": "A quantidade deve ser um número inteiro entre 1 e 999."}, status=400)
         promocao_id = item.get("promocao_id")
         if promocao_id:
             if item.get("adicionais", []) != []:
