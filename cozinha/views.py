@@ -120,6 +120,7 @@ def fazer_pedido(request):
         return resposta
 
 
+@transaction.atomic
 def _fazer_pedido(request):
     """Recebe o pedido montado no cardápio público e cria na fila da cozinha."""
     try:
@@ -208,13 +209,26 @@ def _fazer_pedido(request):
             ChecklistItemProducao.objects.create(item_pedido=item_pedido, descricao=prato.instrucoes_preparo.strip(), ordem=0)
 
     for item in itens:
-        quantidade_carrinho = max(int(item.get("quantidade") or 1), 1)
+        if not isinstance(item, dict):
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Item inválido no carrinho."}, status=400)
+        try:
+            quantidade_carrinho = int(item.get("quantidade"))
+            if quantidade_carrinho < 1 or quantidade_carrinho > 999:
+                raise ValueError
+        except (ValueError, TypeError, OverflowError):
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Quantidade inválida."}, status=400)
         promocao_id = item.get("promocao_id")
         if promocao_id:
             promocao = PromocaoCardapio.objects.prefetch_related("itens__prato").filter(pk=promocao_id, ativa=True).first()
             if not promocao or not promocao.disponivel_agora:
-                continue
+                transaction.set_rollback(True)
+                return JsonResponse({"ok": False, "erro": "Uma promoção não está mais disponível. Revise o carrinho."}, status=400)
             promo_itens = list(promocao.itens.all())
+            if not promo_itens or any(not pi.prato.disponivel or pi.quantidade < 1 for pi in promo_itens):
+                transaction.set_rollback(True)
+                return JsonResponse({"ok": False, "erro": "Uma promoção contém itens indisponíveis."}, status=400)
             total_regular = sum((pi.prato.preco * pi.quantidade for pi in promo_itens), Decimal("0"))
             restante = promocao.preco_promocional
             for idx, pi in enumerate(promo_itens):
@@ -227,6 +241,9 @@ def _fazer_pedido(request):
                 criar_item(pi.prato, pi.quantidade * quantidade_carrinho, unitario, f"Promoção: {promocao.titulo}")
             continue
         prato = Prato.objects.filter(pk=item.get("prato_id"), disponivel=True).first()
+        if not prato:
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Um produto não está mais disponível. Revise o carrinho."}, status=400)
         if prato:
             criar_item(
                 prato, quantidade_carrinho, prato.preco, (item.get("observacao") or "").strip(),
