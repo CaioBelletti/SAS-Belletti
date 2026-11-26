@@ -4,4 +4,4 @@ aptPkgs = ["tesseract-ocr", "tesseract-ocr-por"]
 nixPkgs = ["...", "nodejs_22"]
 
 [phases.build]
-cmds = ["...", "cd frontend/auth && npm install --no-audit --no-fund && npm run build", "test -s static/auth-v2/auth.js && test -s static/auth-v2/auth.css"]
+cmds = ["...", "cd frontend/auth && npm install --no-audit --no-fund && npm run build && npx vite build --config vite.dashboard.config.ts", "test -s static/auth-v2/auth.js && test -s static/auth-v2/auth.css && test -s static/dashboard-v2/dashboard.js && test -s static/dashboard-v2/dashboard.css"]
