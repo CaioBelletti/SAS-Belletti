@@ -349,6 +349,17 @@ function loadCart() {
   }
 }
 
+let deviceToken = safeStorageGet('belletti_device_v1', '');
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceToken)) {
+  if (window.crypto?.randomUUID) deviceToken = window.crypto.randomUUID();
+  else if (window.crypto?.getRandomValues) {
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+    deviceToken = [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
+  } else deviceToken = '';
+  if (deviceToken) safeStorageSet('belletti_device_v1', deviceToken);
+}
 let cart = loadCart();
 const money = value => Number(value || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const toast = message => {
@@ -500,6 +511,7 @@ document.getElementById('sendOrder').onclick = async () => {
     const payload = {
       nome: name,
       mesa_token: TABLE_TOKEN,
+      dispositivo_token: deviceToken,
       mesa_ou_local: '{% if mesa %}{{ mesa|escapejs }}{% endif %}',
       participante_token: safeStorageGet(PARTICIPANT_KEY, ''),
       observacoes: document.getElementById('generalNote').value,
