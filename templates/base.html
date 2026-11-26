@@ -186,7 +186,7 @@
         <main class="main" id="workspaceMain">
             <header class="workspace-bar" aria-label="Ferramentas do espaço de trabalho">
                 <button class="workspace-control workspace-dock-toggle" id="workspaceDock" type="button" aria-controls="sidebarPrincipal" aria-expanded="true" title="Recolher navegação">☰ <span>Menu</span></button>
-                <button class="workspace-search" id="workspaceSearch" type="button"><span>Buscar no menu…</span><kbd>Ctrl K</kbd></button>
+                <button class="workspace-search" id="workspaceSearch" type="button"><span>Buscar no menu…</span></button>
                 <div class="workspace-actions"><button class="workspace-control" id="workspaceTheme" type="button" aria-label="Alternar tema">Tema</button><span class="workspace-user">{{ request.user.get_short_name|default:request.user.username }}</span></div>
             </header>
             <dialog id="workspacePalette" class="workspace-palette" aria-labelledby="workspacePaletteTitle"><div class="workspace-palette-head"><label id="workspacePaletteTitle" for="workspaceQuery">Ir para</label><button type="button" id="workspaceClose" aria-label="Fechar busca">✕</button></div><input id="workspaceQuery" type="search" placeholder="Pesquisar páginas disponíveis…" autocomplete="off"><div id="workspaceResults" class="workspace-results"></div></dialog>
