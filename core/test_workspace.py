@@ -70,3 +70,22 @@ class WorkspaceTests(TestCase):
         OrdemCompra.objects.create(fornecedor=linked)
         self.client.post(reverse("supplier_delete",args=[linked.pk]),secure=True)
         self.assertTrue(Fornecedor.objects.filter(pk=linked.pk).exists())
+
+    def test_native_registration_and_catalog_pages(self):
+        admin = get_user_model().objects.create_superuser(username="catalog_admin",email="catalog@example.invalid",password="test-only-password")
+        self.client.force_login(admin)
+        for kind in ("clientes","produtos","fornecedores","categorias"):
+            for name in ("registration_list","registration_new"):
+                response = self.client.get(reverse(name,args=[kind]),secure=True)
+                self.assertEqual(response.status_code,200,(kind,name))
+        for name in ("etiquetas","consulta_carta","composicao","inventario","perdas","reservas"):
+            response = self.client.get(reverse("catalogo:"+name),secure=True)
+            self.assertEqual(response.status_code,200,name)
+
+    def test_client_registration(self):
+        from vendas.models import Cliente
+        admin = get_user_model().objects.create_superuser(username="client_admin",email="client@example.invalid",password="test-only-password")
+        self.client.force_login(admin)
+        response = self.client.post(reverse("registration_new",args=["clientes"]),{"nome":"Cliente CI"},secure=True)
+        self.assertEqual(response.status_code,302)
+        self.assertTrue(Cliente.objects.filter(nome="Cliente CI").exists())
