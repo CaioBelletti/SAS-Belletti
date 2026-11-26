@@ -5,6 +5,7 @@ from . import views, workspace_views
 app_name = "catalogo"
 
 urlpatterns = [
+    path("movimentacoes/novo/", workspace_views.novo_lancamento, name="novo_lancamento"),
     path("movimentacoes/", workspace_views.movimentacoes, name="movimentacoes"),
     path("etiquetas/", views.etiquetas, name="etiquetas"),
     path("composicao/", views.composicao, name="composicao"),
