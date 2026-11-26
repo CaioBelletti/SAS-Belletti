@@ -60,9 +60,11 @@ def novo_lancamento(request):
                 form.add_error("quantidade", "O saldo já possui esse valor.")
             else:
                 quantidade = d["quantidade"]
+                motivo = d["motivo"]
                 if d["tipo"] == "ajuste":
+                    motivo = f'Saldo {produto.estoque_atual} → {d["quantidade"]}: {motivo}'
                     quantidade = abs(d["quantidade"] - produto.estoque_atual)
                     Produto.objects.filter(pk=produto.pk).update(estoque_atual=d["quantidade"])
-                MovimentacaoEstoque.objects.create(produto=produto, tipo=d["tipo"], quantidade=quantidade, categoria=d["categoria"], motivo=d["motivo"])
+                MovimentacaoEstoque.objects.create(produto=produto, tipo=d["tipo"], quantidade=quantidade, categoria=d["categoria"], motivo=motivo[:200])
                 return redirect("catalogo:movimentacoes")
     return render(request, "catalogo/novo_lancamento.html", {"form": form})
