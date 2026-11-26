@@ -164,3 +164,21 @@ class FluxoIntegradoTests(TestCase):
         self.assertIsNone(context["comanda"])
         self.assertFalse(context["pedidos_mesa"].exists())
         self.assertFalse(context["participantes"].exists())
+
+    def test_private_history_is_scoped(self):
+        from django.urls import reverse
+        from .models import Mesa, Comanda, ParticipanteMesa, PedidoCozinha
+        mesa = Mesa.objects.create(numero=906)
+        comanda = Comanda.objects.create(mesa=mesa)
+        a = ParticipanteMesa.objects.create(comanda=comanda, nome="A")
+        b = ParticipanteMesa.objects.create(comanda=comanda, nome="B")
+        own = PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, participante=a)
+        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, participante=b)
+        url = reverse("meus_pedidos_mesa", args=[mesa.token_publico])
+        response = self.client.post(url, data=json.dumps({"participante_token":str(a.token_dispositivo)}), content_type="application/json", secure=True)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual([p["numero"] for p in response.json()["pedidos"]],[own.pk])
+        self.assertIn("no-store",response["Cache-Control"])
+        other = Mesa.objects.create(numero=907)
+        response = self.client.post(reverse("meus_pedidos_mesa",args=[other.token_publico]),data=json.dumps({"participante_token":str(a.token_dispositivo)}),content_type="application/json",secure=True)
+        self.assertEqual(response.status_code,403)
