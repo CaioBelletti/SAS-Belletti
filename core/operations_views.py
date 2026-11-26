@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
 SCREENS = {
+ "caixa": ("financeiro", "MovimentoCaixa", "Movimentações de caixa", ("data","tipo","descricao","valor","conciliado")),
  "pagar": ("financeiro", "ContaPagar", "Contas a pagar", ("descricao","fornecedor","valor","vencimento","status")),
  "receber": ("financeiro", "ContaReceber", "Contas a receber", ("descricao","cliente","valor","vencimento","status")),
  "metas": ("relatorios", "MetaMensal", "Metas mensais", ("mes","valor")),
