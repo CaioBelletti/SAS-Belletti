@@ -106,6 +106,14 @@ def fazer_pedido(request):
         resposta = _fazer_pedido(request)
         if resposta.status_code != 200:
             transaction.set_rollback(True)
+            if 400 <= resposta.status_code < 500:
+                try:
+                    erro = json.loads(resposta.content)
+                except (ValueError, UnicodeDecodeError):
+                    return resposta
+                if isinstance(erro, dict) and erro.get("ok") is False:
+                    erro["pedido_nao_criado"] = True
+                    return JsonResponse(erro, status=resposta.status_code)
             return resposta
         registro.resposta = json.loads(resposta.content)
         registro.save(update_fields=["resposta"])
