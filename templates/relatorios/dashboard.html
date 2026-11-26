@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load static %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'dashboard-v2/dashboard.css' %}">{% endblock %}
 {% block title %}Dashboard — Belletti Cards Universe{% endblock %}
 
 {% block content %}
@@ -139,6 +138,7 @@
 {% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard-v2/dashboard.css' %}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 {% endblock %}
 
