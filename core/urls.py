@@ -14,7 +14,12 @@ admin.site.site_header = "Belletti Cards Universe"
 admin.site.site_title = "Belletti Cards Universe"
 admin.site.index_title = "Painel administrativo"
 
+from core import registration_views
+
 urlpatterns = [
+    path("cadastros/<slug:kind>/", registration_views.registration_list, name="registration_list"),
+    path("cadastros/<slug:kind>/novo/", registration_views.registration_form, name="registration_new"),
+    path("cadastros/<slug:kind>/<int:pk>/", registration_views.registration_form, name="registration_edit"),
     path("admin/login/", RedirectView.as_view(pattern_name="login", query_string=True)),
     path("admin/", admin.site.urls),
     path("login/", seguranca_views.login_view, name="login"),
