@@ -29,3 +29,40 @@ def movimentacoes(request):
     params = request.GET.copy()
     params.pop("page", None)
     return render(request, "catalogo/movimentacoes.html", {"page_obj": page, "q": q, "tipo": tipo, "tipos": MovimentacaoEstoque.TIPO_CHOICES, "datas": datas, "querystring": params.urlencode()})
+
+from django import forms
+from django.db import transaction
+from django.shortcuts import redirect
+from .models import Produto
+
+class LancamentoForm(forms.Form):
+    sku = forms.CharField(label="SKU do produto", max_length=50)
+    tipo = forms.ChoiceField(choices=MovimentacaoEstoque.TIPO_CHOICES)
+    quantidade = forms.IntegerField(min_value=0, label="Quantidade (no ajuste, saldo final)")
+    categoria = forms.ChoiceField(choices=MovimentacaoEstoque.CATEGORIA_CHOICES, required=False)
+    motivo = forms.CharField(max_length=200, required=True)
+
+@login_required
+@permission_required(("catalogo.view_movimentacaoestoque", "catalogo.add_movimentacaoestoque"), raise_exception=True)
+def novo_lancamento(request):
+    form = LancamentoForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        with transaction.atomic():
+            produto = Produto.objects.select_for_update().filter(sku=d["sku"]).first()
+            if produto is None:
+                form.add_error("sku", "SKU não encontrado.")
+            elif d["tipo"] != "ajuste" and d["quantidade"] == 0:
+                form.add_error("quantidade", "Informe uma quantidade maior que zero.")
+            elif d["tipo"] == "saida" and d["quantidade"] > produto.estoque_atual:
+                form.add_error("quantidade", "Saldo insuficiente.")
+            elif d["tipo"] == "ajuste" and d["quantidade"] == produto.estoque_atual:
+                form.add_error("quantidade", "O saldo já possui esse valor.")
+            else:
+                quantidade = d["quantidade"]
+                if d["tipo"] == "ajuste":
+                    quantidade = abs(d["quantidade"] - produto.estoque_atual)
+                    Produto.objects.filter(pk=produto.pk).update(estoque_atual=d["quantidade"])
+                MovimentacaoEstoque.objects.create(produto=produto, tipo=d["tipo"], quantidade=quantidade, categoria=d["categoria"], motivo=d["motivo"])
+                return redirect("catalogo:movimentacoes")
+    return render(request, "catalogo/novo_lancamento.html", {"form": form})
