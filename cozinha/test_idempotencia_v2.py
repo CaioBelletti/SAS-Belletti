@@ -95,3 +95,31 @@ class IdempotenciaPedidoTests(TestCase):
                     self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
                     self.assertFalse(PedidoCozinha.objects.exists())
                     self.assertFalse(RequisicaoPedido.objects.exists())
+
+class FluxoIntegradoTests(TestCase):
+    def test_two_customers_kitchen_and_waiter(self):
+        from decimal import Decimal
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+        from .models import Mesa, Prato, PedidoCozinha, ChamadoAtendente
+        mesa = Mesa.objects.create(numero=901)
+        prato = Prato.objects.create(nome="Teste", preco=Decimal("12.00"))
+        clients = [Client(), Client()]
+        payloads = [{"nome": nome, "mesa_token": str(mesa.token_publico), "dispositivo_token": str(uuid.uuid4()), "itens": [{"prato_id": prato.pk, "quantidade": 1}]} for nome in ("A", "B")]
+        keys = [str(uuid.uuid4()), str(uuid.uuid4())]
+        results = [c.post(reverse("fazer_pedido"), data=json.dumps(p), content_type="application/json", HTTP_IDEMPOTENCY_KEY=k) for c,p,k in zip(clients,payloads,keys)]
+        self.assertEqual([r.status_code for r in results], [200,200])
+        replay = clients[0].post(reverse("fazer_pedido"), data=json.dumps(payloads[0]), content_type="application/json", HTTP_IDEMPOTENCY_KEY=keys[0])
+        self.assertEqual(replay.json()["pedido_id"], results[0].json()["pedido_id"])
+        self.assertEqual(PedidoCozinha.objects.count(), 2)
+        call = clients[0].post(reverse("chamar_atendente", args=[mesa.token_publico]), {"tipo":"atendente"})
+        self.assertEqual(call.status_code,200)
+        staff = Client()
+        staff.force_login(get_user_model().objects.create_user(username="staff-test", password="test-only"))
+        self.assertEqual(staff.get(reverse("cozinha:dados_painel")).json()["recebidos"],2)
+        waiter = staff.get(reverse("cozinha:dados_garcom"))
+        self.assertContains(waiter, str(call.json()["chamado_id"]))
+        done = staff.post(reverse("cozinha:atender_chamado", args=[call.json()["chamado_id"]]))
+        self.assertEqual(done.status_code,200)
+        self.assertTrue(ChamadoAtendente.objects.get(pk=call.json()["chamado_id"]).atendido)
