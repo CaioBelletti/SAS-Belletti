@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
+from django.db import transaction
 from django.db.models import Avg, Count, Max, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -208,12 +209,17 @@ def fazer_pedido(request):
 
 @require_POST
 def chamar_atendente(request, token):
-    mesa = get_object_or_404(Mesa, token_publico=token)
     tipo = request.POST.get("tipo", "atendente")
     if tipo not in dict(ChamadoAtendente.TIPO_CHOICES):
-        tipo = "atendente"
-    ChamadoAtendente.objects.create(mesa=mesa, tipo=tipo)
-    return JsonResponse({"ok": True})
+        return JsonResponse({"ok": False, "erro": "Tipo de chamado inválido."}, status=400)
+    with transaction.atomic():
+        mesa = get_object_or_404(Mesa.objects.select_for_update(), token_publico=token)
+        if not mesa.ativa:
+            return JsonResponse({"ok": False, "erro": "Esta mesa está inativa."}, status=409)
+        chamado = ChamadoAtendente.objects.filter(mesa=mesa, tipo=tipo, atendido=False).order_by("criado_em").first()
+        if chamado is None:
+            chamado = ChamadoAtendente.objects.create(mesa=mesa, tipo=tipo)
+    return JsonResponse({"ok": True, "chamado_id": chamado.pk})
 
 
 def acompanhar_pedido(request, codigo):
