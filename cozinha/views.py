@@ -727,3 +727,20 @@ def avaliacoes_view(request):
         "avaliacoes_baixas": baixas,
         "avaliacoes_recentes": recentes,
     })
+
+@require_POST
+def meus_pedidos_mesa(request, token):
+    mesa = get_object_or_404(Mesa, token_publico=token, ativa=True)
+    try:
+        dados = json.loads(request.body)
+        participante_token = uuid.UUID(str(dados.get("participante_token", "")))
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False}, status=403)
+    comanda = mesa.comanda_aberta
+    participante = ParticipanteMesa.objects.filter(comanda=comanda, token_dispositivo=participante_token, ativo=True).first() if comanda else None
+    if not participante:
+        return JsonResponse({"ok": False}, status=403)
+    pedidos = participante.pedidos.filter(comanda=comanda).order_by("-criado_em")
+    response = JsonResponse({"ok": True, "pedidos": [{"numero": p.pk, "status": p.get_status_display(), "total": str(p.valor_total)} for p in pedidos]})
+    response["Cache-Control"] = "no-store, private"
+    return response
