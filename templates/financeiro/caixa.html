@@ -42,8 +42,8 @@
         {% csrf_token %}
         <input type="hidden" name="acao" value="abrir">
         <div>
-            <label>Valor de abertura (troco inicial)</label>
-            <input type="number" name="valor_abertura" step="0.01" min="0" value="0" required>
+            <label for="caixa-abrir-valor_abertura">Valor de abertura (troco inicial)</label>
+            <input id="caixa-abrir-valor_abertura" type="number" name="valor_abertura" step="0.01" min="0" value="0" required>
         </div>
         <button type="submit" class="btn-acao">Abrir caixa</button>
     </form>
@@ -78,8 +78,8 @@
         <form method="post" class="form-inline">
             {% csrf_token %}
             <input type="hidden" name="acao" value="sangria">
-            <div><label>Valor</label><input type="number" name="valor" step="0.01" min="0.01" required></div>
-            <div><label>Motivo</label><input type="text" name="descricao" placeholder="ex: depósito no banco"></div>
+            <div><label for="caixa-sangria-valor">Valor</label><input id="caixa-sangria-valor" type="number" name="valor" step="0.01" min="0.01" required></div>
+            <div><label for="caixa-sangria-descricao">Motivo</label><input id="caixa-sangria-descricao" type="text" name="descricao" placeholder="ex: depósito no banco"></div>
             <button type="submit" class="btn-acao secundario">Registrar sangria</button>
         </form>
     </div>
@@ -88,8 +88,8 @@
         <form method="post" class="form-inline">
             {% csrf_token %}
             <input type="hidden" name="acao" value="suprimento">
-            <div><label>Valor</label><input type="number" name="valor" step="0.01" min="0.01" required></div>
-            <div><label>Motivo</label><input type="text" name="descricao" placeholder="ex: reforço de troco"></div>
+            <div><label for="caixa-suprimento-valor">Valor</label><input id="caixa-suprimento-valor" type="number" name="valor" step="0.01" min="0.01" required></div>
+            <div><label for="caixa-suprimento-descricao">Motivo</label><input id="caixa-suprimento-descricao" type="text" name="descricao" placeholder="ex: reforço de troco"></div>
             <button type="submit" class="btn-acao secundario">Registrar suprimento</button>
         </form>
     </div>
@@ -101,8 +101,8 @@
         {% csrf_token %}
         <input type="hidden" name="acao" value="fechar">
         <div>
-            <label>Valor contado na gaveta</label>
-            <input type="number" name="valor_fechamento" step="0.01" min="0" required>
+            <label for="caixa-fechar-valor_fechamento">Valor contado na gaveta</label>
+            <input id="caixa-fechar-valor_fechamento" type="number" name="valor_fechamento" step="0.01" min="0" required>
         </div>
         <button type="submit" class="btn-acao perigo">Fechar caixa</button>
     </form>
