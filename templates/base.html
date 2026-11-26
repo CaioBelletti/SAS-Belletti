@@ -141,7 +141,7 @@
                     <a href="{% url 'crm:tarefas' %}">Tarefas</a>
                     <a href="{% url 'crm:agenda' %}">Agenda</a>
                     <a href="{% url 'crm:propostas' %}">Propostas</a>
-                    <a href="/admin/crm/configuracaocrm/">Configurar automações</a>
+                    <a href="{% url 'workspace_automacoes' %}">Configurar automações</a>
                 </div>
             </details>
 
@@ -149,11 +149,11 @@
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg> Finanças</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
                     <a href="/admin/financeiro/movimentocaixa/">Caixa</a>
-                    <a href="/admin/financeiro/contapagar/">Contas a pagar</a>
-                    <a href="/admin/financeiro/contareceber/">Contas a receber</a>
+                    <a href="{% url 'workspace_pagar' %}">Contas a pagar</a>
+                    <a href="{% url 'workspace_receber' %}">Contas a receber</a>
                     <a href="{% url 'financeiro:lancar_parcelado' %}">Lançar conta parcelada</a>
                     <a href="{% url 'financeiro:bancos' %}">Bancos e conciliação</a>
-                    <a href="/admin/relatorios/metamensal/">Metas mensais</a>
+                    <a href="{% url 'workspace_metas' %}">Metas mensais</a>
                 </div>
             </details>
             {% endif %}
