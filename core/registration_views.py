@@ -2,14 +2,18 @@ from django import forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
-from catalogo.models import Categoria
+from catalogo.models import Categoria, Produto
+from vendas.models import Cliente
 from suprimentos.models import Fornecedor
 
 REGISTRY = {
+    "clientes": (Cliente, "Clientes", "Cliente", ("nome","telefone","email","documento","data_nascimento","cep","logradouro","numero","complemento","bairro","cidade","uf")),
+    "produtos": (Produto, "Produtos", "Produto", ("sku","codigo_interno","codigo_barras","ean","nome","marca","categoria","subcategoria","fornecedor","tags","edicao","numero_colecao","idioma","raridade","foil","reverse_holo","promo","estado_conservacao","descricao","imagem","peso_gramas","comprimento_cm","largura_cm","altura_cm","grading_empresa","grading_nota","grading_certificado","preco_custo","custo_frete","custo_impostos","preco_venda","preco_minimo","preco_maximo","margem_desejada","estoque_minimo","estoque_maximo","localizacao","lote","validade","numero_serie","ativo")),
     "fornecedores": (Fornecedor, "Fornecedores", "Fornecedor", ("nome", "documento", "telefone", "email", "avaliacao", "observacoes")),
     "categorias": (Categoria, "Categorias", "Categoria", ("nome", "jogo_tcg")),
 }
@@ -31,7 +35,7 @@ def registration_list(request, kind):
     q = request.GET.get("q", "").strip()[:150]
     qs = model.objects.order_by("nome", "pk")
     if q:
-        qs = qs.filter(nome__icontains=q)
+        qs = qs.filter(Q(nome__icontains=q) | Q(sku__icontains=q)) if kind == "produtos" else qs.filter(nome__icontains=q)
     return render(request, "core/registration_list.html", {"kind":kind, "title":title, "singular":singular, "q":q, "page_obj":Paginator(qs,30).get_page(request.GET.get("page")), "can_add":allowed(request.user,model,"add"), "can_change":allowed(request.user,model,"change"), "can_delete":kind == "fornecedores" and allowed(request.user,model,"delete")})
 
 @login_required
@@ -42,7 +46,7 @@ def registration_form(request, kind, pk=None):
         raise PermissionDenied
     obj = get_object_or_404(model,pk=pk) if pk is not None else None
     form_class = forms.modelform_factory(model,fields=fields)
-    form = form_class(request.POST if request.method == "POST" else None,instance=obj)
+    form = form_class(request.POST if request.method == "POST" else None,files=request.FILES if request.method == "POST" else None,instance=obj)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request,"Cadastro salvo com sucesso.")
