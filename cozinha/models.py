@@ -473,3 +473,10 @@ class AvaliacaoMesa(models.Model):
 
     def __str__(self):
         return f"Avaliação {self.comanda.mesa} — comida {self.nota_comida}/5, atendimento {self.nota_atendimento}/5"
+
+
+class RequisicaoPedido(models.Model):
+    chave = models.UUIDField(unique=True)
+    assinatura = models.CharField(max_length=64)
+    resposta = models.JSONField(default=dict)
+    criado_em = models.DateTimeField(auto_now_add=True)
