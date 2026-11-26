@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Cotações — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/supplies.css' %}">
 <style>
     .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
     .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
@@ -29,6 +31,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="supply-workspace">
 <div class="topbar">
     <div>
         <h1>Cotações</h1>
@@ -86,7 +89,7 @@
         {% csrf_token %}
         <input type="hidden" name="acao" value="gerar_ordens">
         <input type="hidden" name="cotacao_id" value="{{ cotacao.id }}">
-        <table>
+        <div class="supply-table-scroll"><table>
             <thead><tr><th>Produto</th><th>Qtd</th><th>Propostas recebidas</th><th>Escolher vencedor</th></tr></thead>
             <tbody>
                 {% for item in cotacao.itens.all %}
@@ -116,7 +119,7 @@
                 </tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
         {% if cotacao.status == "aberta" %}
         <button type="submit" class="btn-acao" style="margin-top: 12px;">Gerar ordem(ns) de compra com os vencedores</button>
         {% else %}
@@ -146,6 +149,7 @@
     {% endif %}
 </div>
 {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
