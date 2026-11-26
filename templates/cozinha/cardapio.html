@@ -402,8 +402,34 @@ document.querySelectorAll('.promo-add').forEach(button => button.onclick = () =>
   if(!cart[id]) cart[id]={id,name:el.dataset.title,price:Number(el.dataset.price.replace(',','.')),qty:0,note:'',promocao_id:el.dataset.promoId};
   cart[id].qty++; save(); toast('Promoção adicionada ao carrinho');
 });
-document.getElementById('openCart').onclick = () => document.getElementById('cartOverlay').classList.add('open');
-document.getElementById('closeCart').onclick = () => document.getElementById('cartOverlay').classList.remove('open');
+const cartOverlay = document.getElementById('cartOverlay');
+const openCartButton = document.getElementById('openCart');
+const closeCartButton = document.getElementById('closeCart');
+const cartSheet = cartOverlay.querySelector('.sheet');
+cartSheet.setAttribute('role', 'dialog');
+cartSheet.setAttribute('aria-modal', 'true');
+cartSheet.setAttribute('aria-label', 'Seu carrinho');
+openCartButton.setAttribute('aria-haspopup', 'dialog');
+function closeCart() {
+  cartOverlay.classList.remove('open');
+  openCartButton.focus();
+}
+openCartButton.onclick = () => {
+  cartOverlay.classList.add('open');
+  closeCartButton.focus();
+};
+closeCartButton.onclick = closeCart;
+cartOverlay.addEventListener('click', event => {
+  if (event.target === cartOverlay) closeCart();
+});
+cartOverlay.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { event.preventDefault(); closeCart(); return; }
+  if (event.key !== 'Tab') return;
+  const focusable = [...cartSheet.querySelectorAll('button, input, textarea, select, a[href]')].filter(el => !el.disabled && el.getClientRects().length);
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 document.getElementById('customerName').value = safeStorageGet(NAME_KEY, '');
 document.querySelectorAll('.cat').forEach(button => button.onclick = () => {
   document.querySelectorAll('.cat').forEach(item => item.classList.remove('active'));
