@@ -143,12 +143,12 @@
 <link rel="stylesheet" href="{% static 'dashboard-v2/dashboard.css' %}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-.bcu-glass-dashboard{--glass-surface:rgba(27,29,48,.76);--glass-edge:rgba(192,180,255,.20);--glass-shadow:0 12px 36px rgba(0,0,0,.22);position:relative;isolation:isolate}
-html[data-workspace-theme=light] .bcu-glass-dashboard{--glass-surface:rgba(255,255,255,.72);--glass-edge:rgba(255,255,255,.94);--glass-shadow:0 10px 32px rgba(65,49,120,.10)}
-.bcu-glass-dashboard::before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(ellipse at 12% 8%,rgba(137,93,246,.24),transparent 42%),radial-gradient(ellipse at 88% 22%,rgba(55,162,230,.18),transparent 44%),radial-gradient(ellipse at 42% 75%,rgba(174,107,236,.12),transparent 48%);border-radius:24px}
+.bcu-glass-dashboard{--glass-surface:rgba(27,29,48,.82);--glass-edge:rgba(192,180,255,.20);--glass-shadow:0 12px 36px rgba(0,0,0,.22);position:relative;isolation:isolate}
+html[data-workspace-theme=light] .bcu-glass-dashboard{--glass-surface:rgba(255,255,255,.76);--glass-edge:rgba(255,255,255,.82);--glass-shadow:0 10px 32px rgba(65,49,120,.10)}
+.bcu-glass-dashboard::before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(ellipse at 12% 8%,rgba(137,93,246,.12),transparent 42%),radial-gradient(ellipse at 88% 22%,rgba(55,162,230,.09),transparent 44%),radial-gradient(ellipse at 42% 75%,rgba(174,107,236,.06),transparent 48%);border-radius:24px}
 .bcu-glass-dashboard .card,.bcu-glass-dashboard .bcu-motion-nav,.bcu-glass-dashboard .dashboard-sections{background:var(--glass-surface);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow),inset 0 1px 0 rgba(255,255,255,.12);border-radius:18px;backdrop-filter:blur(16px) saturate(135%);-webkit-backdrop-filter:blur(16px) saturate(135%)}
 .bcu-glass-dashboard .card{transition:box-shadow .25s ease,border-color .25s ease}
-.bcu-glass-dashboard .metric{background:linear-gradient(135deg,rgba(139,108,242,.10),transparent 65%),var(--glass-surface)}
+.bcu-glass-dashboard .metric{background:linear-gradient(135deg,rgba(139,108,242,.045),transparent 65%),var(--glass-surface)}
 .bcu-glass-dashboard .metric .value{font-weight:650;letter-spacing:-.025em}
 @media(hover:hover){.bcu-glass-dashboard .card:hover{border-color:rgba(139,108,242,.46);box-shadow:var(--glass-shadow),0 0 0 1px rgba(139,108,242,.10)}}
 @media(prefers-reduced-motion:reduce){.bcu-glass-dashboard .card{transition:none}}
