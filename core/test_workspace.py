@@ -30,3 +30,28 @@ class WorkspaceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "workspaceDock")
         self.assertContains(response, "Nenhuma movimentação encontrada")
+
+    def test_registration_category_create_edit_and_permissions(self):
+        from catalogo.models import Categoria
+        user = get_user_model().objects.create_user(username="registration_denied")
+        self.client.force_login(user)
+        url = reverse("registration_list", args=["categorias"])
+        self.assertEqual(self.client.get(url, secure=True).status_code, 403)
+        admin = get_user_model().objects.create_superuser(username="registration_admin", email="reg@example.invalid", password="test-only-password")
+        self.client.force_login(admin)
+        self.assertEqual(self.client.post(reverse("registration_new", args=["categorias"]), {"nome":"Categoria CI","jogo_tcg":"pokemon"}, secure=True).status_code, 302)
+        obj = Categoria.objects.get(nome="Categoria CI")
+        self.assertEqual(self.client.post(reverse("registration_edit", args=["categorias",obj.pk]), {"nome":"Categoria editada","jogo_tcg":"magic"}, secure=True).status_code, 302)
+        obj.refresh_from_db()
+        self.assertEqual(obj.jogo_tcg,"magic")
+        self.assertContains(self.client.get(url, {"q":"editada"}, secure=True), "Categoria editada")
+
+    def test_registration_supplier_create_edit(self):
+        from suprimentos.models import Fornecedor
+        admin = get_user_model().objects.create_superuser(username="supplier_admin", email="supplier@example.invalid", password="test-only-password")
+        self.client.force_login(admin)
+        self.assertEqual(self.client.post(reverse("registration_new", args=["fornecedores"]), {"nome":"Fornecedor CI","email":"ci@example.invalid","avaliacao":"4"}, secure=True).status_code, 302)
+        obj = Fornecedor.objects.get(nome="Fornecedor CI")
+        self.assertEqual(self.client.post(reverse("registration_edit", args=["fornecedores",obj.pk]), {"nome":"Fornecedor editado","avaliacao":"5"}, secure=True).status_code, 302)
+        obj.refresh_from_db()
+        self.assertEqual(obj.avaliacao,5)
