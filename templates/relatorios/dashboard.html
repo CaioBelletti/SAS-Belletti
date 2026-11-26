@@ -118,7 +118,7 @@
 </div>
 
 
-<div id="widgetsContainer">
+<div id="widgetsContainer" data-sales-count="{{ total_pedidos }}">
 {% for w in widgets %}
 <div class="dash-widget {% if w.oculto %}widget-oculto{% endif %}" data-widget-id="{{ w.id }}" data-sections="{{ w.secoes }}" id="widget-{{ w.id }}">
     <div class="widget-editbar">
@@ -215,7 +215,39 @@ function getCookiePersonalizar(name) {
 })();
 
 document.addEventListener("DOMContentLoaded", function () {
-    const gridColor = "#1e212a";
+    if (typeof Chart === 'undefined') return;
+    const salesCount = Number(document.getElementById('widgetsContainer').dataset.salesCount);
+    const salesCharts = new Set(['graficoVendas', 'graficoHorarios']);
+    Chart.register({
+        id: 'bellettiWorkspaceCharts',
+        afterInit(chart) {
+            if (salesCount !== 0 || !salesCharts.has(chart.canvas.id)) return;
+            const canvas = chart.canvas;
+            canvas.hidden = true;
+            const message = document.createElement('p');
+            message.className = 'workspace-chart-empty';
+            message.setAttribute('role', 'status');
+            message.textContent = 'Nenhuma venda fechada registrada neste período.';
+            canvas.insertAdjacentElement('afterend', message);
+        }
+    });
+    function updateChartTheme() {
+        const styles = getComputedStyle(document.documentElement);
+        const grid = styles.getPropertyValue('--border-soft').trim();
+        const tick = styles.getPropertyValue('--text-muted').trim();
+        document.querySelectorAll('#widgetsContainer canvas').forEach(canvas => {
+            const chart = Chart.getChart(canvas);
+            if (!chart) return;
+            Object.values(chart.options.scales || {}).forEach(scale => {
+                if (scale.grid) scale.grid.color = grid;
+                if (scale.ticks) scale.ticks.color = tick;
+            });
+            if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = tick;
+            chart.update('none');
+        });
+    }
+    new MutationObserver(updateChartTheme).observe(document.documentElement, {attributes:true, attributeFilter:['data-workspace-theme']});
+    const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border-soft').trim() || "#303442";
     const tickColor = "#8b91a3";
 
     new Chart(document.getElementById('graficoVendas'), {
