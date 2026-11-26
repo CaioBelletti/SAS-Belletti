@@ -178,28 +178,28 @@ def _fazer_pedido(request):
 
     mesa = None
     comanda = None
+    participante = None
+    participante_token = dados.get("participante_token")
+    if participante_token and not mesa_token:
+        return JsonResponse({"ok": False, "erro": "Participante sem mesa válida."}, status=400)
     if mesa_token:
-        mesa = Mesa.objects.filter(token_publico=mesa_token, ativa=True).first()
+        mesa = Mesa.objects.select_for_update().filter(token_publico=mesa_token, ativa=True).first()
         if not mesa:
             return JsonResponse({"ok": False, "erro": "Essa mesa não está mais disponível."}, status=400)
         comanda = mesa.comanda_aberta
-        if not comanda:
-            comanda = Comanda.objects.create(mesa=mesa)
-
-    participante = None
-    participante_token = dados.get("participante_token")
-    if comanda:
-        try:
-            token_valido = participante_token or uuid.uuid4()
-            participante, _ = ParticipanteMesa.objects.get_or_create(
-                comanda=comanda, token_dispositivo=token_valido,
-                defaults={"nome": nome},
-            )
-            if participante.nome != nome:
-                participante.nome = nome
-                participante.save(update_fields=["nome"])
-        except (ValueError, TypeError):
+        if participante_token:
+            participante = ParticipanteMesa.objects.filter(
+                comanda=comanda, token_dispositivo=participante_token, ativo=True
+            ).first() if comanda else None
+            if not participante:
+                return JsonResponse({"ok": False, "erro": "Participante não pertence à comanda aberta desta mesa."}, status=403)
+        else:
+            if not comanda:
+                comanda = Comanda.objects.create(mesa=mesa)
             participante = ParticipanteMesa.objects.create(comanda=comanda, nome=nome)
+        if participante.nome != nome:
+            participante.nome = nome
+            participante.save(update_fields=["nome"])
 
     pedido = PedidoCozinha.objects.create(
         participante=participante,
