@@ -4,7 +4,7 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'css/supplies.css' %}">{% endblock %}
 {% block content %}
 <div class="supply-workspace">
-<div class="topbar"><div><h1>Movimentações de estoque</h1><div class="subtitle">Histórico de entradas, saídas e ajustes</div></div></div>
+<div class="topbar"><div><h1>Movimentações de estoque</h1><div class="subtitle">Histórico de entradas, saídas e ajustes</div></div>{% if perms.catalogo.add_movimentacaoestoque %}<a class="btn-acao" href="{% url 'catalogo:novo_lancamento' %}">+ Novo lançamento</a>{% endif %}</div>
 <div class="card"><form method="get" class="form-inline" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
 <div><label for="mov-q">Produto, SKU ou motivo</label><input id="mov-q" name="q" value="{{ q }}" placeholder="Pesquisar"></div>
 <div><label for="mov-tipo">Tipo</label><select id="mov-tipo" name="tipo"><option value="">Todos</option>{% for valor,nome in tipos %}<option value="{{ valor }}" {% if tipo == valor %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select></div>
