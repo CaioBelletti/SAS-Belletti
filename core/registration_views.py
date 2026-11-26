@@ -1,0 +1,50 @@
+from django import forms
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import Http404
+from django.contrib import messages
+from django.views.decorators.http import require_http_methods
+from catalogo.models import Categoria
+from suprimentos.models import Fornecedor
+
+REGISTRY = {
+    "fornecedores": (Fornecedor, "Fornecedores", "Fornecedor", ("nome", "documento", "telefone", "email", "avaliacao", "observacoes")),
+    "categorias": (Categoria, "Categorias", "Categoria", ("nome", "jogo_tcg")),
+}
+
+def config(kind):
+    if kind not in REGISTRY:
+        raise Http404
+    return REGISTRY[kind]
+
+def allowed(user, model, action):
+    return user.has_perm(f"{model._meta.app_label}.{action}_{model._meta.model_name}")
+
+@login_required
+@require_http_methods(["GET"])
+def registration_list(request, kind):
+    model, title, singular, fields = config(kind)
+    if not allowed(request.user, model, "view"):
+        raise PermissionDenied
+    q = request.GET.get("q", "").strip()[:150]
+    qs = model.objects.order_by("nome", "pk")
+    if q:
+        qs = qs.filter(nome__icontains=q)
+    return render(request, "core/registration_list.html", {"kind":kind, "title":title, "singular":singular, "q":q, "page_obj":Paginator(qs,30).get_page(request.GET.get("page")), "can_add":allowed(request.user,model,"add"), "can_change":allowed(request.user,model,"change")})
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def registration_form(request, kind, pk=None):
+    model, title, singular, fields = config(kind)
+    if not allowed(request.user,model,"view") or not allowed(request.user,model,"change" if pk is not None else "add"):
+        raise PermissionDenied
+    obj = get_object_or_404(model,pk=pk) if pk is not None else None
+    form_class = forms.modelform_factory(model,fields=fields)
+    form = form_class(request.POST if request.method == "POST" else None,instance=obj)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request,"Cadastro salvo com sucesso.")
+        return redirect("registration_list",kind=kind)
+    return render(request,"core/registration_form.html",{"kind":kind,"title":title,"singular":singular,"form":form,"editing":obj is not None})
