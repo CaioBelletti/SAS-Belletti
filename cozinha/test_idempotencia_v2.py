@@ -143,8 +143,8 @@ class FluxoIntegradoTests(TestCase):
         from .models import Mesa, Comanda, PedidoCozinha
         mesa = Mesa.objects.create(numero=904)
         comanda = Comanda.objects.create(mesa=mesa)
-        first = PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_cliente="Cliente A")
-        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_cliente="SEGREDO_CLIENTE_B")
+        first = PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_para_chamar="Cliente A")
+        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_para_chamar="SEGREDO_CLIENTE_B")
         response = self.client.get(reverse("acompanhar_pedido", args=[first.codigo_acompanhamento]), secure=True)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "SEGREDO_CLIENTE_B")
