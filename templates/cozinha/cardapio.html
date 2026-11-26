@@ -458,16 +458,22 @@ function getCookie(name) {
 
 {% if mesa %}
 document.querySelectorAll('[data-call]').forEach(button => button.onclick = async () => {
+  if (button.disabled) return;
+  button.disabled = true;
   try {
     const form = new FormData();
     form.append('tipo', button.dataset.call);
     const response = await fetch('{% url "chamar_atendente" mesa.token_publico %}', {
       method: 'POST', credentials: 'same-origin', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: form,
     });
-    if (!response.ok) throw new Error('Não foi possível enviar a solicitação.');
-    toast(button.dataset.call === 'fechamento' ? 'Conta solicitada. Nossa equipe irá até a mesa.' : 'Solicitação enviada à equipe.');
-    button.disabled = true; setTimeout(() => button.disabled = false, 15000);
-  } catch (error) { toast(error.message || 'Falha ao chamar a equipe.'); }
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.ok || !data.chamado_id) throw new Error(data?.erro || 'Não foi possível confirmar a solicitação.');
+    toast(button.dataset.call === 'fechamento' ? 'Conta solicitada. Nossa equipe irá até a mesa.' : 'Solicitação registrada para esta mesa.');
+  } catch (error) {
+    toast(error.message || 'Falha ao chamar a equipe.');
+  } finally {
+    button.disabled = false;
+  }
 });
 {% endif %}
 
