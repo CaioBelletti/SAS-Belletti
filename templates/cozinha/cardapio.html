@@ -498,36 +498,33 @@ document.querySelectorAll('[data-call]').forEach(button => button.onclick = asyn
 });
 {% endif %}
 
-document.getElementById('sendOrder').onclick = async () => {
-  const name = document.getElementById('customerName').value.trim();
-  const items = Object.values(cart);
-  if (!items.length) return toast('Adicione pelo menos um item.');
-  if (!name) return toast('Informe seu nome.');
-  safeStorageSet(NAME_KEY, name);
-
-  const button = document.getElementById('sendOrder');
-  button.disabled = true; button.textContent = 'Enviando...';
+const PENDING_KEY = CART_KEY + '_pending_order';
+const sendButton = document.getElementById('sendOrder');
+const recovery = document.createElement('div');
+recovery.setAttribute('role', 'status');
+recovery.style.cssText = 'padding:12px;margin:12px 0;border:1px solid var(--border);border-radius:12px';
+const recoveryText = document.createElement('p');
+const retryButton = document.createElement('button');
+retryButton.type = 'button'; retryButton.className = 'quick';
+retryButton.textContent = 'Recuperar pedido original';
+recovery.append(recoveryText, retryButton);
+document.querySelector('.hero').after(recovery);
+function readPending() {
+  const raw = safeStorageGet(PENDING_KEY);
+  if (!raw) return null;
+  try { const p = JSON.parse(raw); return p && p.key && p.payload ? p : {invalid:true}; }
+  catch (_) { return {invalid:true}; }
+}
+function refreshRecovery() {
+  const p = readPending();
+  recovery.hidden = !p;
+  sendButton.disabled = !!p;
+  retryButton.disabled = !!p?.invalid;
+  recoveryText.textContent = p?.invalid ? 'Há um registro de envio ilegível. Chame a equipe antes de fazer outro pedido.' : 'Existe um pedido sem confirmação neste aparelho. Recupere o envio original antes de fazer outro pedido.';
+}
+async function submitPending(pending) {
+  sendButton.disabled = true; retryButton.disabled = true;
   try {
-    const payload = {
-      nome: name,
-      mesa_token: TABLE_TOKEN,
-      dispositivo_token: deviceToken,
-      mesa_ou_local: '{% if mesa %}{{ mesa|escapejs }}{% endif %}',
-      participante_token: safeStorageGet(PARTICIPANT_KEY, ''),
-      observacoes: document.getElementById('generalNote').value,
-      itens: items.map(item => ({prato_id: item.promocao_id ? null : Number(item.id), promocao_id: item.promocao_id || null, quantidade: Number(item.qty), observacao: String(item.note || ''), adicionais: item.adicionais || []})),
-    };
-    const pendingKey = CART_KEY + '_pending_order';
-    let pending;
-    try { pending = JSON.parse(safeStorageGet(pendingKey, 'null')); } catch (_) {}
-    if (!pending) {
-      const key = window.crypto?.randomUUID?.();
-      if (!key) throw new Error('Não foi possível gerar uma chave segura para o pedido. Use uma conexão HTTPS.');
-      pending = {key, payload};
-      safeStorageSet(pendingKey, JSON.stringify(pending));
-      if (safeStorageGet(pendingKey) !== JSON.stringify(pending)) throw new Error('Não foi possível guardar o pedido com segurança neste navegador.');
-    }
-    if (JSON.stringify(pending.payload) !== JSON.stringify(payload)) throw new Error('Existe um envio anterior sem confirmação. Restaure os dados anteriores antes de tentar novamente.');
     const response = await fetch(ORDER_URL, {
       method: 'POST',
       credentials: 'same-origin',
@@ -539,23 +536,42 @@ document.getElementById('sendOrder').onclick = async () => {
     try { data = await response.json(); }
     catch (_) { throw new Error('O servidor respondeu em um formato inesperado. Atualize a página e tente novamente.'); }
     if (!response.ok || !data.ok) {
-      if (response.status >= 400 && response.status < 500 && response.status !== 409) {
-        try { localStorage.removeItem(pendingKey); } catch (_) {}
-      }
       throw new Error(data.erro || 'Não foi possível enviar o pedido.');
     }
     if (!data.redirect_url || typeof data.redirect_url !== 'string') throw new Error('Pedido criado, mas o endereço de acompanhamento não foi retornado.');
 
     if (data.participante_token) safeStorageSet(PARTICIPANT_KEY, data.participante_token);
-    cart = {}; save();
-    try { localStorage.removeItem(pendingKey); } catch (_) {}
+    if (pending.cartSnapshot && JSON.stringify(cart) === pending.cartSnapshot) { cart = {}; save(); }
+    try { localStorage.removeItem(PENDING_KEY); } catch (_) {}
     window.location.assign(data.redirect_url);
   } catch (error) {
-    console.error('Falha ao enviar pedido:', error);
-    toast(error?.message || 'Falha inesperada ao enviar o pedido.');
-    button.disabled = false; button.textContent = 'Enviar pedido para a cozinha';
-  }
+    toast(error?.message || 'Não foi possível confirmar o pedido. Tente recuperá-lo novamente.');
+  } finally { refreshRecovery(); }
+}
+retryButton.onclick = () => { const p = readPending(); if (p && !p.invalid) submitPending(p); };
+sendButton.onclick = async () => {
+  if (readPending()) { refreshRecovery(); return; }
+  const name = document.getElementById('customerName').value.trim();
+  const items = Object.values(cart);
+  if (!items.length) return toast('Adicione pelo menos um item.');
+  if (!name) return toast('Informe seu nome.');
+  const key = window.crypto?.randomUUID?.();
+  if (!key) return toast('Use uma conexão HTTPS para enviar o pedido com segurança.');
+  safeStorageSet(NAME_KEY, name);
+  const payload = {
+    nome:name, mesa_token:TABLE_TOKEN, dispositivo_token:deviceToken,
+    mesa_ou_local:'{% if mesa %}{{ mesa|escapejs }}{% endif %}',
+    participante_token:safeStorageGet(PARTICIPANT_KEY,''),
+    observacoes:document.getElementById('generalNote').value,
+    itens:items.map(item=>({prato_id:item.promocao_id?null:Number(item.id),promocao_id:item.promocao_id||null,quantidade:Number(item.qty),observacao:String(item.note||''),adicionais:item.adicionais||[]}))
+  };
+  const pending = {key,payload,cartSnapshot:JSON.stringify(cart)};
+  const raw = JSON.stringify(pending);
+  safeStorageSet(PENDING_KEY,raw);
+  if (safeStorageGet(PENDING_KEY)!==raw) return toast('Não foi possível guardar o pedido com segurança.');
+  refreshRecovery(); await submitPending(pending);
 };
+refreshRecovery();
 
 {% if mesa %}
 async function loadPreferences(){
