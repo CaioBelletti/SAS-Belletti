@@ -119,7 +119,7 @@
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 8.3L12 13l8.7-4.7"/><path d="M12 22V13"/></svg> Suprimentos</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
                     {% if perms.catalogo.view_movimentacaoestoque %}<a href="{% url 'catalogo:movimentacoes' %}">Movimentações de estoque</a>{% endif %}
-                    <a href="/admin/suprimentos/ordemcompra/">Ordens de compra</a>
+                    {% if perms.suprimentos.view_ordemcompra %}<a href="{% url 'suprimentos:ordens' %}">Ordens de compra</a>{% endif %}
                     <a href="{% url 'suprimentos:conferencia' %}">Conferência de recebimento</a>
                     <a href="{% url 'suprimentos:cotacoes' %}">Cotações</a>
                     <a href="{% url 'suprimentos:analise' %}">Análise de compras</a>
