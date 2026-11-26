@@ -130,7 +130,7 @@
             <details class="nav-group" data-group="vendas">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg> Vendas</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
-                    <a href="/admin/vendas/venda/">Vendas</a>
+                    {% if perms.vendas.view_venda %}<a href="{% url 'vendas:historico' %}">Vendas</a>{% endif %}
                 </div>
             </details>
 
