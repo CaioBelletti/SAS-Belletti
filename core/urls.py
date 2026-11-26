@@ -15,6 +15,7 @@ admin.site.site_title = "Belletti Cards Universe"
 admin.site.index_title = "Painel administrativo"
 
 urlpatterns = [
+    path("cardapio/m/<uuid:token>/meus-pedidos/", cozinha_views.meus_pedidos_mesa, name="meus_pedidos_mesa"),
     path("admin/", admin.site.urls),
     path("login/", seguranca_views.login_view, name="login"),
     path(
