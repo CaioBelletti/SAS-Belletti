@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load static %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'dashboard-v2/dashboard.css' %}">{% endblock %}
 {% block title %}Dashboard — Belletti Cards Universe{% endblock %}
 
 {% block content %}
@@ -35,6 +37,7 @@
 <nav class="dashboard-sections" aria-label="Seções do dashboard">
 {% for id, nome in dashboard_secoes %}<button type="button" class="dashboard-section" data-section="{{ id }}" aria-pressed="{% if id == 'geral' %}true{% else %}false{% endif %}">{{ nome }}</button>{% endfor %}
 </nav>
+<script type="module" src="{% static 'dashboard-v2/dashboard.js' %}"></script>
 <div class="grid grid-metrics" id="dashboardMetrics">
     <div class="card metric" data-metric-sections="geral vendas">
         <div class="metric-top">
