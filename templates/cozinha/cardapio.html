@@ -517,21 +517,38 @@ document.getElementById('sendOrder').onclick = async () => {
       observacoes: document.getElementById('generalNote').value,
       itens: items.map(item => ({prato_id: item.promocao_id ? null : Number(item.id), promocao_id: item.promocao_id || null, quantidade: Number(item.qty), observacao: String(item.note || ''), adicionais: item.adicionais || []})),
     };
+    const pendingKey = CART_KEY + '_pending_order';
+    let pending;
+    try { pending = JSON.parse(safeStorageGet(pendingKey, 'null')); } catch (_) {}
+    if (!pending) {
+      const key = window.crypto?.randomUUID?.();
+      if (!key) throw new Error('Não foi possível gerar uma chave segura para o pedido. Use uma conexão HTTPS.');
+      pending = {key, payload};
+      safeStorageSet(pendingKey, JSON.stringify(pending));
+      if (safeStorageGet(pendingKey) !== JSON.stringify(pending)) throw new Error('Não foi possível guardar o pedido com segurança neste navegador.');
+    }
+    if (JSON.stringify(pending.payload) !== JSON.stringify(payload)) throw new Error('Existe um envio anterior sem confirmação. Restaure os dados anteriores antes de tentar novamente.');
     const response = await fetch(ORDER_URL, {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
-      body: JSON.stringify(payload),
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'Idempotency-Key': pending.key},
+      body: JSON.stringify(pending.payload),
     });
     let data;
     try { data = await response.json(); }
     catch (_) { throw new Error('O servidor respondeu em um formato inesperado. Atualize a página e tente novamente.'); }
-    if (!response.ok || !data.ok) throw new Error(data.erro || 'Não foi possível enviar o pedido.');
+    if (!response.ok || !data.ok) {
+      if (response.status >= 400 && response.status < 500 && response.status !== 409) {
+        try { localStorage.removeItem(pendingKey); } catch (_) {}
+      }
+      throw new Error(data.erro || 'Não foi possível enviar o pedido.');
+    }
     if (!data.redirect_url || typeof data.redirect_url !== 'string') throw new Error('Pedido criado, mas o endereço de acompanhamento não foi retornado.');
 
     if (data.participante_token) safeStorageSet(PARTICIPANT_KEY, data.participante_token);
     cart = {}; save();
+    try { localStorage.removeItem(pendingKey); } catch (_) {}
     window.location.assign(data.redirect_url);
   } catch (error) {
     console.error('Falha ao enviar pedido:', error);
