@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.test import TestCase
 from django.urls import reverse
 
@@ -8,5 +9,7 @@ class WorkspaceTests(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse("relatorios:dashboard"), secure=True)
         self.assertEqual(response.status_code, 200)
-        for marker in ("workspaceDock", "workspaceSearch", "workspaceTheme", "workspacePalette", "workspace.css", "workspace.js"):
+        for marker in ("workspaceDock", "workspaceSearch", "workspaceTheme", "workspacePalette"):
             self.assertContains(response, marker)
+        for asset in ('css/workspace.css', 'js/workspace.js'):
+            self.assertContains(response, staticfiles_storage.url(asset))
