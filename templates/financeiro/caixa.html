@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Caixa — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
@@ -16,9 +17,11 @@
     .btn-acao.secundario { background: var(--bg-2); border: 1px solid var(--border); color: var(--text-primary); }
     .btn-acao.perigo { background: var(--red); }
 </style>
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
 {% endblock %}
 
 {% block content %}
+<div class="operations-workspace">
 <div class="topbar">
     <div>
         <h1>Caixa</h1>
@@ -130,4 +133,5 @@
     </table>
 </div>
 {% endif %}
+</div>
 {% endblock %}
