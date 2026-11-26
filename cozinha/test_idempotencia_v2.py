@@ -45,3 +45,16 @@ class IdempotenciaPedidoTests(TestCase):
         self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
         self.assertFalse(PedidoCozinha.objects.exists())
         self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_promotion_extras_are_rejected(self):
+        from .models import PedidoCozinha
+        response = self.enviar({
+            "nome": "Teste",
+            "dispositivo_token": str(uuid.uuid4()),
+            "itens": [{"promocao_id": 1, "quantidade": 1, "adicionais": ["1"]}],
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("não aceita adicionais", json.loads(response.content)["erro"])
+        self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+        self.assertFalse(PedidoCozinha.objects.exists())
+        self.assertFalse(RequisicaoPedido.objects.exists())
