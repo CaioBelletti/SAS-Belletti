@@ -1,0 +1,18 @@
+/* Workspace microinteractions: no JS, no artificial navigation delays. */
+:where(button, a[href], input[type="submit"], input[type="button"], summary, [role="button"]){
+ transition:background-color 150ms ease,border-color 150ms ease,box-shadow 150ms ease,transform 100ms ease;
+}
+@media (hover:hover) and (pointer:fine){
+ :where(button, input[type="submit"], input[type="button"], summary, [role="button"]):not(:disabled):hover{filter:brightness(1.04)}
+}
+:where(button,a[href],input[type="submit"],input[type="button"],summary,[role="button"]):not(:disabled):not([aria-disabled="true"]):active{transform:scale(.985)}
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]),textarea,select){
+ transition:border-color 160ms ease,box-shadow 160ms ease,background-color 160ms ease;
+}
+:where(input,textarea,select):focus{border-color:var(--accent,#6744d2);box-shadow:0 0 0 3px rgba(103,68,210,.17)}
+:where(button,a[href],input,textarea,select,summary,[role="button"]):focus-visible{outline:2px solid var(--accent,#6744d2);outline-offset:3px}
+:where(button,input):disabled{cursor:not-allowed}
+@media(prefers-reduced-motion:reduce){
+ :where(button,a[href],input,textarea,select,summary,[role="button"]){transition:none!important;animation:none!important}
+ :where(button,a[href],input,summary,[role="button"]):active{transform:none!important}
+}
