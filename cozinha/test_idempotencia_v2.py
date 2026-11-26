@@ -152,3 +152,15 @@ class FluxoIntegradoTests(TestCase):
         self.assertNotContains(response, "SEGREDO_CLIENTE_B")
         self.assertNotContains(response, "Histórico da mesa")
         self.assertNotContains(response, "Consumo acumulado")
+
+    def test_public_menu_context_hides_table_data(self):
+        from .models import Mesa, Comanda, ParticipanteMesa, PedidoCozinha
+        from .views import _contexto_cardapio
+        mesa = Mesa.objects.create(numero=905)
+        comanda = Comanda.objects.create(mesa=mesa)
+        ParticipanteMesa.objects.create(comanda=comanda, nome="Privado")
+        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda)
+        context = _contexto_cardapio(mesa)
+        self.assertIsNone(context["comanda"])
+        self.assertFalse(context["pedidos_mesa"].exists())
+        self.assertFalse(context["participantes"].exists())
