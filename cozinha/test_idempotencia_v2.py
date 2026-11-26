@@ -58,3 +58,19 @@ class IdempotenciaPedidoTests(TestCase):
         self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
         self.assertFalse(PedidoCozinha.objects.exists())
         self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_malformed_payloads_are_rejected(self):
+        from .models import PedidoCozinha
+        payloads = [
+            [], {"nome": 123, "itens": []},
+            {"nome": "Teste", "itens": "incorreto"},
+            {"nome": "Teste", "itens": [{"prato_id": {}, "quantidade": 1}]},
+            {"nome": "Teste", "itens": [{"prato_id": 1, "observacao": []}]},
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                response = self.enviar(payload)
+                self.assertEqual(response.status_code, 400)
+                self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+                self.assertFalse(PedidoCozinha.objects.exists())
+                self.assertFalse(RequisicaoPedido.objects.exists())
