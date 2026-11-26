@@ -123,3 +123,17 @@ class FluxoIntegradoTests(TestCase):
         done = staff.post(reverse("cozinha:atender_chamado", args=[call.json()["chamado_id"]]), secure=True)
         self.assertEqual(done.status_code,200)
         self.assertTrue(ChamadoAtendente.objects.get(pk=call.json()["chamado_id"]).atendido)
+
+    def test_participant_cannot_cross_tables(self):
+        from decimal import Decimal
+        from django.urls import reverse
+        from .models import Mesa, Comanda, ParticipanteMesa, Prato, PedidoCozinha
+        a, b = Mesa.objects.create(numero=902), Mesa.objects.create(numero=903)
+        participant = ParticipanteMesa.objects.create(comanda=Comanda.objects.create(mesa=a), nome="A")
+        prato = Prato.objects.create(nome="Teste", preco=Decimal("12"))
+        payload = {"nome":"A","mesa_token":str(b.token_publico),"participante_token":str(participant.token_dispositivo),"dispositivo_token":str(uuid.uuid4()),"itens":[{"prato_id":prato.pk,"quantidade":1}]}
+        response = self.client.post(reverse("fazer_pedido"), data=json.dumps(payload), content_type="application/json", HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()), secure=True)
+        self.assertEqual(response.status_code,403)
+        self.assertTrue(response.json()["pedido_nao_criado"])
+        self.assertFalse(PedidoCozinha.objects.exists())
+        self.assertFalse(Comanda.objects.filter(mesa=b).exists())
