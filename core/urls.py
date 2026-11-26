@@ -17,6 +17,7 @@ admin.site.index_title = "Painel administrativo"
 from core import registration_views, operations_views
 
 urlpatterns = [
+    path("financeiro/movimentacoes-caixa/", operations_views.screen, {"kind":"caixa"}, name="workspace_caixa"),
     path("crm/automacoes/", operations_views.screen, {"kind":"automacoes"}, name="workspace_automacoes"),
     path("financeiro/contas-a-pagar/", operations_views.screen, {"kind":"pagar"}, name="workspace_pagar"),
     path("financeiro/contas-a-receber/", operations_views.screen, {"kind":"receber"}, name="workspace_receber"),
