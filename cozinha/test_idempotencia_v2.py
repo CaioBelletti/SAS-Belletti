@@ -84,3 +84,14 @@ class IdempotenciaPedidoTests(TestCase):
                 self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
                 self.assertFalse(PedidoCozinha.objects.exists())
                 self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_malformed_tokens_are_rejected(self):
+        from .models import PedidoCozinha
+        for field in ("mesa_token", "participante_token"):
+            for value in ("invalid", 123, [], {}):
+                with self.subTest(field=field, value=value):
+                    response = self.enviar({"nome": "Teste", field: value, "itens": [{"prato_id": 1, "quantidade": 1}]})
+                    self.assertEqual(response.status_code, 400)
+                    self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+                    self.assertFalse(PedidoCozinha.objects.exists())
+                    self.assertFalse(RequisicaoPedido.objects.exists())
