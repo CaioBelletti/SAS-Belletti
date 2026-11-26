@@ -222,7 +222,9 @@
 .scene-toggle { border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:7px 11px; color:inherit; background:rgba(30,25,35,.3); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); cursor:pointer; font:inherit; font-size:12px; margin-top:12px; }
 @media (prefers-reduced-motion:reduce) { .menu-scene img { transition:none; } }
 </style>
-</head>
+<style>
+body{background:#0d0c14;color:#faf7ff}.hero{background:linear-gradient(180deg,rgba(25,17,35,.48),#0d0c14),url('https://images.unsplash.com/photo-1464305795204-6f5bbfc7fb81?auto=format&fit=crop&w=1600&q=70') center/cover;padding:28px 24px 34px}.hero::before{display:none}.brand{color:#e9bb6a;letter-spacing:.08em;padding-bottom:22px;border-bottom:1px solid #ffffff20}.eyebrow{color:#e9bb6a;letter-spacing:.22em;font-size:11px;font-weight:700;margin-top:30px}.hero h1{font:700 clamp(36px,6vw,65px)/1.04 'Space Grotesk',sans-serif;letter-spacing:-.045em;max-width:700px;margin:14px 0}.hero h1 em{font-style:normal;color:#b99bff}.hero p{line-height:1.65;color:#ddd5e5;max-width:480px}.mesa-chip{color:#e9bb6a}.toolbar,.product,.smart-table,.quick,.summary-card{background:rgba(35,29,47,.72);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-color:#ffffff20}.product{border-radius:22px}.cat.active{background:#7651d8;color:white}.cart-bar button{background:linear-gradient(120deg,#9568ef,#6946cc)}@media(min-width:850px){.hero,.toolbar,main{max-width:1100px;margin-inline:auto}.products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.product,.toolbar,.smart-table{background:#211b2b}}
+</style></head>
 <body>
 {% csrf_token %}
 <div class="shell">
@@ -231,8 +233,8 @@
       <img class="brand-dot" src="{% static 'images/logo-icone.png' %}" alt="Belletti Cards Universe">
       BELLETTI CARDS UNIVERSE
     </div>
-    <h1>{% if mesa %}Olá! Bem-vindo à {{ mesa }} 👋{% else %}Cardápio Belletti{% endif %}</h1>
-    <p>Escolha com calma. A cozinha recebe seu pedido na hora.</p>
+    <div class="eyebrow">CARDÁPIO DIGITAL</div><h1>Sua próxima jogada pede <em>uma pausa.</em></h1>
+    <p>Explore o cardápio, escolha seus favoritos e monte seu pedido.</p>
     {% if mesa %}<div class="mesa-chip">📍 {{ mesa }}</div>{% endif %}
     {% if comanda %}
     <div class="summary">
