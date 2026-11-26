@@ -324,22 +324,7 @@ def acompanhar_pedido(request, codigo):
         ),
         codigo_acompanhamento=codigo,
     )
-    pedidos_comanda = PedidoCozinha.objects.none()
-    if pedido.comanda_id:
-        pedidos_comanda = (
-            pedido.comanda.pedidos.exclude(status="cancelado")
-            .prefetch_related("itens__prato")
-            .order_by("-criado_em")
-        )
-    return render(
-        request,
-        "cozinha/acompanhar.html",
-        {
-            "pedido": pedido,
-            "pedidos_comanda": pedidos_comanda,
-            "comanda": pedido.comanda,
-        },
-    )
+    return render(request, "cozinha/acompanhar.html", {"pedido": pedido})
 
 
 @login_required
