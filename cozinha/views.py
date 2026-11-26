@@ -244,9 +244,15 @@ def _fazer_pedido(request):
         if not prato:
             transaction.set_rollback(True)
             return JsonResponse({"ok": False, "erro": "Um produto não está mais disponível. Revise o carrinho."}, status=400)
-        adicional_ids = item.get("adicionais") or []
-        if (not isinstance(adicional_ids, list) or
-                any(type(a) is not int or a <= 0 for a in adicional_ids) or
+        adicional_ids = item.get("adicionais", [])
+        if not isinstance(adicional_ids, list) or any(
+                not ((type(a) is int and 0 < a <= 2147483647) or
+                     (isinstance(a, str) and a.isascii() and a.isdecimal() and len(a) <= 10 and 0 < int(a) <= 2147483647))
+                for a in adicional_ids):
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Lista de adicionais inválida."}, status=400)
+        adicional_ids = [int(a) for a in adicional_ids]
+        if (
                 len(set(adicional_ids)) != len(adicional_ids) or
                 AdicionalPrato.objects.filter(pk__in=adicional_ids, prato=prato, disponivel=True).count() != len(adicional_ids)):
             transaction.set_rollback(True)
