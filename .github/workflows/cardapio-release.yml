@@ -39,4 +39,15 @@ jobs:
       - name: Migrate disposable database
         run: python manage.py migrate --noinput
       - name: Django tests
-        run: python manage.py test cozinha seguranca --noinput
+        run: |
+          python - <<'PY'
+          import os
+          os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+          import django
+          django.setup()
+          from django.conf import settings
+          from django.test.utils import get_runner
+          settings.SECURE_SSL_REDIRECT = False
+          failures = get_runner(settings)(interactive=False).run_tests(["cozinha", "seguranca"])
+          raise SystemExit(bool(failures))
+          PY
