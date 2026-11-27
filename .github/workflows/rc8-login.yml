@@ -38,4 +38,8 @@ jobs:
           from django.test import Client
           r=Client().get("/login/",secure=True)
           assert r.status_code==200,r.status_code
+          from django.contrib.staticfiles.storage import staticfiles_storage
+          for asset in ("auth-v2/auth.css","auth-v2/auth.js","dashboard-v2/dashboard.css","dashboard-v2/dashboard.js"):
+              assert staticfiles_storage.exists(asset), asset
+              assert staticfiles_storage.url(asset), asset
           PY
