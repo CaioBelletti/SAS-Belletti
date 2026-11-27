@@ -204,7 +204,7 @@
     body { background: radial-gradient(ellipse at 50% -15%,rgba(111,75,190,.16),transparent 48%),#0c0d12; }
     button,input,select,textarea { font:inherit; }
     button { transition:transform .16s ease,background-color .16s ease,box-shadow .16s ease; }
-    button:active:not(:disabled) { transform:scale(.97); }
+    button:active:not(:disabled):not(.purchase-dock) { transform:scale(.97); }
     :is(button,a,input,select,textarea):focus-visible { outline:2px solid #bba5ff; outline-offset:3px; }
     .cart-bar { padding-bottom:env(safe-area-inset-bottom,0px); }
     @media (prefers-reduced-motion:reduce) {
