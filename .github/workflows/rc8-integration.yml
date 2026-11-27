@@ -1,21 +1,38 @@
-name: RC8 integration diagnostic
+name: RC8 integration
 on:
   push:
     branches: [release/belletti-integrado-rc8]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  merge-check:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Identify conflicts
+      - name: Merge workspace preserving RC7 routes
+        shell: bash
         run: |
           git config user.email "ci@example.invalid"
           git config user.name "Integration CI"
-          git merge --no-commit --no-ff origin/feature/belletti-workspace-v1 || {
-            git diff --name-only --diff-filter=U
-            exit 1
-          }
+          if git merge-base --is-ancestor origin/feature/belletti-workspace-v1 HEAD; then exit 0; fi
+          git merge --no-commit --no-ff origin/feature/belletti-workspace-v1 || true
+          test "$(git diff --name-only --diff-filter=U)" = "core/urls.py"
+          git show :2:core/urls.py > /tmp/ours.py
+          git show :3:core/urls.py > /tmp/theirs.py
+          python - <<'PY'
+          from pathlib import Path
+          ours=Path("/tmp/ours.py").read_text()
+          theirs=Path("/tmp/theirs.py").read_text()
+          routes=[line for line in theirs.splitlines() if 'operations_views.screen' in line or 'registration_views.' in line and 'path(' in line]
+          assert len(routes)==9, len(routes)
+          anchor="urlpatterns = ["
+          assert ours.count(anchor)==1
+          ours=ours.replace(anchor,"from core import registration_views, operations_views\n\n"+anchor+"\n"+"\n".join(routes),1)
+          Path("core/urls.py").write_text(ours)
+          PY
+          git add core/urls.py
+          git diff --check --cached
+          git commit -m "RC8: integrar workspace e preservar rotas RC7"
+          git push origin HEAD:release/belletti-integrado-rc8
