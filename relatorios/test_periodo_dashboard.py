@@ -25,3 +25,15 @@ class PeriodoDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         wb = load_workbook(BytesIO(response.content), read_only=True)
         self.assertIn("Total de vendas (3 meses)", [row[0] for row in wb["Resumo"].values if row])
+
+    def test_vendas_fechadas_respeitam_periodo(self):
+        from dateutil.relativedelta import relativedelta
+        from django.utils import timezone
+        from vendas.models import Venda
+        agora = timezone.now()
+        Venda.objects.create(status="fechada", fechada_em=agora)
+        Venda.objects.create(status="fechada", fechada_em=agora - relativedelta(months=4))
+        Venda.objects.create(status="aberta")
+        for meses, esperado in ((3, 1), (6, 2)):
+            response = self.client.get("/relatorios/", {"meses": meses})
+            self.assertEqual(response.context["total_pedidos"], esperado)
