@@ -37,3 +37,21 @@ class PeriodoDashboardTests(TestCase):
         for meses, esperado in ((3, 1), (6, 2)):
             response = self.client.get("/relatorios/", {"meses": meses})
             self.assertEqual(response.context["total_pedidos"], esperado)
+
+    def test_receita_concilia_com_pdv(self):
+        from decimal import Decimal
+        from django.utils import timezone
+        from catalogo.models import Produto
+        from vendas.models import Venda, ItemVenda
+        produto = Produto.objects.create(sku="RC9-TEST", nome="Teste")
+        venda = Venda.objects.create(status="fechada", fechada_em=timezone.now(), desconto=Decimal("10"), acrescimo=Decimal("3"))
+        ItemVenda.objects.create(venda=venda, produto=produto, quantidade=2, preco_unitario=Decimal("50"), desconto=Decimal("5"))
+        ItemVenda.objects.create(venda=venda, produto=produto, quantidade=1, preco_unitario=Decimal("20"), desconto=Decimal("25"))
+        self.assertEqual(venda.total, Decimal("88"))
+        response = self.client.get("/relatorios/")
+        self.assertEqual(response.context["total_valor"], venda.total)
+        self.assertEqual(response.context["receita_bruta"], venda.total)
+        excel = self.client.get("/relatorios/exportar/")
+        wb = load_workbook(BytesIO(excel.content), read_only=True)
+        resumo = dict((row[0], row[1]) for row in wb["Resumo"].values if len(row) > 1 and row[0])
+        self.assertEqual(Decimal(str(resumo["Total de vendas (12 meses)"])), venda.total)
