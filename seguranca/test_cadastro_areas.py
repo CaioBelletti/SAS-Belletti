@@ -14,5 +14,4 @@ class CadastroAreaTests(TestCase):
         for path in ("/cadastros/produtos/", "/cadastros/fornecedores/1/excluir/", "/cadastros/clientes/novo/"):
             for method in ("get", "post"):
                 response = getattr(self.client, method)(path)
-                self.assertEqual(response.status_code, 302)
-                self.assertEqual(response.url, "/")
+                self.assertEqual(response.status_code, 403)
