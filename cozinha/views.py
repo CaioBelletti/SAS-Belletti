@@ -1,3 +1,4 @@
+import hashlib
 import json
 import uuid
 from decimal import Decimal
@@ -6,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
+from django.db import transaction
 from django.db.models import Avg, Count, Max, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -35,18 +37,10 @@ def _contexto_cardapio(mesa=None):
         disponivel=True,
     )
 
+    # Public QR pages must not disclose table-wide orders or participants.
     comanda = None
     pedidos_mesa = PedidoCozinha.objects.none()
-    if mesa:
-        comanda = mesa.comanda_aberta
-        if comanda:
-            pedidos_mesa = (
-                comanda.pedidos.exclude(status="cancelado")
-                .prefetch_related("itens__prato")
-                .order_by("-criado_em")
-            )
-
-    participantes = comanda.participantes.filter(ativo=True).order_by("entrou_em") if comanda else ParticipanteMesa.objects.none()
+    participantes = ParticipanteMesa.objects.none()
     promocoes = [p for p in PromocaoCardapio.objects.prefetch_related("itens__prato").filter(ativa=True, destaque=True) if p.disponivel_agora]
     return {
         "categorias": categorias,
@@ -85,13 +79,74 @@ def cardapio_mesa(request, token):
 
 @require_POST
 def fazer_pedido(request):
+    from .models import RequisicaoPedido
+    chave = request.headers.get("Idempotency-Key")
+    if not chave:
+        return _fazer_pedido(request)
+    try:
+        chave = uuid.UUID(chave)
+        dados = json.loads(request.body)
+        assinatura = hashlib.sha256(json.dumps(dados, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
+    except (ValueError, TypeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "Requisição inválida."}, status=400)
+    with transaction.atomic():
+        registro, novo = RequisicaoPedido.objects.get_or_create(chave=chave, defaults={"assinatura": assinatura})
+        if not novo:
+            if registro.assinatura != assinatura:
+                return JsonResponse({"ok": False, "erro": "Esta chave pertence a outro pedido."}, status=409)
+            return JsonResponse(registro.resposta)
+        resposta = _fazer_pedido(request)
+        if resposta.status_code != 200:
+            transaction.set_rollback(True)
+            if 400 <= resposta.status_code < 500:
+                try:
+                    erro = json.loads(resposta.content)
+                except (ValueError, UnicodeDecodeError):
+                    return resposta
+                if isinstance(erro, dict) and erro.get("ok") is False:
+                    erro["pedido_nao_criado"] = True
+                    return JsonResponse(erro, status=resposta.status_code)
+            return resposta
+        registro.resposta = json.loads(resposta.content)
+        registro.save(update_fields=["resposta"])
+        return resposta
+
+
+@transaction.atomic
+def _fazer_pedido(request):
     """Recebe o pedido montado no cardápio público e cria na fila da cozinha."""
     try:
         dados = json.loads(request.body)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({"ok": False, "erro": "Dados inválidos."}, status=400)
 
+    if not isinstance(dados, dict):
+        return JsonResponse({"ok": False, "erro": "Formato de pedido inválido."}, status=400)
+    for campo in ("nome", "mesa_ou_local", "observacoes"):
+        if campo in dados and not isinstance(dados[campo], str):
+            return JsonResponse({"ok": False, "erro": "Campo de texto inválido."}, status=400)
+    for campo in ("mesa_token", "participante_token"):
+        valor = dados.get(campo)
+        if valor is not None and valor != "":
+            if not isinstance(valor, str):
+                return JsonResponse({"ok": False, "erro": "Token inválido."}, status=400)
+            try:
+                uuid.UUID(valor)
+            except (ValueError, AttributeError):
+                return JsonResponse({"ok": False, "erro": "Token inválido."}, status=400)
     itens = dados.get("itens", [])
+    if not isinstance(itens, list) or len(itens) > 200:
+        return JsonResponse({"ok": False, "erro": "Lista de itens inválida."}, status=400)
+    for item in itens:
+        if not isinstance(item, dict) or ("observacao" in item and not isinstance(item["observacao"], str)):
+            return JsonResponse({"ok": False, "erro": "Item inválido."}, status=400)
+        for campo in ("prato_id", "promocao_id"):
+            valor = item.get(campo)
+            if valor is not None and not (
+                (type(valor) is int and 0 < valor <= 2147483647) or
+                (isinstance(valor, str) and valor.isascii() and valor.isdecimal() and len(valor) <= 10 and 0 < int(valor) <= 2147483647)
+            ):
+                return JsonResponse({"ok": False, "erro": "Identificador de produto inválido."}, status=400)
     if not itens:
         return JsonResponse({"ok": False, "erro": "Adicione pelo menos um item ao pedido."}, status=400)
 
@@ -100,39 +155,43 @@ def fazer_pedido(request):
         return JsonResponse({"ok": False, "erro": "Informe seu nome pra chamarmos quando ficar pronto."}, status=400)
 
     # Proteção simples contra pedido duplicado (clique duplo/rede lenta):
-    # a mesma mesa (ou o mesmo IP, se for balcão) não pode mandar dois
-    # pedidos em menos de 5 segundos.
+    # Limite por dispositivo e mesa; clientes antigos usam o limite legado.
     ip = _get_ip(request)
     mesa_token = dados.get("mesa_token")
-    chave_throttle = f"cozinha_pedido_throttle:{mesa_token or ip}"
-    if cache.get(chave_throttle):
+    dispositivo_token = dados.get("dispositivo_token")
+    if dispositivo_token:
+        try:
+            dispositivo_token = str(uuid.UUID(str(dispositivo_token)))
+        except (ValueError, TypeError, AttributeError):
+            return JsonResponse({"ok": False, "erro": "Identificador de dispositivo inválido."}, status=400)
+    chave_throttle = f"cozinha_pedido_throttle:{mesa_token or ip}:{dispositivo_token or 'legado'}"
+    if not cache.add(chave_throttle, True, 5):
         return JsonResponse({"ok": False, "erro": "Pedido já enviado — aguarde um instante antes de mandar outro."}, status=429)
-    cache.set(chave_throttle, True, 5)
 
     mesa = None
     comanda = None
+    participante = None
+    participante_token = dados.get("participante_token")
+    if participante_token and not mesa_token:
+        return JsonResponse({"ok": False, "erro": "Participante sem mesa válida."}, status=400)
     if mesa_token:
-        mesa = Mesa.objects.filter(token_publico=mesa_token, ativa=True).first()
+        mesa = Mesa.objects.select_for_update().filter(token_publico=mesa_token, ativa=True).first()
         if not mesa:
             return JsonResponse({"ok": False, "erro": "Essa mesa não está mais disponível."}, status=400)
         comanda = mesa.comanda_aberta
-        if not comanda:
-            comanda = Comanda.objects.create(mesa=mesa)
-
-    participante = None
-    participante_token = dados.get("participante_token")
-    if comanda:
-        try:
-            token_valido = participante_token or uuid.uuid4()
-            participante, _ = ParticipanteMesa.objects.get_or_create(
-                comanda=comanda, token_dispositivo=token_valido,
-                defaults={"nome": nome},
-            )
-            if participante.nome != nome:
-                participante.nome = nome
-                participante.save(update_fields=["nome"])
-        except (ValueError, TypeError):
+        if participante_token:
+            participante = ParticipanteMesa.objects.filter(
+                comanda=comanda, token_dispositivo=participante_token, ativo=True
+            ).first() if comanda else None
+            if not participante:
+                return JsonResponse({"ok": False, "erro": "Participante não pertence à comanda aberta desta mesa."}, status=403)
+        else:
+            if not comanda:
+                comanda = Comanda.objects.create(mesa=mesa)
             participante = ParticipanteMesa.objects.create(comanda=comanda, nome=nome)
+        if participante.nome != nome:
+            participante.nome = nome
+            participante.save(update_fields=["nome"])
 
     pedido = PedidoCozinha.objects.create(
         participante=participante,
@@ -168,13 +227,26 @@ def fazer_pedido(request):
             ChecklistItemProducao.objects.create(item_pedido=item_pedido, descricao=prato.instrucoes_preparo.strip(), ordem=0)
 
     for item in itens:
-        quantidade_carrinho = max(int(item.get("quantidade") or 1), 1)
+        if not isinstance(item, dict):
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Item inválido no carrinho."}, status=400)
+        quantidade_carrinho = item.get("quantidade")
+        if type(quantidade_carrinho) is not int or not 1 <= quantidade_carrinho <= 999:
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "A quantidade deve ser um número inteiro entre 1 e 999."}, status=400)
         promocao_id = item.get("promocao_id")
         if promocao_id:
+            if item.get("adicionais", []) != []:
+                transaction.set_rollback(True)
+                return JsonResponse({"ok": False, "erro": "Esta promoção não aceita adicionais. Revise o carrinho."}, status=400)
             promocao = PromocaoCardapio.objects.prefetch_related("itens__prato").filter(pk=promocao_id, ativa=True).first()
             if not promocao or not promocao.disponivel_agora:
-                continue
+                transaction.set_rollback(True)
+                return JsonResponse({"ok": False, "erro": "Uma promoção não está mais disponível. Revise o carrinho."}, status=400)
             promo_itens = list(promocao.itens.all())
+            if not promo_itens or any(not pi.prato.disponivel or pi.quantidade < 1 for pi in promo_itens):
+                transaction.set_rollback(True)
+                return JsonResponse({"ok": False, "erro": "Uma promoção contém itens indisponíveis."}, status=400)
             total_regular = sum((pi.prato.preco * pi.quantidade for pi in promo_itens), Decimal("0"))
             restante = promocao.preco_promocional
             for idx, pi in enumerate(promo_itens):
@@ -187,11 +259,26 @@ def fazer_pedido(request):
                 criar_item(pi.prato, pi.quantidade * quantidade_carrinho, unitario, f"Promoção: {promocao.titulo}")
             continue
         prato = Prato.objects.filter(pk=item.get("prato_id"), disponivel=True).first()
-        if prato:
-            criar_item(
-                prato, quantidade_carrinho, prato.preco, (item.get("observacao") or "").strip(),
-                adicional_ids=item.get("adicionais") or [],
-            )
+        if not prato:
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Um produto não está mais disponível. Revise o carrinho."}, status=400)
+        adicional_ids = item.get("adicionais", [])
+        if not isinstance(adicional_ids, list) or any(
+                not ((type(a) is int and 0 < a <= 2147483647) or
+                     (isinstance(a, str) and a.isascii() and a.isdecimal() and len(a) <= 10 and 0 < int(a) <= 2147483647))
+                for a in adicional_ids):
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Lista de adicionais inválida."}, status=400)
+        adicional_ids = [int(a) for a in adicional_ids]
+        if (
+                len(set(adicional_ids)) != len(adicional_ids) or
+                AdicionalPrato.objects.filter(pk__in=adicional_ids, prato=prato, disponivel=True).count() != len(adicional_ids)):
+            transaction.set_rollback(True)
+            return JsonResponse({"ok": False, "erro": "Um adicional é inválido ou não está mais disponível. Revise o carrinho."}, status=400)
+        criar_item(
+            prato, quantidade_carrinho, prato.preco, (item.get("observacao") or "").strip(),
+            adicional_ids=adicional_ids,
+        )
 
     if not pedido.itens.exists():
         pedido.delete()
@@ -208,12 +295,17 @@ def fazer_pedido(request):
 
 @require_POST
 def chamar_atendente(request, token):
-    mesa = get_object_or_404(Mesa, token_publico=token)
     tipo = request.POST.get("tipo", "atendente")
     if tipo not in dict(ChamadoAtendente.TIPO_CHOICES):
-        tipo = "atendente"
-    ChamadoAtendente.objects.create(mesa=mesa, tipo=tipo)
-    return JsonResponse({"ok": True})
+        return JsonResponse({"ok": False, "erro": "Tipo de chamado inválido."}, status=400)
+    with transaction.atomic():
+        mesa = get_object_or_404(Mesa.objects.select_for_update(), token_publico=token)
+        if not mesa.ativa:
+            return JsonResponse({"ok": False, "erro": "Esta mesa está inativa."}, status=409)
+        chamado = ChamadoAtendente.objects.filter(mesa=mesa, tipo=tipo, atendido=False).order_by("criado_em").first()
+        if chamado is None:
+            chamado = ChamadoAtendente.objects.create(mesa=mesa, tipo=tipo)
+    return JsonResponse({"ok": True, "chamado_id": chamado.pk})
 
 
 def acompanhar_pedido(request, codigo):
@@ -224,22 +316,7 @@ def acompanhar_pedido(request, codigo):
         ),
         codigo_acompanhamento=codigo,
     )
-    pedidos_comanda = PedidoCozinha.objects.none()
-    if pedido.comanda_id:
-        pedidos_comanda = (
-            pedido.comanda.pedidos.exclude(status="cancelado")
-            .prefetch_related("itens__prato")
-            .order_by("-criado_em")
-        )
-    return render(
-        request,
-        "cozinha/acompanhar.html",
-        {
-            "pedido": pedido,
-            "pedidos_comanda": pedidos_comanda,
-            "comanda": pedido.comanda,
-        },
-    )
+    return render(request, "cozinha/acompanhar.html", {"pedido": pedido})
 
 
 @login_required
@@ -650,3 +727,20 @@ def avaliacoes_view(request):
         "avaliacoes_baixas": baixas,
         "avaliacoes_recentes": recentes,
     })
+
+@require_POST
+def meus_pedidos_mesa(request, token):
+    mesa = get_object_or_404(Mesa, token_publico=token, ativa=True)
+    try:
+        dados = json.loads(request.body)
+        participante_token = uuid.UUID(str(dados.get("participante_token", "")))
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False}, status=403)
+    comanda = mesa.comanda_aberta
+    participante = ParticipanteMesa.objects.filter(comanda=comanda, token_dispositivo=participante_token, ativo=True).first() if comanda else None
+    if not participante:
+        return JsonResponse({"ok": False}, status=403)
+    pedidos = participante.pedidos.filter(comanda=comanda).order_by("-criado_em")
+    response = JsonResponse({"ok": True, "pedidos": [{"numero": p.pk, "status": p.get_status_display(), "total": str(p.valor_total)} for p in pedidos]})
+    response["Cache-Control"] = "no-store, private"
+    return response

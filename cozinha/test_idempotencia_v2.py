@@ -1,0 +1,205 @@
+from django.test import override_settings
+import json
+import uuid
+from unittest.mock import patch
+from django.http import JsonResponse
+from django.test import TestCase, RequestFactory
+from .models import RequisicaoPedido
+from .views import fazer_pedido
+
+
+class IdempotenciaPedidoTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.key = str(uuid.uuid4())
+
+    def enviar(self, payload):
+        request = self.factory.post("/", data=json.dumps(payload), content_type="application/json", HTTP_IDEMPOTENCY_KEY=self.key)
+        return fazer_pedido(request)
+
+    @patch("cozinha.views._fazer_pedido")
+    def test_replay_and_conflict(self, criar):
+        criar.return_value = JsonResponse({"ok": True, "pedido_id": 123})
+        first = self.enviar({"nome": "Teste"})
+        second = self.enviar({"nome": "Teste"})
+        self.assertEqual(first.content, second.content)
+        self.assertEqual(criar.call_count, 1)
+        self.assertEqual(self.enviar({"nome": "Outro"}).status_code, 409)
+
+    @patch("cozinha.views._fazer_pedido")
+    def test_rejection_rolls_back_and_allows_retry(self, criar):
+        criar.return_value = JsonResponse({"ok": False, "erro": "Indisponível"}, status=400)
+        response = self.enviar({"nome": "Teste"})
+        self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+        self.assertFalse(RequisicaoPedido.objects.exists())
+        criar.return_value = JsonResponse({"ok": True, "pedido_id": 124})
+        self.assertEqual(self.enviar({"nome": "Teste"}).status_code, 200)
+
+    def test_unavailable_product_creates_no_order(self):
+        from .models import PedidoCozinha
+        response = self.enviar({
+            "nome": "Teste",
+            "dispositivo_token": str(uuid.uuid4()),
+            "itens": [{"prato_id": 2147483647, "quantidade": 1}],
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+        self.assertFalse(PedidoCozinha.objects.exists())
+        self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_promotion_extras_are_rejected(self):
+        from .models import PedidoCozinha
+        response = self.enviar({
+            "nome": "Teste",
+            "dispositivo_token": str(uuid.uuid4()),
+            "itens": [{"promocao_id": 1, "quantidade": 1, "adicionais": ["1"]}],
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("não aceita adicionais", json.loads(response.content)["erro"])
+        self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+        self.assertFalse(PedidoCozinha.objects.exists())
+        self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_malformed_payloads_are_rejected(self):
+        from .models import PedidoCozinha
+        payloads = [
+            [], {"nome": 123, "itens": []},
+            {"nome": "Teste", "itens": "incorreto"},
+            {"nome": "Teste", "itens": [{"prato_id": {}, "quantidade": 1}]},
+            {"nome": "Teste", "itens": [{"prato_id": 1, "observacao": []}]},
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                response = self.enviar(payload)
+                self.assertEqual(response.status_code, 400)
+                self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+                self.assertFalse(PedidoCozinha.objects.exists())
+                self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_invalid_quantities_are_not_coerced(self):
+        from .models import PedidoCozinha
+        for quantity in (True, False, 1.5, "2", None, 0, -1, 1000):
+            with self.subTest(quantity=quantity):
+                response = self.enviar({"nome": "Teste", "dispositivo_token": str(uuid.uuid4()), "itens": [{"prato_id": 1, "quantidade": quantity}]})
+                self.assertEqual(response.status_code, 400)
+                self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+                self.assertFalse(PedidoCozinha.objects.exists())
+                self.assertFalse(RequisicaoPedido.objects.exists())
+
+    def test_malformed_tokens_are_rejected(self):
+        from .models import PedidoCozinha
+        for field in ("mesa_token", "participante_token"):
+            for value in ("invalid", 123, [], {}):
+                with self.subTest(field=field, value=value):
+                    response = self.enviar({"nome": "Teste", field: value, "itens": [{"prato_id": 1, "quantidade": 1}]})
+                    self.assertEqual(response.status_code, 400)
+                    self.assertTrue(json.loads(response.content)["pedido_nao_criado"])
+                    self.assertFalse(PedidoCozinha.objects.exists())
+                    self.assertFalse(RequisicaoPedido.objects.exists())
+
+class FluxoIntegradoTests(TestCase):
+    def test_two_customers_kitchen_and_waiter(self):
+        from decimal import Decimal
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+        from .models import Mesa, Prato, PedidoCozinha, ChamadoAtendente
+        mesa = Mesa.objects.create(numero=901)
+        prato = Prato.objects.create(nome="Teste", preco=Decimal("12.00"))
+        clients = [Client(), Client()]
+        payloads = [{"nome": nome, "mesa_token": str(mesa.token_publico), "dispositivo_token": str(uuid.uuid4()), "itens": [{"prato_id": prato.pk, "quantidade": 1}]} for nome in ("A", "B")]
+        keys = [str(uuid.uuid4()), str(uuid.uuid4())]
+        results = [c.post(reverse("fazer_pedido"), data=json.dumps(p), content_type="application/json", HTTP_IDEMPOTENCY_KEY=k, secure=True) for c,p,k in zip(clients,payloads,keys)]
+        self.assertEqual([r.status_code for r in results], [200,200])
+        replay = clients[0].post(reverse("fazer_pedido"), data=json.dumps(payloads[0]), content_type="application/json", HTTP_IDEMPOTENCY_KEY=keys[0], secure=True)
+        self.assertEqual(replay.json()["pedido_id"], results[0].json()["pedido_id"])
+        self.assertEqual(PedidoCozinha.objects.count(), 2)
+        call = clients[0].post(reverse("chamar_atendente", args=[mesa.token_publico]), {"tipo":"atendente"}, secure=True)
+        self.assertEqual(call.status_code,200)
+        staff = Client()
+        staff.force_login(get_user_model().objects.create_user(username="staff-test", password="test-only", is_staff=True))
+        self.assertEqual(staff.get(reverse("cozinha:dados_painel"), secure=True).json()["recebidos"],2)
+        waiter = staff.get(reverse("cozinha:dados_garcom"), secure=True)
+        self.assertContains(waiter, str(call.json()["chamado_id"]))
+        done = staff.post(reverse("cozinha:atender_chamado", args=[call.json()["chamado_id"]]), secure=True)
+        self.assertEqual(done.status_code,200)
+        self.assertTrue(ChamadoAtendente.objects.get(pk=call.json()["chamado_id"]).atendido)
+
+    def test_participant_cannot_cross_tables(self):
+        from decimal import Decimal
+        from django.urls import reverse
+        from .models import Mesa, Comanda, ParticipanteMesa, Prato, PedidoCozinha
+        a, b = Mesa.objects.create(numero=902), Mesa.objects.create(numero=903)
+        participant = ParticipanteMesa.objects.create(comanda=Comanda.objects.create(mesa=a), nome="A")
+        prato = Prato.objects.create(nome="Teste", preco=Decimal("12"))
+        payload = {"nome":"A","mesa_token":str(b.token_publico),"participante_token":str(participant.token_dispositivo),"dispositivo_token":str(uuid.uuid4()),"itens":[{"prato_id":prato.pk,"quantidade":1}]}
+        response = self.client.post(reverse("fazer_pedido"), data=json.dumps(payload), content_type="application/json", HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()), secure=True)
+        self.assertEqual(response.status_code,403)
+        self.assertTrue(response.json()["pedido_nao_criado"])
+        self.assertFalse(PedidoCozinha.objects.exists())
+        self.assertFalse(Comanda.objects.filter(mesa=b).exists())
+
+    @override_settings(STORAGES={"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"}, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}})
+    def test_public_tracking_excludes_table_history(self):
+        from django.urls import reverse
+        from .models import Mesa, Comanda, PedidoCozinha
+        mesa = Mesa.objects.create(numero=904)
+        comanda = Comanda.objects.create(mesa=mesa)
+        first = PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_para_chamar="Cliente A")
+        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, nome_para_chamar="SEGREDO_CLIENTE_B")
+        response = self.client.get(reverse("acompanhar_pedido", args=[first.codigo_acompanhamento]), secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "SEGREDO_CLIENTE_B")
+        self.assertNotContains(response, "Histórico da mesa")
+        self.assertNotContains(response, "Consumo acumulado")
+
+    def test_public_menu_context_hides_table_data(self):
+        from .models import Mesa, Comanda, ParticipanteMesa, PedidoCozinha
+        from .views import _contexto_cardapio
+        mesa = Mesa.objects.create(numero=905)
+        comanda = Comanda.objects.create(mesa=mesa)
+        ParticipanteMesa.objects.create(comanda=comanda, nome="Privado")
+        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda)
+        context = _contexto_cardapio(mesa)
+        self.assertIsNone(context["comanda"])
+        self.assertFalse(context["pedidos_mesa"].exists())
+        self.assertFalse(context["participantes"].exists())
+
+    def test_private_history_is_scoped(self):
+        from django.urls import reverse
+        from .models import Mesa, Comanda, ParticipanteMesa, PedidoCozinha
+        mesa = Mesa.objects.create(numero=906)
+        comanda = Comanda.objects.create(mesa=mesa)
+        a = ParticipanteMesa.objects.create(comanda=comanda, nome="A")
+        b = ParticipanteMesa.objects.create(comanda=comanda, nome="B")
+        own = PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, participante=a)
+        PedidoCozinha.objects.create(mesa=mesa, comanda=comanda, participante=b)
+        url = reverse("meus_pedidos_mesa", args=[mesa.token_publico])
+        response = self.client.post(url, data=json.dumps({"participante_token":str(a.token_dispositivo)}), content_type="application/json", secure=True)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual([p["numero"] for p in response.json()["pedidos"]],[own.pk])
+        self.assertIn("no-store",response["Cache-Control"])
+        other = Mesa.objects.create(numero=907)
+        response = self.client.post(reverse("meus_pedidos_mesa",args=[other.token_publico]),data=json.dumps({"participante_token":str(a.token_dispositivo)}),content_type="application/json",secure=True)
+        self.assertEqual(response.status_code,403)
+
+    def test_private_history_rejects_inactive_and_invalid_tokens(self):
+        from django.urls import reverse
+        from .models import Mesa, Comanda, ParticipanteMesa
+        mesa = Mesa.objects.create(numero=908)
+        comanda = Comanda.objects.create(mesa=mesa)
+        p = ParticipanteMesa.objects.create(comanda=comanda, nome="A", ativo=False)
+        url = reverse("meus_pedidos_mesa", args=[mesa.token_publico])
+        for token in ("", "invalid", str(uuid.uuid4()), str(p.token_dispositivo)):
+            with self.subTest(token=token):
+                r = self.client.post(url, data=json.dumps({"participante_token":token}), content_type="application/json", secure=True)
+                self.assertEqual(r.status_code,403)
+        self.assertEqual(self.client.get(url,secure=True).status_code,405)
+
+    def test_private_history_requires_csrf(self):
+        from django.test import Client
+        from django.urls import reverse
+        from .models import Mesa
+        mesa = Mesa.objects.create(numero=909)
+        r = Client(enforce_csrf_checks=True).post(reverse("meus_pedidos_mesa",args=[mesa.token_publico]),data="{}",content_type="application/json",secure=True)
+        self.assertEqual(r.status_code,403)
