@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Novo lançamento de estoque{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/supplies.css' %}">{% endblock %}
+{% block content %}<div class="supply-workspace"><div class="topbar"><div><h1>Novo lançamento</h1><div class="subtitle">Entrada, saída ou correção do saldo físico</div></div></div><div class="card" style="max-width:700px"><form method="post" class="form-inline" style="display:grid;gap:16px">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div>{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}<p>Entrada soma unidades; saída subtrai. Ajuste define o saldo final contado. O motivo é obrigatório.</p><button type="submit">Registrar lançamento</button><a href="{% url 'catalogo:movimentacoes' %}">Cancelar</a></form></div></div>{% endblock %}

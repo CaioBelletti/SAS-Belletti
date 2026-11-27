@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Movimentações de estoque — Belletti{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/supplies.css' %}">{% endblock %}
+{% block content %}
+<div class="supply-workspace">
+<div class="topbar"><div><h1>Movimentações de estoque</h1><div class="subtitle">Histórico de entradas, saídas e ajustes</div></div>{% if perms.catalogo.add_movimentacaoestoque %}<a class="btn-acao" href="{% url 'catalogo:novo_lancamento' %}">+ Novo lançamento</a>{% endif %}</div>
+<div class="card"><form method="get" class="form-inline" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
+<div><label for="mov-q">Produto, SKU ou motivo</label><input id="mov-q" name="q" value="{{ q }}" placeholder="Pesquisar"></div>
+<div><label for="mov-tipo">Tipo</label><select id="mov-tipo" name="tipo"><option value="">Todos</option>{% for valor,nome in tipos %}<option value="{{ valor }}" {% if tipo == valor %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select></div>
+<div><label for="mov-inicio">De</label><input id="mov-inicio" type="date" name="inicio" value="{{ datas.inicio }}"></div>
+<div><label for="mov-fim">Até</label><input id="mov-fim" type="date" name="fim" value="{{ datas.fim }}"></div>
+<button type="submit">Filtrar</button><a href="{% url 'catalogo:movimentacoes' %}">Limpar</a></form></div>
+<div class="card" style="margin-top:16px"><div class="card-title">{{ page_obj.paginator.count }} movimentação(ões)</div><div class="supply-table-scroll"><table><thead><tr><th>Data</th><th>Produto</th><th>SKU</th><th>Tipo</th><th>Quantidade</th><th>Motivo</th></tr></thead><tbody>{% for mov in page_obj %}<tr><td>{{ mov.criado_em|date:"d/m/Y H:i" }}</td><td>{{ mov.produto.nome }}</td><td>{{ mov.produto.sku }}</td><td>{{ mov.get_tipo_display }}</td><td>{{ mov.quantidade }}</td><td>{{ mov.motivo|default:"—" }}</td></tr>{% empty %}<tr><td colspan="6">Nenhuma movimentação encontrada para estes filtros.</td></tr>{% endfor %}</tbody></table></div>
+{% if page_obj.has_other_pages %}<nav aria-label="Paginação" style="display:flex;gap:16px;margin-top:16px">{% if page_obj.has_previous %}<a href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}</div></div>
+{% endblock %}

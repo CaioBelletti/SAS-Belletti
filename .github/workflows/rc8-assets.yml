@@ -1,0 +1,26 @@
+name: RC8 assets
+on:
+  push:
+    branches: [release/cardapio-producao-rc8]
+permissions:
+  contents: write
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: cd frontend/auth && npm install --no-audit --no-fund && npm run build && npx vite build --config vite.dashboard.config.ts
+      - run: |
+          test -s static/auth-v2/auth.css
+          test -s static/auth-v2/auth.js
+          test -s static/dashboard-v2/dashboard.css
+          test -s static/dashboard-v2/dashboard.js
+          git add -f static/auth-v2 static/dashboard-v2
+          git diff --cached --quiet && exit 0
+          git config user.email ci@example.invalid
+          git config user.name "Assets CI"
+          git commit -m "RC8: incluir bundles compilados de login e dashboard"
+          git push

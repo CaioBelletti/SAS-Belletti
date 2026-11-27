@@ -3,8 +3,8 @@ from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Count, F, Q, Sum
-from django.db.models.functions import Coalesce, ExtractHour, ExtractWeekDay, TruncDay, TruncMonth, TruncWeek, TruncYear
+from django.db.models import Count, F, Q, Sum, OuterRef, Subquery, DecimalField, Value
+from django.db.models.functions import Coalesce, Greatest, ExtractHour, ExtractWeekDay, TruncDay, TruncMonth, TruncWeek, TruncYear
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -23,13 +23,29 @@ MESES_PT = [
 
 
 # Exportação em Excel reaproveita os mesmos dados do dashboard.
+def vendas_com_total(queryset):
+    moeda = DecimalField(max_digits=20, decimal_places=2)
+    zero = Value(Decimal("0"), output_field=moeda)
+    itens = (ItemVenda.objects.filter(venda_id=OuterRef("pk")).order_by()
+             .values("venda_id").annotate(valor=Sum(Greatest(F("quantidade") * F("preco_unitario") - F("desconto"), zero, output_field=moeda)))
+             .values("valor")[:1])
+    return queryset.annotate(total_pdv=Greatest(
+        Coalesce(Subquery(itens, output_field=moeda), zero) - F("desconto") + F("acrescimo"),
+        zero, output_field=moeda))
+
+
+def periodo_dashboard(request):
+    valor = request.GET.get("meses", "12")
+    return int(valor) if valor in {"1", "3", "6", "12"} else 12
+
+
 @user_passes_test(lambda u: u.is_staff, login_url="/login/")
 def exportar_excel(request):
     import openpyxl
     from django.http import HttpResponse
     from openpyxl.styles import Font
 
-    contexto = montar_contexto_dashboard()
+    contexto = montar_contexto_dashboard(periodo_dashboard(request))
     wb = openpyxl.Workbook()
 
     # --- Resumo -------------------------------------------------------------
@@ -39,7 +55,7 @@ def exportar_excel(request):
     ws["A1"].font = Font(bold=True, size=14)
     ws.append([])
     linhas_resumo = [
-        ("Total de vendas (12 meses)", contexto["total_valor"]),
+        (f"Total de vendas ({contexto['periodo_meses']} meses)", contexto["total_valor"]),
         ("Ticket médio", contexto["ticket_medio"]),
         ("Pedidos fechados", contexto["total_pedidos"]),
         ("Itens vendidos", contexto["produtos_vendidos"]),
@@ -100,7 +116,8 @@ def exportar_excel(request):
 # só com o PDV.
 @user_passes_test(lambda u: u.is_staff, login_url="/login/")
 def dashboard(request):
-    contexto = montar_contexto_dashboard()
+    contexto = montar_contexto_dashboard(periodo_dashboard(request))
+    contexto["dashboard_secoes"] = [("geral", "Visão geral"), ("vendas", "Vendas"), ("financeiro", "Financeiro"), ("estoque", "Estoque"), ("analises", "Análises"), ("todos", "Todos")]
     preferencia = PreferenciaDashboard.objects.filter(usuario=request.user).first()
     contexto["widgets"] = montar_lista_widgets(preferencia)
     return render(request, "relatorios/dashboard.html", contexto)
@@ -128,21 +145,21 @@ def salvar_preferencia_dashboard(request):
     return JsonResponse({"ok": True})
 
 
-def montar_contexto_dashboard():
+def montar_contexto_dashboard(meses=12):
     """
     Monta todos os dados do dashboard. Extraído numa função à parte
     (em vez de ficar só dentro da view) pra poder ser reaproveitado
     também na exportação pra Excel, sem duplicar a lógica.
     """
     hoje = timezone.localdate()
-    inicio_periodo = (hoje.replace(day=1) - relativedelta(months=11))
+    inicio_periodo = (hoje.replace(day=1) - relativedelta(months=meses - 1))
 
-    vendas_fechadas = Venda.objects.filter(status="fechada")
+    vendas_fechadas = vendas_com_total(Venda.objects.filter(status="fechada"))
     vendas_periodo = vendas_fechadas.filter(fechada_em__date__gte=inicio_periodo)
 
     # --- Cards de visão geral -------------------------------------------------
     agregados = vendas_periodo.aggregate(
-        total_valor=Sum(F("itens__quantidade") * F("itens__preco_unitario")),
+        total_valor=Sum("total_pdv"),
         total_pedidos=Count("id", distinct=True),
     )
     total_valor = agregados["total_valor"] or 0
@@ -164,7 +181,7 @@ def montar_contexto_dashboard():
         .annotate(mes=TruncMonth("fechada_em"))
         .values("mes")
         .annotate(
-            valor=Sum(F("itens__quantidade") * F("itens__preco_unitario")),
+            valor=Sum("total_pdv"),
             pedidos=Count("id", distinct=True),
         )
         .order_by("mes")
@@ -174,10 +191,10 @@ def montar_contexto_dashboard():
     labels_mes = []
     valores_mes = []
     cursor = inicio_periodo
-    for _ in range(12):
+    for _ in range(meses):
         item = mapa_mes.get(cursor)
         labels_mes.append(f"{MESES_PT[cursor.month - 1]}/{str(cursor.year)[2:]}")
-        valores_mes.append(float(item["valor"]) if item else 0)
+        valores_mes.append(float(item["valor"] or 0) if item else 0)
         cursor = cursor + relativedelta(months=1)
 
     # --- Top produtos mais vendidos --------------------------------------------
@@ -264,13 +281,9 @@ def montar_contexto_dashboard():
 
     # --- DRE simplificado do mês atual ------------------------------------------
     inicio_mes = hoje.replace(day=1)
-    vendas_mes = Venda.objects.filter(status="fechada", fechada_em__date__gte=inicio_mes)
+    vendas_mes = vendas_com_total(Venda.objects.filter(status="fechada", fechada_em__date__gte=inicio_mes))
 
-    receita_bruta = vendas_mes.aggregate(
-        total=Sum(F("itens__quantidade") * F("itens__preco_unitario"))
-    )["total"] or Decimal("0")
-    total_descontos = vendas_mes.aggregate(total=Sum("desconto"))["total"] or Decimal("0")
-    receita_bruta -= total_descontos
+    receita_bruta = vendas_mes.aggregate(total=Sum("total_pdv"))["total"] or Decimal("0")
 
     devolucoes_mes = Devolucao.objects.filter(
         processada=True, processada_em__date__gte=inicio_mes, venda__in=vendas_fechadas
@@ -408,14 +421,10 @@ def montar_contexto_dashboard():
 
     # --- Comparação mensal e anual (mesmo nº de dias decorridos, pra ser justo) --
     def _receita_bruta_periodo(data_inicio, data_fim):
-        vendas = Venda.objects.filter(
+        vendas = vendas_com_total(Venda.objects.filter(
             status="fechada", fechada_em__date__gte=data_inicio, fechada_em__date__lte=data_fim
-        )
-        bruta = vendas.aggregate(
-            total=Sum(F("itens__quantidade") * F("itens__preco_unitario"))
-        )["total"] or Decimal("0")
-        desconto = vendas.aggregate(total=Sum("desconto"))["total"] or Decimal("0")
-        return bruta - desconto
+        ))
+        return vendas.aggregate(total=Sum("total_pdv"))["total"] or Decimal("0")
 
     def _variacao_percentual(atual, anterior):
         if anterior > 0:
@@ -448,7 +457,7 @@ def montar_contexto_dashboard():
     labels_lucro = []
     valores_lucro = []
     cursor_lucro = inicio_periodo
-    for _ in range(12):
+    for _ in range(meses):
         fim_mes_cursor = cursor_lucro + relativedelta(months=1) - timedelta(days=1)
         if fim_mes_cursor > hoje:
             fim_mes_cursor = hoje
@@ -470,10 +479,10 @@ def montar_contexto_dashboard():
 
     # --- Receita diária (mês atual, dia a dia) -----------------------------------
     por_dia = (
-        Venda.objects.filter(status="fechada", fechada_em__date__gte=inicio_mes, fechada_em__date__lte=hoje)
+        vendas_com_total(Venda.objects.filter(status="fechada", fechada_em__date__gte=inicio_mes, fechada_em__date__lte=hoje))
         .annotate(dia=TruncDay("fechada_em"))
         .values("dia")
-        .annotate(valor=Sum(F("itens__quantidade") * F("itens__preco_unitario")))
+        .annotate(valor=Sum("total_pdv"))
     )
     mapa_dia = {item["dia"].date(): item["valor"] for item in por_dia if item["dia"]}
     labels_dia = []
@@ -481,17 +490,17 @@ def montar_contexto_dashboard():
     cursor_dia = inicio_mes
     while cursor_dia <= hoje:
         labels_dia.append(cursor_dia.strftime("%d/%m"))
-        valores_dia.append(float(mapa_dia.get(cursor_dia, 0)))
+        valores_dia.append(float(mapa_dia.get(cursor_dia) or 0))
         cursor_dia += timedelta(days=1)
 
     # --- Receita semanal (últimas 9 semanas) -------------------------------------
     inicio_semana_atual = hoje - timedelta(days=hoje.weekday())
     inicio_semanas = inicio_semana_atual - timedelta(weeks=8)
     por_semana = (
-        Venda.objects.filter(status="fechada", fechada_em__date__gte=inicio_semanas)
+        vendas_com_total(Venda.objects.filter(status="fechada", fechada_em__date__gte=inicio_semanas))
         .annotate(semana=TruncWeek("fechada_em"))
         .values("semana")
-        .annotate(valor=Sum(F("itens__quantidade") * F("itens__preco_unitario")))
+        .annotate(valor=Sum("total_pdv"))
     )
     mapa_semana = {item["semana"].date(): item["valor"] for item in por_semana if item["semana"]}
     labels_semana = []
@@ -499,7 +508,7 @@ def montar_contexto_dashboard():
     cursor_semana = inicio_semanas
     for _ in range(9):
         labels_semana.append(cursor_semana.strftime("%d/%m"))
-        valores_semana.append(float(mapa_semana.get(cursor_semana, 0)))
+        valores_semana.append(float(mapa_semana.get(cursor_semana) or 0))
         cursor_semana += timedelta(weeks=1)
 
     # --- Fluxo de caixa completo: entradas x saídas (dia/semana/mês/ano) ---------
@@ -537,7 +546,7 @@ def montar_contexto_dashboard():
         TruncWeek, lambda d: d.strftime("%d/%m"), inicio_semanas, 9, lambda d: d + timedelta(weeks=1),
     )
     fluxo_mes_labels, fluxo_mes_entradas, fluxo_mes_saidas = _fluxo_por_bucket(
-        TruncMonth, lambda d: f"{MESES_PT[d.month - 1]}/{str(d.year)[2:]}", inicio_periodo, 12,
+        TruncMonth, lambda d: f"{MESES_PT[d.month - 1]}/{str(d.year)[2:]}", inicio_periodo, meses,
         lambda d: d + relativedelta(months=1),
     )
 
@@ -725,6 +734,8 @@ def montar_contexto_dashboard():
     )
 
     contexto = {
+        "periodo_meses": meses,
+        "periodo_opcoes": (1, 3, 6, 12),
         "total_valor": total_valor,
         "total_pedidos": total_pedidos,
         "ticket_medio": ticket_medio,

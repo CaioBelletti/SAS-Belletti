@@ -124,9 +124,11 @@
     .mensagem.erro { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
     .mensagem.sucesso { background: #4ade8022; color: #4ade80; border: 1px solid #4ade8055; }
 </style>
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
 {% endblock %}
 
 {% block content %}
+<div class="operations-workspace">
 {% csrf_token %}
 <div class="topbar">
     <div>
@@ -288,6 +290,7 @@
         <button class="btn-finalizar" id="btnFinalizar" disabled>Finalizar venda</button>
         <button class="btn-acao" id="btnOrcamento" style="width:100%; margin-top:8px; padding:11px; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text-primary); cursor:pointer;" disabled>Salvar como orçamento</button>
     </div>
+</div>
 </div>
 {% endblock %}
 

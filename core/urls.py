@@ -14,7 +14,18 @@ admin.site.site_header = "Belletti Cards Universe"
 admin.site.site_title = "Belletti Cards Universe"
 admin.site.index_title = "Painel administrativo"
 
+from core import registration_views, operations_views
+
 urlpatterns = [
+    path("financeiro/movimentacoes-caixa/", operations_views.screen, {"kind":"caixa"}, name="workspace_caixa"),
+    path("crm/automacoes/", operations_views.screen, {"kind":"automacoes"}, name="workspace_automacoes"),
+    path("financeiro/contas-a-pagar/", operations_views.screen, {"kind":"pagar"}, name="workspace_pagar"),
+    path("financeiro/contas-a-receber/", operations_views.screen, {"kind":"receber"}, name="workspace_receber"),
+    path("financeiro/metas/", operations_views.screen, {"kind":"metas"}, name="workspace_metas"),
+    path("cadastros/fornecedores/<int:pk>/excluir/", registration_views.supplier_delete, name="supplier_delete"),
+    path("cadastros/<slug:kind>/", registration_views.registration_list, name="registration_list"),
+    path("cadastros/<slug:kind>/novo/", registration_views.registration_form, name="registration_new"),
+    path("cadastros/<slug:kind>/<int:pk>/", registration_views.registration_form, name="registration_edit"),
     path("cardapio/m/<uuid:token>/meus-pedidos/", cozinha_views.meus_pedidos_mesa, name="meus_pedidos_mesa"),
     path("admin/login/", RedirectView.as_view(pattern_name="login", query_string=True)),
     path("admin/", admin.site.urls),

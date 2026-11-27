@@ -24,6 +24,9 @@ AREAS_PADRAO_VENDEDOR = {"pdv", "financeiro"}  # financeiro aqui só cobre a tel
 
 
 def _area_da_url(path):
+    if path.startswith("/cadastros/"):
+        kind = path.split("/")[2]
+        return {"clientes": "crm", "produtos": "catalogo", "categorias": "catalogo", "fornecedores": "suprimentos"}.get(kind, "admin_completo")
     for prefixo, area in MAPA_AREAS.items():
         if path.startswith(prefixo):
             return area
@@ -66,6 +69,9 @@ class ControleDeAreaMiddleware:
         if "*" in permitidas or area in permitidas:
             return self.get_response(request)
 
+        if request.path.startswith("/cadastros/"):
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Seu perfil não tem acesso a essa área do sistema.")
         messages.error(request, "Seu perfil não tem acesso a essa área do sistema.")
         return redirect("/")
 

@@ -1,0 +1,43 @@
+name: Logout hotfix
+on:
+  push:
+    branches: [hotfix/logout-post]
+  pull_request:
+    paths: ['templates/base.html', '.github/workflows/logout-hotfix.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: 'True'
+      SECRET_KEY: ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -r requirements.txt
+      - run: python manage.py migrate --noinput
+      - name: Verify logout and CSRF
+        run: |
+          python manage.py shell <<'PY'
+          from django.test import Client, override_settings
+          from django.contrib.auth import get_user_model
+          from django.middleware.csrf import get_token
+          from django.test import RequestFactory
+          from pathlib import Path
+          t=Path('templates/base.html').read_text()
+          assert 'method="post" action="{% url \'logout\' %}"' in t and '{% csrf_token %}' in t
+          with override_settings(ALLOWED_HOSTS=['testserver']):
+              u=get_user_model().objects.create_user(username='ci_logout',password='temporary-ci-password')
+              c=Client(enforce_csrf_checks=True); c.force_login(u)
+              assert c.get('/logout/').status_code==405
+              assert c.post('/logout/').status_code==403
+              req=RequestFactory().get('/'); token=get_token(req)
+              c.cookies['csrftoken']=req.META['CSRF_COOKIE']
+              response=c.post('/logout/',{'csrfmiddlewaretoken':token})
+              assert response.status_code==302 and response.url=='/login/'
+              assert '_auth_user_id' not in c.session
+          print('LOGOUT_OK')
+          PY
