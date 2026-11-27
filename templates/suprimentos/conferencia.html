@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Conferência de recebimento — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/supplies.css' %}">
 <style>
     .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
     .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
@@ -24,6 +26,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="supply-workspace">
 {% csrf_token %}
 <div class="topbar">
     <div>
@@ -57,7 +60,7 @@
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="ordem_id" value="{{ ordem.id }}">
-            <table>
+            <div class="supply-table-scroll"><table>
                 <thead><tr><th>Produto</th><th>Pedido</th><th>Já recebido</th><th>Recebendo agora</th></tr></thead>
                 <tbody>
                     {% for item in ordem.itens.all %}
@@ -76,7 +79,7 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-            </table>
+            </table></div>
             <button type="submit" class="btn-acao">Confirmar recebimento</button>
         </form>
         <div style="margin-top: 10px; font-size: 12px; color: var(--text-faint);">
@@ -87,5 +90,6 @@
         <div class="empty-row">Selecione uma ordem à esquerda pra conferir o recebimento.</div>
         {% endif %}
     </div>
+</div>
 </div>
 {% endblock %}

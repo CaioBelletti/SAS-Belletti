@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Composição de estoque — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/supplies.css' %}">
 <style>
     .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
     .msg.error { background: #f26d6d22; color: #f26d6d; border: 1px solid #f26d6d55; }
@@ -21,6 +23,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="supply-workspace">
 <div class="topbar">
     <div>
         <h1>Composição de estoque</h1>
@@ -39,7 +42,7 @@
     {% if not produtos_compostos %}
     <div class="empty-row">
         Nenhum produto com componentes cadastrados ainda. Vá em
-        <a href="/admin/catalogo/produto/" style="color: var(--accent-text);">Produtos</a>,
+        <a href="{% url 'registration_list' 'produtos' %}" style="color: var(--accent-text);">Produtos</a>,
         abra o item que é o kit/combo/booster box, e cadastre os componentes na seção
         "Produto composto" da ficha dele.
     </div>
@@ -68,5 +71,6 @@
         (ex: juntar produtos avulsos pra formar um Combo).
     </div>
     {% endif %}
+</div>
 </div>
 {% endblock %}

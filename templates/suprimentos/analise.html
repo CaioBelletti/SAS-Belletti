@@ -1,7 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Análise de compras — Belletti Cards Universe{% endblock %}
 
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/supplies.css' %}">{% endblock %}
 {% block content %}
+<div class="supply-workspace">
 <div class="topbar">
     <div>
         <h1>Análise de compras</h1>
@@ -12,7 +15,7 @@
 <div class="grid grid-2">
     <div class="card">
         <div class="card-title">Preço médio de compra por produto</div>
-        <table>
+        <div class="supply-table-scroll"><table>
             <thead><tr><th>Produto</th><th>Preço médio</th><th>Menor preço já pago</th><th>Qtd recebida</th></tr></thead>
             <tbody>
                 {% for p in preco_medio_produtos %}
@@ -26,12 +29,12 @@
                 <tr><td colspan="4" class="empty-row">Nenhum recebimento registrado ainda.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
 
     <div class="card">
         <div class="card-title">Ranking de fornecedores</div>
-        <table>
+        <div class="supply-table-scroll"><table>
             <thead><tr><th>Fornecedor</th><th>Avaliação</th><th>Ordens</th><th>Valor total</th><th>Prazo médio</th><th>Atraso médio</th></tr></thead>
             <tbody>
                 {% for r in ranking_fornecedores %}
@@ -53,11 +56,12 @@
                 <tr><td colspan="6" class="empty-row">Nenhum recebimento registrado ainda.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
         <div style="margin-top: 10px; font-size: 11.5px; color: var(--text-faint);">
             Prazo médio = quantos dias, em média, esse fornecedor demora do pedido até a entrega.
             Atraso médio = diferença entre a data prevista e a data real (negativo = adiantado, positivo = atrasou).
         </div>
     </div>
+</div>
 </div>
 {% endblock %}

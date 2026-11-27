@@ -27,6 +27,16 @@ WIDGETS_PADRAO = [
     ("heatmap", "Heatmap de vendas", "relatorios/widgets/heatmap.html"),
 ]
 
+SECOES_WIDGETS = {
+    "central_alertas": "geral", "pedidos_andamento": "geral", "meta_reestoque": "geral estoque",
+    "produtos_parados": "estoque", "quick_panel": "vendas", "comparacoes": "vendas",
+    "indicadores": "financeiro", "fluxo_completo": "financeiro", "aniversariantes": "geral",
+    "vendas_mes": "vendas", "lucro_mes": "financeiro", "receita_dia_semana": "vendas",
+    "comissao_abc": "vendas estoque", "fluxo_vencimentos": "financeiro", "dre": "financeiro",
+    "produtos_mais_horarios": "vendas", "produtos_menos_vendidos": "vendas estoque",
+    "giro_cobertura": "estoque", "heatmap": "analises",
+}
+
 WIDGETS_POR_ID = {w[0]: {"label": w[1], "template": w[2]} for w in WIDGETS_PADRAO}
 IDS_PADRAO = [w[0] for w in WIDGETS_PADRAO]
 
@@ -60,5 +70,6 @@ def montar_lista_widgets(preferencia):
             "label": info["label"],
             "template": info["template"],
             "oculto": wid in ocultos,
+            "secoes": SECOES_WIDGETS.get(wid, "analises"),
         })
     return widgets

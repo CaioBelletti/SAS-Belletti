@@ -1,7 +1,7 @@
 name: Belletti Auth validation
 on:
   push:
-    branches: [feature/auth-v2, 'release/auth-v2-rc*']
+    branches: [feature/auth-v2, 'release/auth-v2-rc*', feature/belletti-workspace-v1]
   pull_request:
     branches: [main]
 permissions:
@@ -51,4 +51,4 @@ jobs:
         run: |
           python manage.py shell -c "from django.db import connection; from crm.models import Tarefa; c=connection.cursor(); idx=connection.introspection.get_constraints(c,Tarefa._meta.db_table).get('crm_tarefa_origem_7bdb34_idx'); assert idx and idx['index'] and idx['columns']==['origem','referencia_modelo','referencia_id'], idx; print('CRM_INDEX_OK')"
       - run: python manage.py collectstatic --noinput
-      - run: python manage.py test seguranca.test_auth_v2 crm --noinput
+      - run: python manage.py test seguranca.test_auth_v2 crm core.test_workspace vendas financeiro.test_workspace --noinput

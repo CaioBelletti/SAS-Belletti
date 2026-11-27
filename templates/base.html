@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/workspace.css' %}">
+    <link rel="stylesheet" href="{% static 'css/interactions.css' %}">
+    <script defer src="{% static 'js/workspace.js' %}"></script>
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <link rel="icon" href="{% static 'icons/icon-192.png' %}">
     <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
@@ -100,10 +103,10 @@
             <details class="nav-group" data-group="cadastros">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Cadastros</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
-                    <a href="/admin/vendas/cliente/">Clientes</a>
-                    <a href="/admin/suprimentos/fornecedor/">Fornecedores</a>
-                    <a href="/admin/catalogo/produto/">Produtos</a>
-                    <a href="/admin/catalogo/categoria/">Categorias</a>
+                    {% if perms.vendas.view_cliente %}<a href="{% url 'registration_list' 'clientes' %}">Clientes</a>{% endif %}
+                    {% if perms.suprimentos.view_fornecedor %}<a href="{% url 'registration_list' 'fornecedores' %}">Fornecedores</a>{% endif %}
+                    {% if perms.catalogo.view_produto %}<a href="{% url 'registration_list' 'produtos' %}">Produtos</a>{% endif %}
+                    {% if perms.catalogo.view_categoria %}<a href="{% url 'registration_list' 'categorias' %}">Categorias</a>{% endif %}
                     <a href="{% url 'catalogo:etiquetas' %}">Etiquetas com código de barras</a>
                     <a href="{% url 'catalogo:consulta_carta' %}">Consulta de carta (preço/edição)</a>
                     <a href="{% url 'catalogo:composicao' %}">Composição (kits/combos/booster box)</a>
@@ -116,8 +119,8 @@
             <details class="nav-group" data-group="suprimentos">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 8.3L12 13l8.7-4.7"/><path d="M12 22V13"/></svg> Suprimentos</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
-                    <a href="/admin/catalogo/movimentacaoestoque/">Movimentações de estoque</a>
-                    <a href="/admin/suprimentos/ordemcompra/">Ordens de compra</a>
+                    {% if perms.catalogo.view_movimentacaoestoque %}<a href="{% url 'catalogo:movimentacoes' %}">Movimentações de estoque</a>{% endif %}
+                    {% if perms.suprimentos.view_ordemcompra %}<a href="{% url 'suprimentos:ordens' %}">Ordens de compra</a>{% endif %}
                     <a href="{% url 'suprimentos:conferencia' %}">Conferência de recebimento</a>
                     <a href="{% url 'suprimentos:cotacoes' %}">Cotações</a>
                     <a href="{% url 'suprimentos:analise' %}">Análise de compras</a>
@@ -128,7 +131,7 @@
             <details class="nav-group" data-group="vendas">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg> Vendas</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
-                    <a href="/admin/vendas/venda/">Vendas</a>
+                    {% if perms.vendas.view_venda %}<a href="{% url 'vendas:historico' %}">Vendas</a>{% endif %}
                 </div>
             </details>
 
@@ -139,32 +142,26 @@
                     <a href="{% url 'crm:tarefas' %}">Tarefas</a>
                     <a href="{% url 'crm:agenda' %}">Agenda</a>
                     <a href="{% url 'crm:propostas' %}">Propostas</a>
-                    <a href="/admin/crm/configuracaocrm/">Configurar automações</a>
+                    <a href="{% url 'workspace_automacoes' %}">Configurar automações</a>
                 </div>
             </details>
 
             <details class="nav-group" data-group="financas">
                 <summary><span style="display:flex; align-items:center; gap:10px;"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg> Finanças</span> <span class="chev">›</span></summary>
                 <div class="nav-sub">
-                    <a href="/admin/financeiro/movimentocaixa/">Caixa</a>
-                    <a href="/admin/financeiro/contapagar/">Contas a pagar</a>
-                    <a href="/admin/financeiro/contareceber/">Contas a receber</a>
+                    <a href="{% url 'workspace_caixa' %}">Caixa</a>
+                    <a href="{% url 'workspace_pagar' %}">Contas a pagar</a>
+                    <a href="{% url 'workspace_receber' %}">Contas a receber</a>
                     <a href="{% url 'financeiro:lancar_parcelado' %}">Lançar conta parcelada</a>
                     <a href="{% url 'financeiro:bancos' %}">Bancos e conciliação</a>
-                    <a href="/admin/relatorios/metamensal/">Metas mensais</a>
+                    <a href="{% url 'workspace_metas' %}">Metas mensais</a>
                 </div>
             </details>
             {% endif %}
             </div>
 
             <div class="sidebar-bottom">
-                <div class="crown-card">
-                    <div class="crown-icon">👑</div>
-                    <div class="crown-title">Belletti Cards Universe</div>
-                    <div class="crown-sub">Gestão inteligente para o seu negócio crescer sempre.</div>
-                </div>
-
-                <div class="sidebar-footer">
+                <details class="workspace-account"><summary title="Conta e configurações"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>{{ request.user.username|default:"Conta" }}</span><span class="workspace-account-chevron">⌃</span></summary><div class="sidebar-footer">
                     {% if request.user.is_authenticated %}
                     <a href="{% url 'seguranca:configurar_2fa' %}"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Segurança (2FA)</a>
                     {% endif %}
@@ -182,10 +179,17 @@
                     </form>
                     {% endif %}
                 </div>
+            </details>
             </div>
         </aside>
 
-        <main class="main">
+        <main class="main" id="workspaceMain">
+            <header class="workspace-bar" aria-label="Ferramentas do espaço de trabalho">
+                <button class="workspace-control workspace-dock-toggle" id="workspaceDock" type="button" aria-controls="sidebarPrincipal" aria-expanded="true" title="Recolher navegação">☰ <span>Menu</span></button>
+                <button class="workspace-search" id="workspaceSearch" type="button"><span>Buscar no menu…</span></button>
+                <div class="workspace-actions"><button class="workspace-control" id="workspaceTheme" type="button" aria-label="Alternar tema">Tema</button><span class="workspace-user">{{ request.user.get_short_name|default:request.user.username }}</span></div>
+            </header>
+            <dialog id="workspacePalette" class="workspace-palette" aria-labelledby="workspacePaletteTitle"><div class="workspace-palette-head"><label id="workspacePaletteTitle" for="workspaceQuery">Ir para</label><button type="button" id="workspaceClose" aria-label="Fechar busca">✕</button></div><input id="workspaceQuery" type="search" placeholder="Pesquisar páginas disponíveis…" autocomplete="off"><div id="workspaceResults" class="workspace-results"></div></dialog>
             {% block content %}{% endblock %}
         </main>
     </div>

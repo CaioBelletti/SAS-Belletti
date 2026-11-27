@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Consulta de carta — Belletti Cards Universe{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/supplies.css' %}">
 <style>
     .jogo-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
     .jogo-tabs a {
@@ -29,6 +31,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="supply-workspace">
 {% csrf_token %}
 <div class="topbar">
     <div>
@@ -77,5 +80,6 @@
 <div style="margin-top: 16px; font-size: 11.5px; color: var(--text-faint);">
     Preços de referência vêm do mercado americano (TCGplayer/Cardmarket, conforme a fonte) — servem como
     ponto de partida, não como o preço que você deve cobrar. Câmbio e mercado local (BR) podem variar bastante.
+</div>
 </div>
 {% endblock %}

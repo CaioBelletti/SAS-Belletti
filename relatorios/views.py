@@ -101,6 +101,7 @@ def exportar_excel(request):
 @user_passes_test(lambda u: u.is_staff, login_url="/login/")
 def dashboard(request):
     contexto = montar_contexto_dashboard()
+    contexto["dashboard_secoes"] = [("geral", "Visão geral"), ("vendas", "Vendas"), ("financeiro", "Financeiro"), ("estoque", "Estoque"), ("analises", "Análises"), ("todos", "Todos")]
     preferencia = PreferenciaDashboard.objects.filter(usuario=request.user).first()
     contexto["widgets"] = montar_lista_widgets(preferencia)
     return render(request, "relatorios/dashboard.html", contexto)
