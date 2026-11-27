@@ -69,6 +69,9 @@ class ControleDeAreaMiddleware:
         if "*" in permitidas or area in permitidas:
             return self.get_response(request)
 
+        if request.path.startswith("/cadastros/"):
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Seu perfil não tem acesso a essa área do sistema.")
         messages.error(request, "Seu perfil não tem acesso a essa área do sistema.")
         return redirect("/")
 
