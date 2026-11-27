@@ -211,6 +211,18 @@
       *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; scroll-behavior:auto!important; }
     }
 
+
+/* Mobile-first purchase hierarchy */
+#openCart{background:#7950d6;border-color:#a983ff;color:#fff;font-weight:750}
+.cart-inline-total{display:inline!important;font-size:.85em}
+.experience-actions .quick{background:rgba(27,20,39,.8);border:1px solid #a983ff}
+.orders-shortcut{display:block;width:100%;margin-top:10px;padding:11px 14px;text-align:left;border:1px solid #ffffff35;border-radius:14px;background:rgba(24,18,34,.85);color:#fff;font:inherit}
+.orders-shortcut small{display:block;color:#d2c5e4;margin-top:3px}
+.purchase-dock{position:fixed;z-index:80;bottom:calc(10px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min( calc(100% - 28px), 520px);border:1px solid #b99aff;border-radius:16px;background:#7040c8;color:white;padding:15px;font:inherit;font-weight:750;box-shadow:0 8px 30px #0009}
+.purchase-dock[hidden]{display:none!important}
+body{padding-bottom:90px}.mini,.desc,.time{color:#c9bfd3}
+@media(max-width:600px){.hero{padding-top:20px;padding-bottom:18px}.hero h1{font-size:clamp(29px,8vw,40px)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 <style>
 .hero { isolation:isolate; }
@@ -272,8 +284,10 @@ main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
       {% if pratos_sem_categoria %}<button class="cat" data-cat="sem-categoria">Outros</button>{% endif %}
     </div>
     <div class="experience-actions"><button id="openCart" class="experience-action">Meu carrinho <span id="cartCount">0</span><span id="cartTotal" class="cart-inline-total">R$ 0,00</span></button>{% if mesa %}<button class="quick experience-action" data-call="atendente">Chamar garçom</button>{% endif %}</div>
+    {% if mesa %}<button class="orders-shortcut" id="ordersShortcut">Meus pedidos <small id="ordersShortcutText">Consultar seus pedidos desta mesa</small></button>{% endif %}
   </div></div>
 
+  <button id="purchaseDock" class="purchase-dock" hidden>Ver carrinho</button>
   <main><h2 class="explore-title">Explore o cardápio</h2>
     {% for categoria in categorias %}
     <section class="menu-section" data-section="cat-{{ categoria.id }}">
@@ -407,6 +421,7 @@ function renderCart() {
   });
   document.getElementById('cartCount').textContent = count;
   document.getElementById('cartTotal').textContent = money(total);
+  const dock=document.getElementById('purchaseDock');if(dock){dock.textContent='Ver carrinho · '+count+' item(ns) · '+money(total);dock.dataset.count=count;dock.hidden=count===0||dock.dataset.topVisible!=='false';}
   document.getElementById('sheetTotal').textContent = money(total);
   document.getElementById('cartItems').innerHTML = html || '<p style="color:var(--text-muted);text-align:center;padding:24px">Seu carrinho está vazio.</p>';
 }
@@ -638,5 +653,9 @@ renderCart();
 const myOrders=document.getElementById('myOrders');
 if(myOrders)myOrders.addEventListener('toggle',async()=>{if(!myOrders.open)return;const list=document.getElementById('myOrdersList');const token=safeStorageGet(PARTICIPANT_KEY,'');if(!token){list.textContent='Você ainda não tem pedidos neste dispositivo.';return;}list.textContent='Consultando...';try{const r=await fetch('{% url "meus_pedidos_mesa" mesa.token_publico %}',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({participante_token:token})});if(!r.ok)throw Error();const d=await r.json();list.replaceChildren();if(!d.pedidos.length)list.textContent='Nenhum pedido nesta comanda.';for(const p of d.pedidos){const el=document.createElement('div');el.className='player-chip';el.textContent='Pedido #'+p.numero+' · '+p.status+' · R$ '+Number(p.total).toFixed(2).replace('.',',');list.appendChild(el);}}catch(e){list.textContent='Não foi possível consultar seus pedidos. Feche e abra para tentar novamente.';}});
 {% endif %}
+
+const purchaseDock=document.getElementById('purchaseDock'), topCart=document.getElementById('openCart');
+if(purchaseDock&&topCart){purchaseDock.onclick=()=>topCart.click();if('IntersectionObserver' in window)new IntersectionObserver(entries=>{const visible=entries[0].isIntersecting;purchaseDock.dataset.topVisible=String(visible);purchaseDock.hidden=visible||!Number(purchaseDock.dataset.count);}).observe(topCart);document.addEventListener('focusin',e=>{if(e.target.matches('input,textarea,select'))purchaseDock.hidden=true;});document.addEventListener('focusout',()=>{purchaseDock.hidden=purchaseDock.dataset.topVisible!=='false'||!Number(purchaseDock.dataset.count);});}
+const ordersShortcut=document.getElementById('ordersShortcut');if(ordersShortcut)ordersShortcut.onclick=()=>{const section=document.getElementById('myOrders');if(section){section.open=true;section.scrollIntoView({block:'start',behavior:'smooth'});}};
 </script>
 </body></html>
