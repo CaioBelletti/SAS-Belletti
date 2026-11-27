@@ -41,9 +41,10 @@ class PeriodoDashboardTests(TestCase):
     def test_receita_concilia_com_pdv(self):
         from decimal import Decimal
         from django.utils import timezone
-        from catalogo.models import Produto
+        from catalogo.models import Produto, Categoria
         from vendas.models import Venda, ItemVenda
-        produto = Produto.objects.create(sku="RC9-TEST", nome="Teste", preco_venda=Decimal("50"), preco_custo=Decimal("20"))
+        categoria = Categoria.objects.create(nome="Teste RC9")
+        produto = Produto.objects.create(categoria=categoria, sku="RC9-TEST", nome="Teste", preco_venda=Decimal("50"), preco_custo=Decimal("20"))
         venda = Venda.objects.create(status="fechada", fechada_em=timezone.now(), desconto=Decimal("10"), acrescimo=Decimal("3"))
         ItemVenda.objects.create(venda=venda, produto=produto, quantidade=2, preco_unitario=Decimal("50"), desconto=Decimal("5"))
         ItemVenda.objects.create(venda=venda, produto=produto, quantidade=1, preco_unitario=Decimal("20"), desconto=Decimal("25"))
