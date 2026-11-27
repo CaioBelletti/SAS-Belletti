@@ -183,7 +183,7 @@ def montar_contexto_dashboard(meses=12):
     for _ in range(meses):
         item = mapa_mes.get(cursor)
         labels_mes.append(f"{MESES_PT[cursor.month - 1]}/{str(cursor.year)[2:]}")
-        valores_mes.append(float(item["valor"]) if item else 0)
+        valores_mes.append(float(item["valor"] or 0) if item else 0)
         cursor = cursor + relativedelta(months=1)
 
     # --- Top produtos mais vendidos --------------------------------------------
