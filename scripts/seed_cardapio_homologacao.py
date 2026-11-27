@@ -15,15 +15,3 @@ for nome, grupo in (("Espetinho de kafta", "Espetos"), ("Porção de batatas", "
     Prato.objects.filter(nome=nome, descricao="Produto fictício de homologação").update(categoria=categoria_real)
 if not categoria.pratos.exists():
     categoria.delete()
-
-# Conta exclusiva para validação temporária da homologação. Nunca altera conta existente.
-from django.contrib.auth import get_user_model
-from django.conf import settings
-if "cardapio-homologacao-homologacao.up.railway.app" not in settings.ALLOWED_HOSTS:
-    raise RuntimeError("Conta de teste permitida somente no host de homologação")
-User = get_user_model()
-user, created = User.objects.get_or_create(username="teste_rc8", defaults={
-    "is_active": True, "is_staff": True, "is_superuser": True,
-    "password": "pbkdf2_sha256$1000000$b44bf4e4f0417d2c7a7538e5$bUer84RBXXpkqkEwgAMNuBzXD3+l2aVldUu0MTzvS0w=",
-})
-print("Conta teste_rc8 criada" if created else "Conta teste_rc8 já existente; não alterada")
