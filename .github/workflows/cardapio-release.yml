@@ -1,0 +1,42 @@
+name: Cardapio release gate
+on:
+  push:
+    branches: ['release/cardapio-producao-rc*']
+  pull_request:
+    branches: ['release/cardapio-producao-rc*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: cardapio_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    env:
+      DEBUG: 'False'
+      DATABASE_URL: postgres://ci:ci@localhost:5432/cardapio_ci
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      CSRF_TRUSTED_ORIGINS: https://localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -r requirements.txt
+      - name: Generate ephemeral CI secret
+        run: echo "SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(64))')" >> "$GITHUB_ENV"
+      - name: Preflight
+        run: sh scripts/check_cardapio_release.sh
+      - name: Migrate disposable database
+        run: python manage.py migrate --noinput
+      - name: Django tests
+        run: python manage.py test cozinha seguranca --noinput
