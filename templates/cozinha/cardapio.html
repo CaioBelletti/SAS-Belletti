@@ -275,7 +275,10 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .search,.my-table,.product,.promo-card,.favorite,.rating-card,.smart-table{background:rgba(35,28,46,.84)!important;border:1px solid rgba(220,202,235,.2)!important;border-radius:15px!important;box-shadow:none!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .search{color:#fff!important}.search::placeholder{color:#bcb3c7}.products{gap:12px!important}.product{overflow:hidden!important}.photo{border-radius:0!important;background:#30243e!important}.cat,.quick{background:rgba(35,28,46,.8)!important;color:#eee7f4!important;border:1px solid rgba(220,202,235,.24)!important;border-radius:999px!important}.cat.active,.add,.send,.purchase-dock{background:#8050d7!important;color:#fff!important;border-color:#a780ec!important}.add{border-radius:12px!important}.sheet{background:#20192b!important;color:#fff!important}.sheet input,.sheet textarea{background:#30263d!important;color:#fff!important}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.search,.my-table,.product{background:#241c30!important}}
-</style><style>.hero{padding:20px 0 12px!important;border:0!important}.header-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.header-top .brand{font-size:clamp(11px,3vw,15px)!important;letter-spacing:.07em;display:flex;align-items:center;gap:7px;margin:0!important}.brand-dot{width:24px;height:24px;object-fit:contain}.header-top .mesa-chip{margin:0!important;white-space:nowrap;font-size:12px;padding:6px 10px;border:1px solid rgba(228,182,110,.4);border-radius:999px}.hero h1{font-size:clamp(30px,6vw,42px)!important;line-height:1.1!important;margin:0 0 5px!important}.hero p{font-size:14px!important;margin:0!important;color:#c8bdcf!important}.toolbar{padding-top:8px!important}.my-table-content .summary{margin:0 0 12px!important}</style></head>
+</style><style>.hero{padding:20px 0 12px!important;border:0!important}.header-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.header-top .brand{font-size:clamp(11px,3vw,15px)!important;letter-spacing:.07em;display:flex;align-items:center;gap:7px;margin:0!important}.brand-dot{width:24px;height:24px;object-fit:contain}.header-top .mesa-chip{margin:0!important;white-space:nowrap;font-size:12px;padding:6px 10px;border:1px solid rgba(228,182,110,.4);border-radius:999px}.hero h1{font-size:clamp(30px,6vw,42px)!important;line-height:1.1!important;margin:0 0 5px!important}.hero p{font-size:14px!important;margin:0!important;color:#c8bdcf!important}.toolbar{padding-top:8px!important}.my-table-content .summary{margin:0 0 12px!important}</style><style>
+#cartOverlay .cart-item,#cartOverlay .total{background:rgba(255,255,255,.045)!important;color:#faf7fc!important;border:1px solid rgba(220,202,235,.16)!important;border-radius:12px;padding:12px;margin-bottom:10px}#cartOverlay .cart-item strong,#cartOverlay .total{color:#faf7fc!important}#cartOverlay .close,#cartOverlay .qty button{background:#3d2d50!important;color:#f5edff!important;border:1px solid #655078!important}#cartOverlay .field label{color:#cbbfd5!important}#cartOverlay .sheet{max-height:90dvh;overflow-y:auto}
+main>.my-table{width:fit-content;max-width:100%;min-width:150px;margin:28px 0 90px!important}main>.my-table>summary{padding:10px 14px!important;font-size:13px}main>.my-table[open]{width:min(100%,520px)}
+</style></head>
 <body>
 {% csrf_token %}
 <div class="shell">
@@ -289,16 +292,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
       {% if pratos_sem_categoria %}<button class="cat" data-cat="sem-categoria">Outros</button>{% endif %}
     </div>
     <button id="openCart" hidden>Meu carrinho <span id="cartCount">0</span><span id="cartTotal">R$ 0,00</span></button>
-    {% if mesa %}<details class="my-table"><summary>Minha mesa <span>⌄</span></summary><div class="my-table-content">{% if comanda %}
-    <div class="summary">
-      <div class="summary-card"><small>Consumo da mesa</small><strong>R$ {{ comanda.valor_total|floatformat:2 }}</strong></div>
-      <div class="summary-card"><small>Pedidos realizados</small><strong>{{ pedidos_mesa|length }}</strong></div>
-    </div>
-    {% endif %}
-    <button class="quick" data-call="atendente">Chamar garçom</button>
-    <details class="smart-table" id="myOrders"><summary class="smart-head">Meus pedidos</summary><div id="myOrdersList" class="players">Abra para consultar.</div></details>
-    <div class="quick-actions"><button class="quick" data-call="fechamento">Pedir a conta</button><button class="quick" data-call="talheres">Pedir talheres</button><button class="quick" data-call="guardanapo">Pedir guardanapos</button></div>
-    </div></details>{% endif %}
+    
   </div></div>
 
   <button id="purchaseDock" class="purchase-dock" hidden>Ver carrinho</button>
@@ -355,6 +349,16 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
       <textarea id="ratingComment" rows="2" placeholder="Conte como foi sua experiência (opcional)"></textarea><button id="sendRating" type="button">Enviar avaliação</button>
     </section>
     {% endif %}
+  {% if mesa %}<details class="my-table"><summary>Minha mesa <span>⌄</span></summary><div class="my-table-content">{% if comanda %}
+    <div class="summary">
+      <div class="summary-card"><small>Consumo da mesa</small><strong>R$ {{ comanda.valor_total|floatformat:2 }}</strong></div>
+      <div class="summary-card"><small>Pedidos realizados</small><strong>{{ pedidos_mesa|length }}</strong></div>
+    </div>
+    {% endif %}
+    <button class="quick" data-call="atendente">Chamar garçom</button>
+    <details class="smart-table" id="myOrders"><summary class="smart-head">Meus pedidos</summary><div id="myOrdersList" class="players">Abra para consultar.</div></details>
+    <div class="quick-actions"><button class="quick" data-call="fechamento">Pedir a conta</button><button class="quick" data-call="talheres">Pedir talheres</button><button class="quick" data-call="guardanapo">Pedir guardanapos</button></div>
+    </div></details>{% endif %}
   </main>
 </div>
 
@@ -473,10 +477,12 @@ cartSheet.setAttribute('aria-label', 'Seu carrinho');
 openCartButton.setAttribute('aria-haspopup', 'dialog');
 function closeCart() {
   cartOverlay.classList.remove('open');
+  document.getElementById('purchaseDock').style.visibility = '';
   openCartButton.focus();
 }
 openCartButton.onclick = () => {
   cartOverlay.classList.add('open');
+  document.getElementById('purchaseDock').style.visibility = 'hidden';
   closeCartButton.focus();
 };
 closeCartButton.onclick = closeCart;
