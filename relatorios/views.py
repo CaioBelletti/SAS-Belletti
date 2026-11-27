@@ -487,7 +487,7 @@ def montar_contexto_dashboard(meses=12):
     cursor_dia = inicio_mes
     while cursor_dia <= hoje:
         labels_dia.append(cursor_dia.strftime("%d/%m"))
-        valores_dia.append(float(mapa_dia.get(cursor_dia, 0)))
+        valores_dia.append(float(mapa_dia.get(cursor_dia) or 0))
         cursor_dia += timedelta(days=1)
 
     # --- Receita semanal (últimas 9 semanas) -------------------------------------
@@ -505,7 +505,7 @@ def montar_contexto_dashboard(meses=12):
     cursor_semana = inicio_semanas
     for _ in range(9):
         labels_semana.append(cursor_semana.strftime("%d/%m"))
-        valores_semana.append(float(mapa_semana.get(cursor_semana, 0)))
+        valores_semana.append(float(mapa_semana.get(cursor_semana) or 0))
         cursor_semana += timedelta(weeks=1)
 
     # --- Fluxo de caixa completo: entradas x saídas (dia/semana/mês/ano) ---------
