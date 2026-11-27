@@ -260,7 +260,7 @@ main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
 :root{color-scheme:light;--bg-0:#faf7f1;--bg-1:#fff;--bg-2:#f3eee6;--text-primary:#28241f;--text-secondary:#6d655d;--border:#e5ddd2;--accent:#7053a1;--gold:#7053a1;--green:#7053a1}
 html,body{background:#faf7f1!important;color:#28241f!important;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{padding-bottom:90px}.shell{max-width:1000px;margin:auto;background:transparent!important}.experience-cover,.hero,.toolbar,main{background:transparent!important;box-shadow:none!important;border:0!important;backdrop-filter:none!important}
-.experience-cover::before,.experience-cover::after,.hero::before,.hero::after,.menu-scene,.eyebrow,.hero h1,.hero p,.motion-toggle,#openCart{display:none!important}
+.experience-cover::before,.experience-cover::after,.hero::before,.hero::after,.menu-scene,.eyebrow,.hero h1,.hero p,.motion-toggle,.scene-toggle,#openCart{display:none!important}
 .hero{padding:24px 20px 8px!important;min-height:0!important;text-align:left!important;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{color:#28241f!important;font-size:12px;letter-spacing:.08em;margin:0!important}.brand-dot{width:30px;height:30px}.mesa-chip{background:#eee7f5!important;color:#614786!important;border:0!important;margin:0!important;font-size:12px}
 .toolbar{padding:10px 20px 20px!important;position:static!important}.search{background:#fff!important;border:1px solid #e5ddd2!important;box-shadow:none!important;color:#6d655d!important}.search input{color:#28241f!important;background:transparent!important}.cats{display:flex;overflow-x:auto;flex-wrap:nowrap!important;gap:8px;padding:12px 0}.cat{background:transparent!important;border:1px solid #ded5c9!important;color:#62594f!important;white-space:nowrap}.cat.active{background:#7053a1!important;color:white!important;border-color:#7053a1!important}
 .my-table{border:1px solid #e5ddd2;border-radius:12px;background:#fff}.my-table>summary{padding:13px 15px;display:flex;justify-content:space-between;cursor:pointer;font-weight:650}.my-table-content{padding:0 12px 12px;display:grid;gap:8px}.quick,.smart-table{background:#f7f3ed!important;color:#302a25!important;border:1px solid #e5ddd2!important;box-shadow:none!important}.smart-head{color:#302a25!important}.players,.mini{color:#6d655d!important}
@@ -270,7 +270,7 @@ main{padding:0 20px!important}.explore-title{font-size:25px!important;color:#282
 <body>
 {% csrf_token %}
 <div class="shell">
-  <div class="experience-cover"><header class="hero"><div class="menu-scene" aria-hidden="true"></div>
+  <div class="experience-cover"><header class="hero">
     <div class="brand">
       <img class="brand-dot" src="{% static 'images/logo-icone.png' %}" alt="Belletti Cards Universe">
       BELLETTI CARDS UNIVERSE
