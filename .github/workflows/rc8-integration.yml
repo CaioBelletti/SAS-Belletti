@@ -1,0 +1,21 @@
+name: RC8 integration diagnostic
+on:
+  push:
+    branches: [release/belletti-integrado-rc8]
+permissions:
+  contents: read
+jobs:
+  merge-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identify conflicts
+        run: |
+          git config user.email "ci@example.invalid"
+          git config user.name "Integration CI"
+          git merge --no-commit --no-ff origin/feature/belletti-workspace-v1 || {
+            git diff --name-only --diff-filter=U
+            exit 1
+          }
