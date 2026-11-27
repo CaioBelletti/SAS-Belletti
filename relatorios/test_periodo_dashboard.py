@@ -55,3 +55,10 @@ class PeriodoDashboardTests(TestCase):
         wb = load_workbook(BytesIO(excel.content), read_only=True)
         resumo = dict((row[0], row[1]) for row in wb["Resumo"].values if len(row) > 1 and row[0])
         self.assertEqual(Decimal(str(resumo["Total de vendas (12 meses)"])), venda.total)
+
+        from vendas.models import Devolucao, ItemDevolucao
+        devolucao = Devolucao.objects.create(venda=venda, processada=True, processada_em=timezone.now())
+        ItemDevolucao.objects.create(devolucao=devolucao, produto=produto, quantidade=1, preco_unitario=Decimal("20"))
+        response = self.client.get("/relatorios/")
+        self.assertEqual(response.context["valor_devolucoes"], Decimal("20"))
+        self.assertEqual(response.context["receita_liquida"], Decimal("68"))
