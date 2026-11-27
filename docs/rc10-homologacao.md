@@ -20,3 +20,9 @@ Novos: `cozinha/test_carrinho_garcom.py`, `financeiro/test_conciliacao.py`. CI: 
 ## CI
 O push do workflow foi recusado (a GitHub App não tem a permissão `workflows`). O arquivo pronto está em `docs/ci/integracao-ci.yml`:
 copiar para `.github/workflows/integracao-ci.yml` com um token que tenha essa permissão.
+
+## Deploy RC10
+- Deployment 96a474b6 (SUCCESS), branch `integration/cardapio-workspace-rc10`, SHA `e4e9c2fb6e371c00025ea339d3ed0351ff2d14ee`.
+- Pre-deploy: "No migrations to apply"; seed idempotente; 17 testes de cozinha OK (banco de teste separado, destruído ao fim). Gunicorn iniciou na 8080.
+- HTTP anônimo: `/login/` 200; `/relatorios/`, `/relatorios/exportar/`, `/financeiro/bancos/`, `/admin/` e `/cozinha/garcom/` redirecionam ao login; estáticos 200.
+- Não executado: login autenticado e ponta a ponta com dados sintéticos (sem credenciais de teste na sessão; criar dados exigiria escrever no banco de homologação sem rotina de limpeza por ID).
