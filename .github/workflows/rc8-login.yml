@@ -1,0 +1,32 @@
+name: RC8 login smoke
+on:
+  push:
+    branches: [release/cardapio-producao-rc8]
+permissions:
+  contents: read
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: 'False'
+      SECRET_KEY: ci-only-abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKLMNOPQRSTUVWXYZ-123456789
+      ALLOWED_HOSTS: localhost,testserver
+      DATABASE_URL: sqlite:///db.sqlite3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -r requirements.txt
+      - run: python manage.py migrate --noinput
+      - run: python manage.py collectstatic --noinput
+      - run: |
+          python - <<'PY'
+          import os
+          os.environ.setdefault("DJANGO_SETTINGS_MODULE","core.settings")
+          import django
+          django.setup()
+          from django.test import Client
+          r=Client().get("/login/",secure=True)
+          assert r.status_code==200,r.status_code
+          PY
