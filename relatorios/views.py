@@ -23,13 +23,18 @@ MESES_PT = [
 
 
 # Exportação em Excel reaproveita os mesmos dados do dashboard.
+def periodo_dashboard(request):
+    valor = request.GET.get("meses", "12")
+    return int(valor) if valor in {"1", "3", "6", "12"} else 12
+
+
 @user_passes_test(lambda u: u.is_staff, login_url="/login/")
 def exportar_excel(request):
     import openpyxl
     from django.http import HttpResponse
     from openpyxl.styles import Font
 
-    contexto = montar_contexto_dashboard()
+    contexto = montar_contexto_dashboard(periodo_dashboard(request))
     wb = openpyxl.Workbook()
 
     # --- Resumo -------------------------------------------------------------
@@ -39,7 +44,7 @@ def exportar_excel(request):
     ws["A1"].font = Font(bold=True, size=14)
     ws.append([])
     linhas_resumo = [
-        ("Total de vendas (12 meses)", contexto["total_valor"]),
+        (f"Total de vendas ({contexto['periodo_meses']} meses)", contexto["total_valor"]),
         ("Ticket médio", contexto["ticket_medio"]),
         ("Pedidos fechados", contexto["total_pedidos"]),
         ("Itens vendidos", contexto["produtos_vendidos"]),
@@ -100,7 +105,7 @@ def exportar_excel(request):
 # só com o PDV.
 @user_passes_test(lambda u: u.is_staff, login_url="/login/")
 def dashboard(request):
-    contexto = montar_contexto_dashboard()
+    contexto = montar_contexto_dashboard(periodo_dashboard(request))
     contexto["dashboard_secoes"] = [("geral", "Visão geral"), ("vendas", "Vendas"), ("financeiro", "Financeiro"), ("estoque", "Estoque"), ("analises", "Análises"), ("todos", "Todos")]
     preferencia = PreferenciaDashboard.objects.filter(usuario=request.user).first()
     contexto["widgets"] = montar_lista_widgets(preferencia)
@@ -129,14 +134,14 @@ def salvar_preferencia_dashboard(request):
     return JsonResponse({"ok": True})
 
 
-def montar_contexto_dashboard():
+def montar_contexto_dashboard(meses=12):
     """
     Monta todos os dados do dashboard. Extraído numa função à parte
     (em vez de ficar só dentro da view) pra poder ser reaproveitado
     também na exportação pra Excel, sem duplicar a lógica.
     """
     hoje = timezone.localdate()
-    inicio_periodo = (hoje.replace(day=1) - relativedelta(months=11))
+    inicio_periodo = (hoje.replace(day=1) - relativedelta(months=meses - 1))
 
     vendas_fechadas = Venda.objects.filter(status="fechada")
     vendas_periodo = vendas_fechadas.filter(fechada_em__date__gte=inicio_periodo)
@@ -175,7 +180,7 @@ def montar_contexto_dashboard():
     labels_mes = []
     valores_mes = []
     cursor = inicio_periodo
-    for _ in range(12):
+    for _ in range(meses):
         item = mapa_mes.get(cursor)
         labels_mes.append(f"{MESES_PT[cursor.month - 1]}/{str(cursor.year)[2:]}")
         valores_mes.append(float(item["valor"]) if item else 0)
@@ -449,7 +454,7 @@ def montar_contexto_dashboard():
     labels_lucro = []
     valores_lucro = []
     cursor_lucro = inicio_periodo
-    for _ in range(12):
+    for _ in range(meses):
         fim_mes_cursor = cursor_lucro + relativedelta(months=1) - timedelta(days=1)
         if fim_mes_cursor > hoje:
             fim_mes_cursor = hoje
@@ -538,7 +543,7 @@ def montar_contexto_dashboard():
         TruncWeek, lambda d: d.strftime("%d/%m"), inicio_semanas, 9, lambda d: d + timedelta(weeks=1),
     )
     fluxo_mes_labels, fluxo_mes_entradas, fluxo_mes_saidas = _fluxo_por_bucket(
-        TruncMonth, lambda d: f"{MESES_PT[d.month - 1]}/{str(d.year)[2:]}", inicio_periodo, 12,
+        TruncMonth, lambda d: f"{MESES_PT[d.month - 1]}/{str(d.year)[2:]}", inicio_periodo, meses,
         lambda d: d + relativedelta(months=1),
     )
 
@@ -726,6 +731,8 @@ def montar_contexto_dashboard():
     )
 
     contexto = {
+        "periodo_meses": meses,
+        "periodo_opcoes": (1, 3, 6, 12),
         "total_valor": total_valor,
         "total_pedidos": total_pedidos,
         "ticket_medio": ticket_medio,
