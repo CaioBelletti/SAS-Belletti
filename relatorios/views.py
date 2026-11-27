@@ -27,7 +27,7 @@ def vendas_com_total(queryset):
     moeda = DecimalField(max_digits=20, decimal_places=2)
     zero = Value(Decimal("0"), output_field=moeda)
     itens = (ItemVenda.objects.filter(venda_id=OuterRef("pk")).order_by()
-             .values("venda_id").annotate(valor=Sum(F("quantidade") * F("preco_unitario")))
+             .values("venda_id").annotate(valor=Sum(Greatest(F("quantidade") * F("preco_unitario") - F("desconto"), zero, output_field=moeda)))
              .values("valor")[:1])
     return queryset.annotate(total_pdv=Greatest(
         Coalesce(Subquery(itens, output_field=moeda), zero) - F("desconto") + F("acrescimo"),
