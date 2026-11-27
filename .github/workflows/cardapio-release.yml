@@ -51,6 +51,11 @@ jobs:
           response = Client(HTTP_HOST="localhost").get("/admin/login/")
           assert response.status_code == 301, response.status_code
           assert response["Location"] == "https://localhost/admin/login/"
+          from django.urls import reverse
+          secure_response = Client(HTTP_HOST="localhost").get("/admin/login/", secure=True)
+          assert secure_response.status_code == 302, secure_response.status_code
+          assert secure_response["Location"] == reverse("login"), secure_response["Location"]
+
           PY
       - name: Django tests
         run: |
