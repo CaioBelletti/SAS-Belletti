@@ -38,6 +38,20 @@ jobs:
         run: sh scripts/check_cardapio_release.sh
       - name: Migrate disposable database
         run: python manage.py migrate --noinput
+      - name: Verify HTTPS redirect with production settings
+        run: |
+          python - <<'PY'
+          import os
+          os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+          import django
+          django.setup()
+          from django.conf import settings
+          from django.test import Client
+          assert settings.SECURE_SSL_REDIRECT is True
+          response = Client(HTTP_HOST="localhost").get("/admin/login/")
+          assert response.status_code == 301, response.status_code
+          assert response["Location"] == "https://localhost/admin/login/"
+          PY
       - name: Django tests
         run: |
           python - <<'PY'
